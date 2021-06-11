@@ -1,0 +1,57 @@
+# helper functions (mmean, mmin, mmax, simple imputation)
+source('R_code/utils.R')
+
+# begin with demographic table
+sample_tab <- readRDS('R_data/subsample/sub_sample.rds')
+demo_vars <- c('ID','CaseControl',
+             'ageatindex','Gender','BMI','weight',
+             'Asian','Black','HawaiianPacific','IndianAlaskan',
+             'SmokeStatus',
+             'agentorange',
+             'GerdAtIndex',
+             'CHF','CTD','DEM','DIAB_C','HIV','MLD','MSLD','PARA','RD',
+             'cd','copd','diab_nc','mi','pud','pvd')
+
+complete_data <- sample_tab[,demo_vars]
+
+# event tables
+event_tables <- c('colonoscopy',
+                  'labs_fobt')
+# removed EGD and other procedures
+
+# join summary tables
+for(tab in event_tables){
+  print(paste0('For table ',tab,':'))
+  table <- readRDS(paste0('R_data/subsample/sub_',tab,'_summary.rds'))
+  complete_data <- left_join(complete_data,table,by="ID")
+  print('read in and join')
+  rm(table)
+}
+
+# medication table
+print('For table: allmeds')
+table <- readRDS('R_data/subsample/sub_allmeds_summary.rds')
+complete_data <- left_join(complete_data,table,by="ID")
+print('read in and join')
+rm(table)
+
+# valued tables
+value_tables <- c('labs_a1c',
+                  'labs_bmp',
+                  'labs_cbc',
+                  'labs_crp',
+                  'labs_lft',
+                  'labs_lipid')
+
+# join summary tables
+for(tab in value_tables){
+  print(paste0('For table ',tab,':'))
+  table <- readRDS(paste0('R_data/subsample/sub_',tab,'_summary.rds'))
+  complete_data <- left_join(complete_data,table,by="ID")
+  print('read in and join')
+  rm(table)
+}
+
+# save complete data
+saveRDS(complete_data,
+        file='R_data/subsample/sub_complete_data_raw.rds')
