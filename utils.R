@@ -44,6 +44,13 @@ fill_by_zero <- function(x) {
   x[is.na(x)] <- 0
   return(x)
 }
+# apply random sample imputation
+fill_by_sample <- function(x) {
+  imiss <- is.na(x)
+  nmiss <- sum(imiss)
+  x[imiss] <- sample(x[!imiss],nmiss,replace=TRUE)
+  return(x)
+}
 
 expit <- function(x){
   exp(x) / (1+exp(x))
