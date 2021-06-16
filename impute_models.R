@@ -134,7 +134,7 @@ impute_simple_multi <- function(df,responses,imiss,
   out[imiss,] <- 0
   wmiss <- which(imiss)
   for(ii in 1:sum(imiss)){
-    if(any(yimp[ii,])>.5){
+    if(any(yimp[ii,]>.5)){
       out[wmiss[ii],which.max(yimp[ii,])] <- 1
     }
   }

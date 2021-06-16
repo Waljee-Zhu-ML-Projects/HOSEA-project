@@ -144,7 +144,8 @@ for(cc in 1:ncycles){
         temp <- impute_simple_numeric(temp_data,
                                       complete_data_impute[[var]],
                                       imiss,
-                                      nneg=TRUE)
+                                      nneg=TRUE,
+                                      ridge=.1)
         # update complete_data_impute
         complete_data_impute[[var]] <- temp
         # print progress 
@@ -155,11 +156,11 @@ for(cc in 1:ncycles){
   
   # impute lab maxdiff/mindiff
   # temporary data for imputing
-  temp_data <- select(complete_data_impute,
-                      all_of(c(demo_vars,smoke_vars,other_vars,
-                               paste0(unlist(lab_vars),'_mean'),
-                               paste0(unlist(lab_vars),'_max'),
-                               paste0(unlist(lab_vars),'_min'))))
+  # temp_data <- select(complete_data_impute,
+  #                     all_of(c(demo_vars,smoke_vars,other_vars,
+  #                              paste0(unlist(lab_vars),'_mean'),
+  #                              paste0(unlist(lab_vars),'_max'),
+  #                              paste0(unlist(lab_vars),'_min'))))
   # impute
   print(paste0('Cycle ',cc,', lab max/min slopes'))
   for(ll in lab_order){
@@ -171,7 +172,8 @@ for(cc in 1:ncycles){
         # impute
         temp <- impute_simple_numeric(temp_data,
                                       complete_data_impute[[var]],
-                                      imiss)
+                                      imiss,
+                                      ridge=.1)
         # update complete_data_impute
         complete_data_impute[[var]] <- temp
         # print progress 
@@ -182,13 +184,13 @@ for(cc in 1:ncycles){
   
   # impute lab total variation
   # temporary data for imputing
-  temp_data <- select(complete_data_impute,
-                      all_of(c(demo_vars,smoke_vars,other_vars,
-                               paste0(unlist(lab_vars),'_mean'),
-                               paste0(unlist(lab_vars),'_max'),
-                               paste0(unlist(lab_vars),'_min'),
-                               paste0(unlist(lab_vars),'_max_diff'),
-                               paste0(unlist(lab_vars),'_min_diff'))))
+  # temp_data <- select(complete_data_impute,
+  #                     all_of(c(demo_vars,smoke_vars,other_vars,
+  #                              paste0(unlist(lab_vars),'_mean'),
+  #                              paste0(unlist(lab_vars),'_max'),
+  #                              paste0(unlist(lab_vars),'_min'),
+  #                              paste0(unlist(lab_vars),'_max_diff'),
+  #                              paste0(unlist(lab_vars),'_min_diff'))))
   # impute
   print(paste0('Cycle ',cc,', lab total variation'))
   for(ll in lab_order){
@@ -200,7 +202,8 @@ for(cc in 1:ncycles){
       temp <- impute_simple_numeric(temp_data,
                                     complete_data_impute[[var]],
                                     imiss,
-                                    nneg=TRUE)
+                                    nneg=TRUE,
+                                    ridge=.1)
       # update complete_data_impute
       complete_data_impute[[var]] <- temp
       # print progress 
@@ -227,11 +230,13 @@ for(cc in 1:ncycles){
   # impute
   for(var in rev(demo_vars_ind)){
     imiss <- is.na(complete_data[[var]])
+    if(sum(imiss) > 0){
     temp <- impute_simple_numeric(temp_data,
                                   complete_data_impute[[var]],
                                   imiss,
                                   binary=TRUE)
     complete_data_impute[[var]] <- temp
+    }
     print(paste0('Impute ',var))
   }
   
