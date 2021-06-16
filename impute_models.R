@@ -85,8 +85,61 @@ impute_reg_multi <- function(df,varnames,imiss,verbose=FALSE){
   return(cols)
 }
 
-# need similar routines for xgboost 
+# new simpler routine purely with linear algebra...
+impute_simple_numeric <- function(df,response,imiss,
+                               nneg=FALSE,
+                               binary=FALSE,
+                               ridge=0){
+  # store vector to return
+  out <- response
+  # predictors
+  Xobs <- cbind(1,as.matrix(df[!imiss,]))
+  Xmiss <- cbind(1,as.matrix(df[imiss,]))
+  # response
+  if(nneg){
+    yobs <- log(1e-2+response[!imiss])
+  }
+  else{
+    yobs <- response[!imiss]
+  }
+  # impute
+  yimp <- c(Xmiss %*% solve(crossprod(Xobs) + ridge*diag(ncol(Xobs)),crossprod(Xobs,yobs)))
+  # replace
+  if(binary){
+    out[imiss] <- as.integer(yimp > .5)
+  }
+  else{
+    if(nneg){
+      out[imiss] <- pmax(exp(yimp)-1e-2,0)
+    }
+    else{
+      out[imiss] <- yimp
+    }
+  }
+  return(out)
+}
 
+impute_simple_multi <- function(df,responses,imiss,
+                                ridge=0){
+  # matrix to return
+  out <- responses
+  # predictors
+  Xobs <- cbind(1,as.matrix(df[!imiss,]))
+  Xmiss <- cbind(1,as.matrix(df[imiss,]))
+  # response
+  yobs <- as.matrix(responses[!imiss,])
+  # impute
+  yimp <- Xmiss %*% solve(crossprod(Xobs) + ridge*diag(ncol(Xobs)),crossprod(Xobs,yobs))
+  # replace
+  out[imiss,] <- 0
+  wmiss <- which(imiss)
+  for(ii in 1:sum(imiss)){
+    if(any(yimp[ii,])>.5){
+      out[wmiss[ii],which.max(yimp[ii,])] <- 1
+    }
+  }
+  return(out)
+}
 
 
 

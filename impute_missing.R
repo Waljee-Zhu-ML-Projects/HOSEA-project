@@ -117,9 +117,9 @@ for(cc in 1:ncycles){
       # missing indices from complete_data
       imiss <- is.na(complete_data[[var]])
       # impute
-      temp <- impute_reg_numeric(bind_cols(complete_data_impute[,var],temp_data),
-                                 var,
-                                 imiss)
+      temp <- impute_simple_numeric(temp_data,
+                                    complete_data_impute[[var]],
+                                    imiss)
       # update complete_data_impute
       complete_data_impute[[var]] <- temp
       # print progress 
@@ -141,10 +141,10 @@ for(cc in 1:ncycles){
         # missing indices from complete_data
         imiss <- is.na(complete_data[[var]])
         # impute
-        temp <- impute_reg_numeric(bind_cols(complete_data_impute[,var],temp_data),
-                                   var,
-                                   imiss,
-                                   nneg=TRUE)
+        temp <- impute_simple_numeric(temp_data,
+                                      complete_data_impute[[var]],
+                                      imiss,
+                                      nneg=TRUE)
         # update complete_data_impute
         complete_data_impute[[var]] <- temp
         # print progress 
@@ -169,9 +169,9 @@ for(cc in 1:ncycles){
         # missing indices from complete_data
         imiss <- is.na(complete_data[[var]])
         # impute
-        temp <- impute_reg_numeric(bind_cols(complete_data_impute[,var],temp_data),
-                                   var,
-                                   imiss)
+        temp <- impute_simple_numeric(temp_data,
+                                      complete_data_impute[[var]],
+                                      imiss)
         # update complete_data_impute
         complete_data_impute[[var]] <- temp
         # print progress 
@@ -197,9 +197,10 @@ for(cc in 1:ncycles){
       # missing indices from complete_data
       imiss <- is.na(complete_data[[var]])
       # impute
-      temp <- impute_reg_numeric(bind_cols(complete_data_impute[,var],temp_data),
-                                 var,
-                                 imiss)
+      temp <- impute_simple_numeric(temp_data,
+                                    complete_data_impute[[var]],
+                                    imiss,
+                                    nneg=TRUE)
       # update complete_data_impute
       complete_data_impute[[var]] <- temp
       # print progress 
@@ -208,32 +209,41 @@ for(cc in 1:ncycles){
   }
   # impute demographic vars using lab means
   temp_data <- select(complete_data_impute,
-                      all_of(c(demo_vars,smoke_vars,other_vars,
+                      all_of(c(demo_vars,other_vars,
                                paste0(unlist(lab_vars),'_mean'))))
   # impute smoking status using all other vars
   print(paste0('Cycle ',cc,', demographic variables'))
   imiss <- is.na(complete_data[['smoke_current']])
-  temp <- impute_reg_multi(temp_data,
-                           smoke_vars,
-                           imiss)
+  temp <- impute_simple_multi(temp_data,
+                              complete_data_impute[,smoke_vars],
+                              imiss)
   complete_data_impute[,smoke_vars] <- temp
   print('Impute SmokeStatus')
   
-  # impute demographic variables (binary)
+  # impute demographic variables (binary) using lab means
+  temp_data <- select(complete_data_impute,
+                      all_of(c(demo_vars_num,smoke_vars,other_vars,
+                               paste0(unlist(lab_vars),'_mean'))))
+  # impute
   for(var in rev(demo_vars_ind)){
     imiss <- is.na(complete_data[[var]])
-    temp <- impute_reg_binary(temp_data,
-                              var,
-                              imiss)
+    temp <- impute_simple_numeric(temp_data,
+                                  complete_data_impute[[var]],
+                                  imiss,
+                                  binary=TRUE)
     complete_data_impute[[var]] <- temp
     print(paste0('Impute ',var))
   }
   
   # impute demographic variables (numeric)
+  temp_data <- select(complete_data_impute,
+                      all_of(c(demo_vars_ind,smoke_vars,other_vars,
+                               paste0(unlist(lab_vars),'_mean'))))
+  # impute
   for(var in demo_vars_num){
     imiss <- is.na(complete_data[[var]])
-    temp <- impute_reg_numeric(temp_data,
-                               var,
+    temp <- impute_simple_numeric(temp_data,
+                               complete_data_impute[[var]],
                                imiss)
     complete_data_impute[[var]] <- temp
     print(paste0('Impute ',var))
