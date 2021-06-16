@@ -133,44 +133,25 @@ saveRDS(complete_data_init,
 # lab max/min
 # lab maxdiff/mindiff
 # lab TV
-# demo vars (smoking, charlson, binary demo, then numeric demos)
+# demo vars (smoking, charlson, race, then age/BMI/weight)
 
 complete_data_impute <- complete_data_init
 
 # lab order
 lab_order <- c(2,6,3,5,1,4)
+# number of imputation cycles
+ncycles <- 4
 
-# impute lab means
-# temporary data for imputing
-temp_data <- select(complete_data_impute,
-                    all_of(c(demo_vars,other_vars)))
-# impute
-for(ll in lab_order){
-  for(v in lab_vars[[ll]]){
-    var <- paste0(v,'_mean')
-    # missing indices from complete_data
-    imiss <- is.na(complete_data[[var]])
-    # impute
-    temp <- impute_reg_numeric(temp_data,
-                               var,
-                               imiss)
-    # update complete_data_impute
-    complete_data_impute[[var]] <- temp
-    # print progress 
-    print(paste0('Impute ',var))
-  }
-}
-
-# impute lab max/min
-# temporary data for imputing
-temp_data <- select(complete_data_impute,
-                    all_of(c(demo_vars,other_vars,
-                             paste0(unlist(lab_vars),'_mean'))))
-# impute
-for(ll in lab_order){
-  for(v in lab_vars[[ll]]){
-    for(summ in c('_max','_min')){
-      var <- paste0(v,summ)
+for(cc in 1:ncycles){
+  # impute lab means
+  # temporary data for imputing
+  temp_data <- select(complete_data_impute,
+                      all_of(c(demo_vars,other_vars)))
+  # impute
+  print(paste0('Cycle ',cc,', lab means'))
+  for(ll in lab_order){
+    for(v in lab_vars[[ll]]){
+      var <- paste0(v,'_mean')
       # missing indices from complete_data
       imiss <- is.na(complete_data[[var]])
       # impute
@@ -183,20 +164,73 @@ for(ll in lab_order){
       print(paste0('Impute ',var))
     }
   }
-}
-
-# impute lab maxdiff/mindiff
-# temporary data for imputing
-temp_data <- select(complete_data_impute,
-                    all_of(c(demo_vars,other_vars,
-                             paste0(unlist(lab_vars),'_mean'),
-                             paste0(unlist(lab_vars),'_max'),
-                             paste0(unlist(lab_vars),'_min'))))
-# impute
-for(ll in lab_order){
-  for(v in lab_vars[[ll]]){
-    for(summ in c('_maxdiff','_mindiff')){
-      var <- paste0(v,summ)
+  
+  # impute lab max/min
+  # temporary data for imputing
+  temp_data <- select(complete_data_impute,
+                      all_of(c(demo_vars,other_vars,
+                               paste0(unlist(lab_vars),'_mean'))))
+  # impute
+  print(paste0('Cycle ',cc,', lab max/min'))
+  for(ll in lab_order){
+    for(v in lab_vars[[ll]]){
+      for(summ in c('_max','_min')){
+        var <- paste0(v,summ)
+        # missing indices from complete_data
+        imiss <- is.na(complete_data[[var]])
+        # impute
+        temp <- impute_reg_numeric(temp_data,
+                                   var,
+                                   imiss)
+        # update complete_data_impute
+        complete_data_impute[[var]] <- temp
+        # print progress 
+        print(paste0('Impute ',var))
+      }
+    }
+  }
+  
+  # impute lab maxdiff/mindiff
+  # temporary data for imputing
+  temp_data <- select(complete_data_impute,
+                      all_of(c(demo_vars,other_vars,
+                               paste0(unlist(lab_vars),'_mean'),
+                               paste0(unlist(lab_vars),'_max'),
+                               paste0(unlist(lab_vars),'_min'))))
+  # impute
+  print(paste0('Cycle ',cc,', lab max/min slopes'))
+  for(ll in lab_order){
+    for(v in lab_vars[[ll]]){
+      for(summ in c('_maxdiff','_mindiff')){
+        var <- paste0(v,summ)
+        # missing indices from complete_data
+        imiss <- is.na(complete_data[[var]])
+        # impute
+        temp <- impute_reg_numeric(temp_data,
+                                   var,
+                                   imiss)
+        # update complete_data_impute
+        complete_data_impute[[var]] <- temp
+        # print progress 
+        print(paste0('Impute ',var))
+      }
+    }
+  }
+  
+  # impute lab total variation
+  # temporary data for imputing
+  temp_data <- select(complete_data_impute,
+                      all_of(c(demo_vars,other_vars,
+                               paste0(unlist(lab_vars),'_mean'),
+                               paste0(unlist(lab_vars),'_max'),
+                               paste0(unlist(lab_vars),'_min'),
+                               paste0(unlist(lab_vars),'_maxdiff'),
+                               paste0(unlist(lab_vars),'_mindiff'))))
+  # impute
+  print(paste0('Cycle ',cc,', lab total variation'))
+  for(ll in lab_order){
+    for(v in lab_vars[[ll]]){
+      var <- paste0(v,'_tv')
       # missing indices from complete_data
       imiss <- is.na(complete_data[[var]])
       # impute
@@ -209,60 +243,36 @@ for(ll in lab_order){
       print(paste0('Impute ',var))
     }
   }
-}
-
-# impute lab total variation
-# temporary data for imputing
-temp_data <- select(complete_data_impute,
-                    all_of(c(demo_vars,other_vars,
-                             paste0(unlist(lab_vars),'_mean'),
-                             paste0(unlist(lab_vars),'_max'),
-                             paste0(unlist(lab_vars),'_min'),
-                             paste0(unlist(lab_vars),'_maxdiff'),
-                             paste0(unlist(lab_vars),'_mindiff'))))
-# impute
-for(ll in lab_order){
-  for(v in lab_vars[[ll]]){
-    var <- paste0(v,'_tv')
-    # missing indices from complete_data
+  
+  # impute smoking status using all other vars
+  print(paste0('Cycle ',cc,', demographic variables'))
+  imiss <- is.na(complete_data[['smoke_current']])
+  temp <- impute_reg_multi(complete_data_impute,
+                           smoke_vars,
+                           imiss)
+  complete_data_impute[,smoke_vars] <- temp
+  print('Impute SmokeStatus')
+  
+  # impute demographic variables (binary)
+  for(var in rev(demo_vars_ind)){
     imiss <- is.na(complete_data[[var]])
-    # impute
-    temp <- impute_reg_numeric(temp_data,
-                               var,
-                               imiss)
-    # update complete_data_impute
+    temp <- impute_reg_binary(complete_data_impute,
+                              var,
+                              imiss)
     complete_data_impute[[var]] <- temp
-    # print progress 
     print(paste0('Impute ',var))
   }
-}
-
-# impute smoking status using all other vars
-imiss <- is.na(complete_data[['smoke_current']])
-temp <- impute_reg_multi(complete_data_impute,
-                         smoke_vars,
-                         imiss)
-complete_data_impute[,smoke_vars] <- temp
-print('Impute SmokeStatus')
-
-# impute demographic variables (binary)
-for(var in rev(demo_vars_ind)){
-  imiss <- is.na(complete_data[[var]])
-  temp <- impute_reg_binary(complete_data_impute,
-                            var,
-                            imiss)
-  complete_data_impute[[var]] <- temp
-  print(paste0('Impute ',var))
-}
-
-# impute demographic variables (numeric)
-for(var in demo_vars_num){
-  imiss <- is.na(complete_data[[var]])
-  temp <- impute_reg_numeric(complete_data_impute,
-                             var,
-                             imiss)
-  complete_data_impute[[var]] <- temp
-  print(paste0('Impute ',var))
+  
+  # impute demographic variables (numeric)
+  for(var in demo_vars_num){
+    imiss <- is.na(complete_data[[var]])
+    temp <- impute_reg_numeric(complete_data_impute,
+                               var,
+                               imiss)
+    complete_data_impute[[var]] <- temp
+    print(paste0('Impute ',var))
+  }
+  
 }
 
 # save completed imputed data
