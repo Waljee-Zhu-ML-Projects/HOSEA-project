@@ -2,12 +2,20 @@
 # always exclude a smoke status variable 
 
 # linear regression for numeric variables
-impute_reg_numeric <- function(df,varname,imiss,verbose=FALSE){
+impute_reg_numeric <- function(df,varname,imiss,
+                               nneg=FALSE,verbose=FALSE){
   col <- df[[varname]]
   # fit a linear regression model
-  model <- lm(as.formula(paste0(varname,'~.')),
+  if(nneg){
+    model <- lm(as.formula(paste0('log(',varname,')~.')),
+                data=df,
+                subset=!imiss)
+  }
+  else{
+    model <- lm(as.formula(paste0(varname,'~.')),
               data=df,
               subset=!imiss)
+  }
   if(verbose){
     print('Fit model')
   }
@@ -16,7 +24,12 @@ impute_reg_numeric <- function(df,varname,imiss,verbose=FALSE){
   if(verbose){
     print('Predict missing')
   }
-  col[imiss] <- fitted
+  if(nneg){
+    col[imiss] <- exp(fitted)
+  }
+  else{
+    col[imiss] <- fitted
+  }
   return(col)
 }
 
@@ -43,10 +56,10 @@ impute_reg_binary <- function(df,varname,imiss,verbose=FALSE){
 # multinomial regression for multiclass variables
 # logistic regression for binary variables
 impute_reg_multi <- function(df,varnames,imiss,verbose=FALSE){
-  cols <- select(df,all_of(varnames))
+  cols <- as.matrix(select(df,all_of(varnames)))
   cols_extend <- cbind(cols,1-rowSums(cols))
   
-  preds <- select(df,-all_of(varnames))
+  preds <- as.matrix(select(df,-all_of(varnames)))
   # fit a linear regression model
   model <- multinom(cols_extend~preds,
                     subset=!imiss)
@@ -54,7 +67,7 @@ impute_reg_multi <- function(df,varnames,imiss,verbose=FALSE){
     print('Fit model')
   }
   # calculate fitted values
-  fitted <- predict(model,newdata=df[imiss,])
+  fitted <- predict(model,newdata=preds)
   if(verbose){
     print('Predict missing')
   }
@@ -62,7 +75,7 @@ impute_reg_multi <- function(df,varnames,imiss,verbose=FALSE){
   wmiss <- which(imiss)
   cols[imiss,] <- 0
   for(ii in 1:sum(imiss)){
-    if(fitted[ii] < ncols(cols)){
+    if(as.integer(fitted[ii]) <= ncol(cols)){
       cols[wmiss[ii],fitted[ii]] <- 1
     }
   }
