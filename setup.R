@@ -3,6 +3,7 @@
 # working directory
 setwd('../../nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 # libraries
+library(haven)
 library(dplyr)
 library(pROC)
 library(nnet)
