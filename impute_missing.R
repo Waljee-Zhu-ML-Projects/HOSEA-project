@@ -5,7 +5,6 @@
 impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
   
   # import data
-  # complete_data <- readRDS('R_data/subsample/sub_complete_data_raw.rds')
   complete_data_y <- select(data_raw,all_of(c('ID','CaseControl')))
   complete_data <- select(data_raw,-all_of(c('ID','CaseControl')))
   
@@ -49,10 +48,6 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
     #print(paste0('Impute ',var))
   }
   
-  # save data with no imputation
-  # saveRDS(bind_cols(complete_data_y,complete_data),
-  #         file='R_data/subsample/sub_complete_data.rds')
-  
   print('zero imputation for events')
   print(mean(is.na(complete_data)))
   
@@ -84,9 +79,6 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
   complete_data_init[smoke_miss,smoke_vars] <- complete_data_init[sample(which(!smoke_miss),sum(smoke_miss),replace=T),smoke_vars]
   #print('Impute smoking status')
   
-  # save initial (random sample) imputation
-  # saveRDS(bind_cols(complete_data_y,complete_data_init),
-  #         file='R_data/subsample/sub_complete_data_impsamp.rds')
   print('Initial imputation')
   print(mean(is.na(complete_data_init)))
   
@@ -250,13 +242,8 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
       complete_data_impute[[var]] <- temp
       #print(paste0('Impute ',var))
     }
-    
   }
-  
-  # save completed imputed data
-  # saveRDS(bind_cols(complete_data_y,complete_data_impute),
-  #         file='R_data/subsample/sub_complete_data_impreg.rds')
-  
+  # return complete imputed data
   return(list(clean=bind_cols(complete_data_y,complete_data),
               impsamp=bind_cols(complete_data_y,complete_data_init),
               impreg=bind_cols(complete_data_y,complete_data_impute)))
