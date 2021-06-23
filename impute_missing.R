@@ -6,14 +6,13 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
   
   # import data
   complete_data_y <- select(data_raw,all_of(c('ID','CaseControl')))
-  complete_data <- select(data_raw,-all_of(c('ID','CaseControl')))
+  complete_data_raw <- select(data_raw,-all_of(c('ID','CaseControl')))
   
-  print(mean(is.na(complete_data)))
+  print(mean(is.na(complete_data_raw)))
   
   # variable blocks
-  # demographic (age,BMI,weight numeric, SmokeStatus multiclass, remaining 2-class)
-  # will need BMI -> bmi
-  demo_vars <- c('ageatindex','Gender','BMI','weight',
+  # demographic (age,bmi,weight numeric, SmokeStatus multiclass, remaining 2-class)
+  demo_vars <- c('ageatindex','Gender','bmi','weight',
                  'Asian','Black','HawaiianPacific','IndianAlaskan',
                  'agentorange',
                  'GerdAtIndex',
@@ -44,16 +43,16 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
   
   # impute colonoscopies, fobt labs and meds with zeros
   for(var in other_vars){
-    complete_data[[var]] <- fill_by_zero(complete_data[[var]])
+    complete_data_raw[[var]] <- fill_by_zero(complete_data_raw[[var]])
     #print(paste0('Impute ',var))
   }
   
   print('zero imputation for events')
-  print(mean(is.na(complete_data)))
+  print(mean(is.na(complete_data_raw)))
   
   #### initial imputation ####
   
-  complete_data_init <- complete_data
+  complete_data_init <- complete_data_raw
   # original complete data has NAs to determine original missing vals
   
   # blood labs
@@ -89,14 +88,14 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
   # lab max/min
   # lab maxdiff/mindiff
   # lab TV
-  # demo vars (smoking, charlson, race, then age/BMI/weight)
+  # demo vars (smoking, charlson, race, then age/bmi/weight)
   
   complete_data_impute <- complete_data_init
   
   # lab order
-  lab_order <- c(2,6,3,5,1,4)
-  # number of imputation cycles
-  # ncycles <- 4
+  lab_order <- c(2,6,3,5,1)
+  # leave CRP with intial sample imputation, not enough data to
+  # impute cleanly
   
   for(cc in 1:ncycles){
     # impute lab means
@@ -109,16 +108,15 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
       for(v in lab_vars[[ll]]){
         var <- paste0(v,'_mean')
         # missing indices from complete_data
-        imiss <- is.na(complete_data[[var]])
+        imiss <- is.na(complete_data_raw[[var]])
         # impute
-        temp <- impute_simple_numeric(temp_data,
-                                      complete_data_impute[[var]],
-                                      imiss,
-                                      ridge=1)
+        temp <- impute_reg(temp_data,
+                           complete_data_impute[[var]],
+                           imiss)
         # update complete_data_impute
         complete_data_impute[[var]] <- temp
         # print progress 
-        #print(paste0('Impute ',var))
+        # print(paste0('Impute ',var))
       }
     }
     
@@ -134,28 +132,27 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
         for(summ in c('_max','_min')){
           var <- paste0(v,summ)
           # missing indices from complete_data
-          imiss <- is.na(complete_data[[var]])
+          imiss <- is.na(complete_data_raw[[var]])
           # impute
-          temp <- impute_simple_numeric(temp_data,
-                                        complete_data_impute[[var]],
-                                        imiss,
-                                        nneg=TRUE,
-                                        ridge=1)
+          temp <- impute_reg(temp_data,
+                             complete_data_impute[[var]],
+                             imiss,
+                             nneg=TRUE)
           # update complete_data_impute
           complete_data_impute[[var]] <- temp
           # print progress 
-          #print(paste0('Impute ',var))
+          # print(paste0('Impute ',var))
         }
       }
     }
     
     # impute lab maxdiff/mindiff
     # temporary data for imputing
-    temp_data <- select(complete_data_impute,
-                        all_of(c(demo_vars,smoke_vars,other_vars,
-                                 paste0(unlist(lab_vars),'_mean'),
-                                 paste0(unlist(lab_vars),'_max'),
-                                 paste0(unlist(lab_vars),'_min'))))
+    # temp_data <- select(complete_data_impute,
+    #                     all_of(c(demo_vars,smoke_vars,other_vars,
+    #                              paste0(unlist(lab_vars),'_mean'),
+    #                              paste0(unlist(lab_vars),'_max'),
+    #                              paste0(unlist(lab_vars),'_min'))))
     # impute
     print(paste0('Cycle ',cc,', lab max/min slopes'))
     for(ll in lab_order){
@@ -163,42 +160,40 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
         for(summ in c('_max_diff','_min_diff')){
           var <- paste0(v,summ)
           # missing indices from complete_data
-          imiss <- is.na(complete_data[[var]])
+          imiss <- is.na(complete_data_raw[[var]])
           # impute
-          temp <- impute_simple_numeric(temp_data,
-                                        complete_data_impute[[var]],
-                                        imiss,
-                                        ridge=1)
+          temp <- impute_reg(temp_data,
+                             complete_data_impute[[var]],
+                             imiss)
           # update complete_data_impute
           complete_data_impute[[var]] <- temp
           # print progress 
-          #print(paste0('Impute ',var))
+          # print(paste0('Impute ',var))
         }
       }
     }
     
     # impute lab total variation
     # temporary data for imputing
-    temp_data <- select(complete_data_impute,
-                        all_of(c(demo_vars,smoke_vars,other_vars,
-                                 paste0(unlist(lab_vars),'_mean'),
-                                 paste0(unlist(lab_vars),'_max'),
-                                 paste0(unlist(lab_vars),'_min'),
-                                 paste0(unlist(lab_vars),'_max_diff'),
-                                 paste0(unlist(lab_vars),'_min_diff'))))
+    # temp_data <- select(complete_data_impute,
+    #                     all_of(c(demo_vars,smoke_vars,other_vars,
+    #                              paste0(unlist(lab_vars),'_mean'),
+    #                              paste0(unlist(lab_vars),'_max'),
+    #                              paste0(unlist(lab_vars),'_min'),
+    #                              paste0(unlist(lab_vars),'_max_diff'),
+    #                              paste0(unlist(lab_vars),'_min_diff'))))
     # impute
     print(paste0('Cycle ',cc,', lab total variation'))
     for(ll in lab_order){
       for(v in lab_vars[[ll]]){
         var <- paste0(v,'_tv')
         # missing indices from complete_data
-        imiss <- is.na(complete_data[[var]])
+        imiss <- is.na(complete_data_raw[[var]])
         # impute
-        temp <- impute_simple_numeric(temp_data,
-                                      complete_data_impute[[var]],
-                                      imiss,
-                                      nneg=TRUE,
-                                      ridge=1)
+        temp <- impute_reg(temp_data,
+                           complete_data_impute[[var]],
+                           imiss,
+                           nneg=TRUE)
         # update complete_data_impute
         complete_data_impute[[var]] <- temp
         # print progress 
@@ -211,11 +206,10 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
                                  paste0(unlist(lab_vars),'_mean'))))
     # impute smoking status using all other vars
     print(paste0('Cycle ',cc,', demographic variables'))
-    imiss <- is.na(complete_data[['smoke_current']])
-    temp <- impute_simple_multi(temp_data,
-                                complete_data_impute[,smoke_vars],
-                                imiss,
-                                ridge=1)
+    imiss <- is.na(complete_data_raw[['smoke_current']])
+    temp <- impute_reg_multi(temp_data,
+                             complete_data_impute[,smoke_vars],
+                             imiss)
     complete_data_impute[,smoke_vars] <- temp
     #print('Impute SmokeStatus')
     
@@ -225,12 +219,11 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
                                  paste0(unlist(lab_vars),'_mean'))))
     # impute
     for(var in rev(demo_vars_ind)){
-      imiss <- is.na(complete_data[[var]])
-      temp <- impute_simple_numeric(temp_data,
-                                    complete_data_impute[[var]],
-                                    imiss,
-                                    binary=TRUE,
-                                    ridge=1)
+      imiss <- is.na(complete_data_raw[[var]])
+      temp <- impute_reg(temp_data,
+                         complete_data_impute[[var]],
+                         imiss,
+                         binary=TRUE)
       complete_data_impute[[var]] <- temp
       #print(paste0('Impute ',var))
     }
@@ -241,17 +234,16 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
                                  paste0(unlist(lab_vars),'_mean'))))
     # impute
     for(var in demo_vars_num){
-      imiss <- is.na(complete_data[[var]])
-      temp <- impute_simple_numeric(temp_data,
-                                    complete_data_impute[[var]],
-                                    imiss,
-                                    ridge=1)
+      imiss <- is.na(complete_data_raw[[var]])
+      temp <- impute_reg(temp_data,
+                         complete_data_impute[[var]],
+                         imiss)
       complete_data_impute[[var]] <- temp
       #print(paste0('Impute ',var))
     }
   }
   # return complete imputed data
-  return(list(clean=bind_cols(complete_data_y,complete_data),
+  return(list(clean=bind_cols(complete_data_y,complete_data_raw),
               impsamp=bind_cols(complete_data_y,complete_data_init),
               impreg=bind_cols(complete_data_y,complete_data_impute)))
 }

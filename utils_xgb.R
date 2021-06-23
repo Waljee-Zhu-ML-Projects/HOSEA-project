@@ -16,7 +16,7 @@ xgb_prep <- function(train,test,valid,dname){
 }
 
 # function to create a partial dependence plot for an xgboost model
-xgp_pdp <- function(varname,
+xgb_pdp <- function(varname,
                     xgb_model,
                     dtrain){
   partial_var <- pdp::partial(xgb_model,
@@ -43,8 +43,8 @@ xgb_auc <- function(xgb_model,
   pvalid <- predict(xgb_model,newdata=xgb_data$valid,
                              ntreelimit=xgb_model$best_ntreelimit,
                              outputmargin=FALSE)
-  ptest <- predict(xgb_model,newdata=xgb_data$valid,
-                            ntreelimit=xgb_fit$best_ntreelimit,
+  ptest <- predict(xgb_model,newdata=xgb_data$test,
+                            ntreelimit=xgb_model$best_ntreelimit,
                             outputmargin=FALSE)
   # AUCs
   auc_train <- ci.auc(response=getinfo(xgb_data$train,name='label'),
@@ -62,7 +62,7 @@ xgb_auc <- function(xgb_model,
   # store in a matrix
   auc_mat <- rbind(auc_train,auc_valid,auc_test)
   rownames(auc_mat) <- c('Training','Validation','Test')
-  colnames(auc_mat) <- c('Est','LB','UB')
+  colnames(auc_mat) <- c('LB','Est','UB')
   return(auc_mat)
 }
 

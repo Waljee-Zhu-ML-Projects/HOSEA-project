@@ -4,7 +4,7 @@ source('R_code/hosea-project/utils.R')
 # begin with demographic table
 sample_tab <- readRDS('R_data/subsample/sub_sample.rds')
 demo_vars <- c('ID','CaseControl',
-             'ageatindex','Gender','BMI','weight',
+             'ageatindex','Gender','bmi','weight',
              'Asian','Black','HawaiianPacific','IndianAlaskan',
              'SmokeStatus',
              'agentorange',
@@ -12,7 +12,7 @@ demo_vars <- c('ID','CaseControl',
              'CHF','CTD','DEM','DIAB_C','HIV','MLD','MSLD','PARA','RD',
              'cd','copd','diab_nc','mi','pud','pvd')
 
-complete_data <- sample_tab[,demo_vars]
+complete_data <- sample_tab[,demo_vars] # 28 columns
 
 # convert factors to integer and expand multiple smoking classes
 # Gender
@@ -23,14 +23,14 @@ complete_data$agentorange <- as.integer(complete_data$agentorange=='YES')
 # SmokeStatus (keep current and former)
 complete_data$smoke_current <- as.integer(complete_data$SmokeStatus==1)
 complete_data$smoke_former <- as.integer(complete_data$SmokeStatus==2)
-complete_data <- select(complete_data,-SmokeStatus) # one extra variable
+complete_data <- select(complete_data,-SmokeStatus) # adds one extra variable (29 columns)
 
 # event tables
 event_tables <- c('colonoscopy',
                   'labs_fobt')
 # removed EGD and other procedures
 
-# join summary tables
+# join summary tables (33 columns)
 for(tab in event_tables){
   print(paste0('For table ',tab,':'))
   table <- readRDS(paste0('R_data/subsample/sub_',tab,'_summary.rds'))
@@ -39,7 +39,7 @@ for(tab in event_tables){
   rm(table)
 }
 
-# medication table
+# medication table (43 columns)
 print('For table: allmeds')
 table <- readRDS('R_data/subsample/sub_allmeds_summary.rds')
 complete_data <- left_join(complete_data,table,by="ID")
@@ -54,7 +54,7 @@ value_tables <- c('labs_a1c',
                   'labs_lft',
                   'labs_lipid')
 
-# join summary tables
+# join summary tables (241 columns)
 for(tab in value_tables){
   print(paste0('For table ',tab,':'))
   table <- readRDS(paste0('R_data/subsample/sub_',tab,'_summary.rds'))
@@ -63,6 +63,6 @@ for(tab in value_tables){
   rm(table)
 }
 
-# save complete data
+# save complete data (241 columns)
 saveRDS(complete_data,
         file='R_data/subsample/sub_complete_data_raw.rds')
