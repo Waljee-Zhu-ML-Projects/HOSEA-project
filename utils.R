@@ -84,7 +84,6 @@ fit_logistic <- function(train_data,test_data){
   colnames(auc_mat) <- c('LB','Est','UB')
   # return
   return(list(model=model,
-              preds=preds,
               auc=auc_mat))
 }
 

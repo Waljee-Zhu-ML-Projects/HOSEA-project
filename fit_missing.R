@@ -40,6 +40,7 @@ valid_data_impute <- impute_missing_hosea(complete_data[valid,],seed=1998)
 # save all imputed data
 save(train_data_impute,test_data_impute,valid_data_impute,
      file='R_data/subsample/sub_complete_data_impute.RData')
+# can reload from here
 
 #### format imputed data for xgboost ####
 # with NAs
@@ -73,7 +74,7 @@ xgb_fit_na <- xgb.train(param_xg,
                      dwatchlist_na, # data watchlist
                      verbose=1,print_every_n=8,
                      early_stopping_rounds=10)
-# stops at 146 trees
+# stops at 202 trees
 
 # print info about important variables
 nsumm <- 20
@@ -96,6 +97,7 @@ xgb_pdp('rbc_mean',xgb_fit_na,train_data_impute$clean)
 # evaluate AUCs (as helper in xgb_utils.R)
 xgb_auc_na <- xgb_auc(xgb_fit_na,dwatchlist_na)
 print(xgb_auc_na)
+# inflated .942 test AUC with missing values
 
 #### fit with random sample imputation ####
 
@@ -104,6 +106,7 @@ logistic_fit_samp <- fit_logistic(train_data = rbind(train_data_impute$impsamp[,
                                                      valid_data_impute$impsamp[,-1]),
                                   test_data = test_data_impute$impsamp[,-1])
 print(logistic_fit_samp$auc)
+# honest .689 test AUC with logistic regression
 
 # fit xgboost model
 xgb_fit_samp <- xgb.train(param_xg,
@@ -112,7 +115,7 @@ xgb_fit_samp <- xgb.train(param_xg,
                         dwatchlist_samp, # data watchlist
                         verbose=1,print_every_n=8,
                         early_stopping_rounds=10)
-# stops at 109 trees
+# stops at 169 trees
 
 # print info about important variables
 xgb_summ_samp <- xgb.importance(model=xgb_fit_samp)
@@ -132,6 +135,7 @@ xgb_pdp('na_min',xgb_fit_samp,train_data_impute$impsamp)
 # evaluate AUCs (as helper in xgb_utils.R)
 xgb_auc_samp <- xgb_auc(xgb_fit_samp,dwatchlist_samp)
 print(xgb_auc_samp)
+# honest .729 test AUC with sampling
 
 #### fit with regression imputation ####
 
@@ -140,6 +144,7 @@ logistic_fit_reg <- fit_logistic(train_data = rbind(train_data_impute$impreg[,-1
                                                      valid_data_impute$impreg[,-1]),
                                   test_data = test_data_impute$impreg[,-1])
 print(logistic_fit_reg$auc)
+# .644 test AUC - worse than sampling?
 
 # fit xgboost model
 xgb_fit_reg <- xgb.train(param_xg,
@@ -148,7 +153,7 @@ xgb_fit_reg <- xgb.train(param_xg,
                         dwatchlist_reg, # data watchlist
                         verbose=1,print_every_n=8,
                         early_stopping_rounds=10)
-# stops at 244 trees
+# stops at 362 trees
 
 # print info about important variables
 xgb_summ_reg <- xgb.importance(model=xgb_fit_reg)
@@ -158,12 +163,12 @@ print(xgb_summ_reg[1:nsumm,])
 # need to pass raw training data matrix
 # age
 xgb_pdp('ageatindex',xgb_fit_reg,train_data_impute$impreg)
-xgb_pdp('hct_min_diff',xgb_fit_reg,train_data_impute$impreg) # probably an artifact of imputation?
+xgb_pdp('hct_min_diff',xgb_fit_reg,train_data_impute$impreg)
 xgb_pdp('lymph_mean',xgb_fit_reg,train_data_impute$impreg)
 
 # evaluate AUCs (as helper in xgb_utils.R)
 xgb_auc_reg <- xgb_auc(xgb_fit_reg,dwatchlist_reg)
 print(xgb_auc_reg)
-
+# .806 test AUC - probably reverse engineering imputed values
 
 
