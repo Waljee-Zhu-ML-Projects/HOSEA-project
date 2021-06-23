@@ -113,7 +113,8 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
         # impute
         temp <- impute_simple_numeric(temp_data,
                                       complete_data_impute[[var]],
-                                      imiss)
+                                      imiss,
+                                      ridge=1)
         # update complete_data_impute
         complete_data_impute[[var]] <- temp
         # print progress 
@@ -138,7 +139,8 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
           temp <- impute_simple_numeric(temp_data,
                                         complete_data_impute[[var]],
                                         imiss,
-                                        nneg=TRUE)
+                                        nneg=TRUE,
+                                        ridge=1)
           # update complete_data_impute
           complete_data_impute[[var]] <- temp
           # print progress 
@@ -165,7 +167,8 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
           # impute
           temp <- impute_simple_numeric(temp_data,
                                         complete_data_impute[[var]],
-                                        imiss)
+                                        imiss,
+                                        ridge=1)
           # update complete_data_impute
           complete_data_impute[[var]] <- temp
           # print progress 
@@ -194,7 +197,8 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
         temp <- impute_simple_numeric(temp_data,
                                       complete_data_impute[[var]],
                                       imiss,
-                                      nneg=TRUE)
+                                      nneg=TRUE,
+                                      ridge=1)
         # update complete_data_impute
         complete_data_impute[[var]] <- temp
         # print progress 
@@ -210,7 +214,8 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
     imiss <- is.na(complete_data[['smoke_current']])
     temp <- impute_simple_multi(temp_data,
                                 complete_data_impute[,smoke_vars],
-                                imiss)
+                                imiss,
+                                ridge=1)
     complete_data_impute[,smoke_vars] <- temp
     #print('Impute SmokeStatus')
     
@@ -224,7 +229,8 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
       temp <- impute_simple_numeric(temp_data,
                                     complete_data_impute[[var]],
                                     imiss,
-                                    binary=TRUE)
+                                    binary=TRUE,
+                                    ridge=1)
       complete_data_impute[[var]] <- temp
       #print(paste0('Impute ',var))
     }
@@ -238,7 +244,8 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
       imiss <- is.na(complete_data[[var]])
       temp <- impute_simple_numeric(temp_data,
                                     complete_data_impute[[var]],
-                                    imiss)
+                                    imiss,
+                                    ridge=1)
       complete_data_impute[[var]] <- temp
       #print(paste0('Impute ',var))
     }
