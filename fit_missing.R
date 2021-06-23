@@ -99,6 +99,12 @@ print(xgb_auc_na)
 
 #### fit with random sample imputation ####
 
+# baseline logistic
+logistic_fit_samp <- fit_logistic(train_data = rbind(train_data_impute$impsamp[,-1],
+                                                     valid_data_impute$impsamp[,-1]),
+                                  test_data = test_data_impute$impsamp[,-1])
+print(logistic_fit_samp$auc)
+
 # fit xgboost model
 xgb_fit_samp <- xgb.train(param_xg,
                         dwatchlist_samp$train, # training set
@@ -128,6 +134,12 @@ xgb_auc_samp <- xgb_auc(xgb_fit_samp,dwatchlist_samp)
 print(xgb_auc_samp)
 
 #### fit with regression imputation ####
+
+# baseline logistic
+logistic_fit_reg <- fit_logistic(train_data = rbind(train_data_impute$impreg[,-1],
+                                                     valid_data_impute$impreg[,-1]),
+                                  test_data = test_data_impute$impreg[,-1])
+print(logistic_fit_reg$auc)
 
 # fit xgboost model
 xgb_fit_reg <- xgb.train(param_xg,
