@@ -13,6 +13,7 @@ source('R_code/hosea-project/impute_models.R')
 source('R_code/hosea-project/impute_missing.R')
 
 #### import data ####
+
 complete_data <- readRDS('R_data/subsample/sub_complete_data_raw.rds')
 
 #### train/test/validation split #### 
@@ -54,6 +55,12 @@ dwatchlist_samp <- xgb_prep(train_data_impute,
                           test_data_impute,
                           valid_data_impute,
                           dname='impsamp')
+
+# imputed with median
+dwatchlist_med <- xgb_prep(train_data_impute,
+                           test_data_impute,
+                           valid_data_impute,
+                           dname='impmed')
 
 # imputed with regression
 dwatchlist_reg <- xgb_prep(train_data_impute,
@@ -135,6 +142,42 @@ xgb_pdp('na_min',xgb_fit_samp,train_data_impute$impsamp)
 # evaluate AUCs (as helper in xgb_utils.R)
 xgb_auc_samp <- xgb_auc(xgb_fit_samp,dwatchlist_samp)
 print(xgb_auc_samp)
+# honest .729 test AUC with sampling
+
+#### fit with median imputation ####
+
+# baseline logistic
+logistic_fit_med <- fit_logistic(train_data = rbind(train_data_impute$impmed[,-1],
+                                                     valid_data_impute$impmed[,-1]),
+                                  test_data = test_data_impute$impmed[,-1])
+print(logistic_fit_med$auc)
+# honest .689 test AUC with logistic regression
+
+# fit xgboost model
+xgb_fit_med <- xgb.train(param_xg,
+                          dwatchlist_med$train, # training set
+                          nrounds=1000,
+                          dwatchlist_med, # data watchlist
+                          verbose=1,print_every_n=8,
+                          early_stopping_rounds=10)
+# stops at 169 trees
+
+# print info about important variables
+xgb_summ_med <- xgb.importance(model=xgb_fit_med)
+print(xgb_summ_med[1:nsumm,])
+
+# pdp plots (as helper in xgb_utils.R)
+# need to pass raw training data matrix
+# age
+xgb_pdp('ageatindex',xgb_fit_med,train_data_impute$impmed)
+# weight
+xgb_pdp('weight',xgb_fit_med,train_data_impute$impmed)
+# labs
+xgb_pdp('wbc_mean',xgb_fit_med,train_data_impute$impmed)
+
+# evaluate AUCs (as helper in xgb_utils.R)
+xgb_auc_med <- xgb_auc(xgb_fit_med,dwatchlist_med)
+print(xgb_auc_med)
 # honest .729 test AUC with sampling
 
 #### fit with regression imputation ####

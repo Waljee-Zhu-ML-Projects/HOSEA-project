@@ -81,6 +81,38 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
   print('Initial imputation')
   print(mean(is.na(complete_data_init)))
   
+  #### median-based imputation ####
+  
+  complete_data_med <- complete_data_init
+  
+  # blood labs
+  for(lab in lab_vars){
+    for(v in lab){
+      for(summ in lab_suffix){
+        # variable name
+        varname <- paste0(v,summ)
+        # missing indices (from raw data)
+        imiss <- is.na(complete_data_raw[[varname]])
+        # fill with median
+        complete_data_med[[varname]][imiss] <- NA
+        complete_data_med[[varname]] <- fill_by_median(complete_data_med[[varname]])
+        #print(paste0('Impute ',varname))
+      }
+    }
+  }
+  
+  # demographic variables
+  for(varname in demo_vars){
+    # missing indices (from raw data)
+    imiss <- is.na(complete_data_raw[[varname]])
+    # fill with median
+    complete_data_med[[varname]][imiss] <- NA
+    complete_data_med[[varname]] <- fill_by_median(complete_data_med[[varname]])
+    #print(paste0('Impute ',varname))
+  }
+  
+  print('Median imputation')
+  
   #### model-based imputation ####
   
   # order:
@@ -244,6 +276,7 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
   }
   # return complete imputed data
   return(list(clean=bind_cols(complete_data_y,complete_data_raw),
+              impmed=bind_cols(complete_data_y,complete_data_med),
               impsamp=bind_cols(complete_data_y,complete_data_init),
               impreg=bind_cols(complete_data_y,complete_data_impute)))
 }
