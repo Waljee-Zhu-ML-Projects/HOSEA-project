@@ -151,7 +151,7 @@ logistic_fit_med <- fit_logistic(train_data = rbind(train_data_impute$impmed[,-1
                                                      valid_data_impute$impmed[,-1]),
                                   test_data = test_data_impute$impmed[,-1])
 print(logistic_fit_med$auc)
-# honest .689 test AUC with logistic regression
+# .810 test AUC with logistic regression + median imputation
 
 # fit xgboost model
 xgb_fit_med <- xgb.train(param_xg,
@@ -160,7 +160,7 @@ xgb_fit_med <- xgb.train(param_xg,
                           dwatchlist_med, # data watchlist
                           verbose=1,print_every_n=8,
                           early_stopping_rounds=10)
-# stops at 169 trees
+# stops at 319 trees
 
 # print info about important variables
 xgb_summ_med <- xgb.importance(model=xgb_fit_med)
@@ -170,15 +170,15 @@ print(xgb_summ_med[1:nsumm,])
 # need to pass raw training data matrix
 # age
 xgb_pdp('ageatindex',xgb_fit_med,train_data_impute$impmed)
-# weight
-xgb_pdp('weight',xgb_fit_med,train_data_impute$impmed)
 # labs
-xgb_pdp('wbc_mean',xgb_fit_med,train_data_impute$impmed)
+xgb_pdp('hct_mean',xgb_fit_med,train_data_impute$impmed)
+xgb_pdp('mch_mean',xgb_fit_med,train_data_impute$impmed)
+xgb_pdp('A1c_max',xgb_fit_med,train_data_impute$impmed)
 
 # evaluate AUCs (as helper in xgb_utils.R)
 xgb_auc_med <- xgb_auc(xgb_fit_med,dwatchlist_med)
 print(xgb_auc_med)
-# honest .729 test AUC with sampling
+# .857 test AUC with median
 
 #### fit with regression imputation ####
 
@@ -187,7 +187,7 @@ logistic_fit_reg <- fit_logistic(train_data = rbind(train_data_impute$impreg[,-1
                                                      valid_data_impute$impreg[,-1]),
                                   test_data = test_data_impute$impreg[,-1])
 print(logistic_fit_reg$auc)
-# .644 test AUC - worse than sampling?
+# .787 test AUC - better than baseline, worse than median, still using charlson?
 
 # fit xgboost model
 xgb_fit_reg <- xgb.train(param_xg,
@@ -206,12 +206,12 @@ print(xgb_summ_reg[1:nsumm,])
 # need to pass raw training data matrix
 # age
 xgb_pdp('ageatindex',xgb_fit_reg,train_data_impute$impreg)
-xgb_pdp('hct_min_diff',xgb_fit_reg,train_data_impute$impreg)
-xgb_pdp('lymph_mean',xgb_fit_reg,train_data_impute$impreg)
+xgb_pdp('hct_max',xgb_fit_reg,train_data_impute$impreg)
+xgb_pdp('A1c_max',xgb_fit_reg,train_data_impute$impreg)
 
 # evaluate AUCs (as helper in xgb_utils.R)
 xgb_auc_reg <- xgb_auc(xgb_fit_reg,dwatchlist_reg)
 print(xgb_auc_reg)
-# .806 test AUC - probably reverse engineering imputed values
+# .836 test AUC 
 
 

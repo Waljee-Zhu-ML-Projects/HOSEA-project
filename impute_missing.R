@@ -2,7 +2,7 @@
 
 # specify seed for sampling
 # specify ncycles
-impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
+impute_missing_hosea <- function(data_raw,ncycles=5,seed=1){
   
   # import data
   complete_data_y <- select(data_raw,all_of(c('ID','CaseControl')))
@@ -122,7 +122,12 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
   # lab TV
   # demo vars (smoking, charlson, race, then age/bmi/weight)
   
-  complete_data_impute <- complete_data_init
+  #complete_data_impute <- complete_data_init
+  complete_data_impute <- data.frame(lapply(complete_data_init,quantile_normalize))
+  
+  # store missing values to check convergence
+  all_miss_old <- c(complete_data_impute[is.na(complete_data_raw)])
+  print(sqrt(mean(all_miss_old^2)))
   
   # lab order
   lab_order <- c(2,6,3,5,1)
@@ -169,7 +174,7 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
           temp <- impute_reg(temp_data,
                              complete_data_impute[[var]],
                              imiss,
-                             nneg=TRUE)
+                             nneg=F)
           # update complete_data_impute
           complete_data_impute[[var]] <- temp
           # print progress 
@@ -225,7 +230,7 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
         temp <- impute_reg(temp_data,
                            complete_data_impute[[var]],
                            imiss,
-                           nneg=TRUE)
+                           nneg=F)
         # update complete_data_impute
         complete_data_impute[[var]] <- temp
         # print progress 
@@ -273,10 +278,24 @@ impute_missing_hosea <- function(data_raw,ncycles=4,seed=1){
       complete_data_impute[[var]] <- temp
       #print(paste0('Impute ',var))
     }
+    
+    # check convergence
+    all_miss_new <- c(complete_data_impute[is.na(complete_data_raw)])
+    print(paste0('RMSE change after cycle ',cc))
+    print(sqrt(mean((all_miss_new - all_miss_old)^2)))
+    print(max(abs(all_miss_new - all_miss_old)))
+    all_miss_old <- all_miss_new
   }
+  
+  complete_data_impfinal <- complete_data_impute
+  for(var in colnames(complete_data_impfinal)){
+    complete_data_impfinal[[var]] <- quantile_unnormalize(complete_data_impfinal[[var]],
+                                                          complete_data_init[[var]])
+  }
+  
   # return complete imputed data
   return(list(clean=bind_cols(complete_data_y,complete_data_raw),
               impmed=bind_cols(complete_data_y,complete_data_med),
               impsamp=bind_cols(complete_data_y,complete_data_init),
-              impreg=bind_cols(complete_data_y,complete_data_impute)))
+              impreg=bind_cols(complete_data_y,complete_data_impfinal)))
 }

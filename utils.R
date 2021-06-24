@@ -87,4 +87,30 @@ fit_logistic <- function(train_data,test_data){
               auc=auc_mat))
 }
 
+# row-normalized and column normalized tables
+
+table_rn <- function(x,y){
+  temp <- table(x,y)
+  temp_n <- temp / rowSums(temp)
+  return(temp_n)
+}
+
+table_cn <- function(x,y){
+  temp <- table(x,y)
+  temp_n <- t(t(temp) / rowSums(t(temp)))
+  return(temp_n)
+}
+
+# converting to a vector to its corresponding normal quantiles
+quantile_normalize <- function(vec){
+  qnorm(rank(vec)/(1+length(vec)))
+}
+# inverting
+quantile_unnormalize <- function(vec,wrt){
+  quantile(wrt,pnorm(vec),names=FALSE)
+}
+
+
+
+
 

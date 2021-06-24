@@ -34,6 +34,21 @@ impute_reg <- function(df,response,imiss,
   return(out)
 }
 
+# convergence issues for current data
+impute_logit <- function(df,response,imiss){
+  # store vector to return
+  out <- response
+  # add response
+  df[['y']] <- response
+  # fit model
+  temp_model <- glm(y~.,data=df,family=binomial,subset=!imiss)
+  # impute
+  suppressWarnings(yimp <- predict(temp_model,newdata=df[imiss,],type='response'))
+  # replace
+  out[imiss] <- as.integer(yimp > .5)
+  return(out)
+}
+
 # extension to multiclass variables
 impute_reg_multi <- function(df,responses,imiss){
   # matrix to return
