@@ -7,71 +7,71 @@ source('R_code/hosea-project/utils_xgb.R')
 print('Start')
 timestamp()
 
-# begin with demographic table
-sample_tab <- readRDS('R_data/sample.rds')
-demo_vars <- c('ID','CaseControl',
-               'ageatindex','Gender','bmi','weight',
-               'Asian','Black','HawaiianPacific','IndianAlaskan',
-               'SmokeStatus',
-               'agentorange',
-               'GerdAtIndex',
-               'CHF','CTD','DEM','DIAB_C','HIV','MLD','MSLD','PARA','RD',
-               'cd','copd','diab_nc','mi','pud','pvd')
-
-complete_data <- sample_tab[,demo_vars] # 28 columns
-
-# convert factors to integer and expand multiple smoking classes
-# Gender
-complete_data$Gender[complete_data$Gender==''] <- NA
-complete_data$Gender <- as.integer(complete_data$Gender=='M')
-# agentorange
-complete_data$agentorange <- as.integer(complete_data$agentorange=='YES')
-# SmokeStatus (keep current and former)
-complete_data$smoke_current <- as.integer(complete_data$SmokeStatus==1)
-complete_data$smoke_former <- as.integer(complete_data$SmokeStatus==2)
-complete_data <- select(complete_data,-SmokeStatus) # adds one extra variable (29 columns)
-
-# event tables
-event_tables <- c('colonoscopy',
-                  'labs_fobt')
-# removed EGD and other procedures
-
-# join summary tables (33 columns)
-for(tab in event_tables){
-  print(paste0('For table ',tab,':'))
-  table <- readRDS(paste0('R_data/',tab,'_summary.rds'))
-  complete_data <- left_join(complete_data,table,by="ID")
-  print('read in and join')
-  rm(table)
-}
-
-# medication table (43 columns)
-print('For table: allmeds')
-table <- readRDS('R_data/allmeds_summary.rds')
-complete_data <- left_join(complete_data,table,by="ID")
-print('read in and join')
-rm(table)
-
-# valued tables
-value_tables <- c('labs_a1c',
-                  'labs_bmp',
-                  'labs_cbc',
-                  'labs_crp',
-                  'labs_lft',
-                  'labs_lipid')
-
-# join summary tables (241 columns)
-for(tab in value_tables){
-  print(paste0('For table ',tab,':'))
-  table <- readRDS(paste0('R_data/',tab,'_summary.rds'))
-  complete_data <- left_join(complete_data,table,by="ID")
-  print('read in and join')
-  rm(table)
-}
-
-# save complete data (241 columns)
-saveRDS(complete_data,
-        file='R_data/complete_data_raw.rds')
+# # begin with demographic table
+# sample_tab <- readRDS('R_data/sample.rds')
+# demo_vars <- c('ID','CaseControl',
+#                'ageatindex','Gender','bmi','weight',
+#                'Asian','Black','HawaiianPacific','IndianAlaskan',
+#                'SmokeStatus',
+#                'agentorange',
+#                'GerdAtIndex',
+#                'CHF','CTD','DEM','DIAB_C','HIV','MLD','MSLD','PARA','RD',
+#                'cd','copd','diab_nc','mi','pud','pvd')
+# 
+# complete_data <- sample_tab[,demo_vars] # 28 columns
+# 
+# # convert factors to integer and expand multiple smoking classes
+# # Gender
+# complete_data$Gender[complete_data$Gender==''] <- NA
+# complete_data$Gender <- as.integer(complete_data$Gender=='M')
+# # agentorange
+# complete_data$agentorange <- as.integer(complete_data$agentorange=='YES')
+# # SmokeStatus (keep current and former)
+# complete_data$smoke_current <- as.integer(complete_data$SmokeStatus==1)
+# complete_data$smoke_former <- as.integer(complete_data$SmokeStatus==2)
+# complete_data <- select(complete_data,-SmokeStatus) # adds one extra variable (29 columns)
+# 
+# # event tables
+# event_tables <- c('colonoscopy',
+#                   'labs_fobt')
+# # removed EGD and other procedures
+# 
+# # join summary tables (33 columns)
+# for(tab in event_tables){
+#   print(paste0('For table ',tab,':'))
+#   table <- readRDS(paste0('R_data/',tab,'_summary.rds'))
+#   complete_data <- left_join(complete_data,table,by="ID")
+#   print('read in and join')
+#   rm(table)
+# }
+# 
+# # medication table (43 columns)
+# print('For table: allmeds')
+# table <- readRDS('R_data/allmeds_summary.rds')
+# complete_data <- left_join(complete_data,table,by="ID")
+# print('read in and join')
+# rm(table)
+# 
+# # valued tables
+# value_tables <- c('labs_a1c',
+#                   'labs_bmp',
+#                   'labs_cbc',
+#                   'labs_crp',
+#                   'labs_lft',
+#                   'labs_lipid')
+# 
+# # join summary tables (241 columns)
+# for(tab in value_tables){
+#   print(paste0('For table ',tab,':'))
+#   table <- readRDS(paste0('R_data/',tab,'_summary.rds'))
+#   complete_data <- left_join(complete_data,table,by="ID")
+#   print('read in and join')
+#   rm(table)
+# }
+# 
+# # save complete data (241 columns)
+# saveRDS(complete_data,
+#         file='R_data/complete_data_raw.rds')
 
 print('data linked')
 timestamp()
@@ -90,8 +90,8 @@ smoke_vars <- c('smoke_current','smoke_former')
 # colonoscopy vars
 other_vars <- c('colonoscopy_n','colonoscopy_max_diff',
                 'labs_fobt_n','labs_fobt_max_diff',
-                'H2R_int','H2R_mean','H2R_max','H2R_max_diff','H2R_tv',
-                'PPI_int','PPI_mean','PPI_max','PPI_max_diff','PPI_tv')
+                'h2r_int','h2r_mean','h2r_max','h2r_maxdiff','h2r_tv',
+                'ppi_int','ppi_mean','ppi_max','ppi_maxdiff','ppi_tv')
 
 # blood lab measurements (all numeric)
 lab_vars <- list(c('A1c'),
@@ -103,7 +103,7 @@ lab_vars <- list(c('A1c'),
 # blood lab longitudinal summaries
 lab_suffix <- c('_mean',
                 '_max','_min',
-                '_max_diff','_min_diff','_tv')
+                '_maxdiff','_mindiff','_tv')
 
 # impute some vars with zero, save
 complete_data_clean <- complete_data
@@ -122,7 +122,7 @@ complete_data_init <- complete_data_clean
 # original complete data has NAs to determine original missing vals
 
 # blood labs
-set.seed(seed)
+set.seed(1999)
 for(lab in lab_vars){
   for(v in lab){
     for(summ in lab_suffix){
@@ -144,8 +144,8 @@ smoke_miss <- is.na(complete_data_init[['smoke_current']])
 complete_data_init[smoke_miss,smoke_vars] <- complete_data_init[sample(which(!smoke_miss),sum(smoke_miss),replace=T),smoke_vars]
 #print('Impute smoking status')
 
-saveRDS(complete_data_init,
-        file='R_data/complete_data_samp.rds')
+#saveRDS(complete_data_init,
+#        file='R_data/complete_data_samp.rds')
 
 print('Data prepped')
 timestamp()
@@ -168,6 +168,7 @@ valid[ivalid] <- TRUE
 traintrain <- as.logical(train*(!valid))
 
 # xgb formatting for each set
+# weights would go in here as well
 dtrain <- xgb.DMatrix(as.matrix(complete_data_init[traintrain,-c(1,2)]),
                       label=complete_data_init$CaseControl[traintrain])
 dvalid <-  xgb.DMatrix(as.matrix(complete_data_init[valid,-c(1,2)]),
