@@ -127,7 +127,7 @@ impute_missing_hosea <- function(data_raw,ncycles=5,seed=1){
   
   # store missing values to check convergence
   all_miss_old <- c(complete_data_impute[is.na(complete_data_raw)])
-  print(sqrt(mean(all_miss_old^2)))
+  # print(sqrt(mean(all_miss_old^2)))
   
   # lab order
   lab_order <- c(2,6,3,5,1)
@@ -259,8 +259,7 @@ impute_missing_hosea <- function(data_raw,ncycles=5,seed=1){
       imiss <- is.na(complete_data_raw[[var]])
       temp <- impute_reg(temp_data,
                          complete_data_impute[[var]],
-                         imiss,
-                         binary=TRUE)
+                         imiss)
       complete_data_impute[[var]] <- temp
       #print(paste0('Impute ',var))
     }
@@ -287,6 +286,14 @@ impute_missing_hosea <- function(data_raw,ncycles=5,seed=1){
     all_miss_old <- all_miss_new
   }
   
+  # ensure smoke status is a multiclass indicator
+  smoke_wmiss <- which(is.na(complete_data_raw[['smoke_current']]))
+  for(ii in smoke_wmiss){
+    temp <- rep(-Inf,length(smoke_vars))
+    temp[which.max(c(complete_data_impute[ii,smoke_vars]))] <- max(complete_data_impute[ii,smoke_vars])
+    complete_data_impute[ii,smoke_vars] <- temp  
+  }
+
   complete_data_impfinal <- complete_data_impute
   for(var in colnames(complete_data_impfinal)){
     complete_data_impfinal[[var]] <- quantile_unnormalize(complete_data_impfinal[[var]],

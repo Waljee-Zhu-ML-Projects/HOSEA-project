@@ -35,19 +35,19 @@ impute_reg <- function(df,response,imiss,
 }
 
 # convergence issues for current data
-impute_logit <- function(df,response,imiss){
-  # store vector to return
-  out <- response
-  # add response
-  df[['y']] <- response
-  # fit model
-  temp_model <- glm(y~.,data=df,family=binomial,subset=!imiss)
-  # impute
-  suppressWarnings(yimp <- predict(temp_model,newdata=df[imiss,],type='response'))
-  # replace
-  out[imiss] <- as.integer(yimp > .5)
-  return(out)
-}
+# impute_logit <- function(df,response,imiss){
+#   # store vector to return
+#   out <- response
+#   # add response
+#   df[['y']] <- response
+#   # fit model
+#   temp_model <- glm(y~.,data=df,family=binomial,subset=!imiss)
+#   # impute
+#   suppressWarnings(yimp <- predict(temp_model,newdata=df[imiss,],type='response'))
+#   # replace
+#   out[imiss] <- as.integer(yimp > .5)
+#   return(out)
+# }
 
 # extension to multiclass variables
 impute_reg_multi <- function(df,responses,imiss){
@@ -55,19 +55,18 @@ impute_reg_multi <- function(df,responses,imiss){
   out <- responses
   # impute each class
   classes <- colnames(responses)
-  yimp <- matrix(NA,sum(imiss),length(classes))
+  #yimp <- matrix(NA,sum(imiss),length(classes))
   for(ii in 1:length(classes)){
      # run imputation
-     yimp[,ii] <- impute_reg(df,responses[[classes[ii]]],imiss)[imiss]
+     #yimp[,ii] <- impute_reg(df,responses[[classes[ii]]],imiss)[imiss]
+    out[,ii] <- impute_reg(df,responses[[classes[ii]]],imiss)
   }
-  # replace
-  out[imiss,] <- 0
-  wmiss <- which(imiss)
-  for(ii in 1:sum(imiss)){
-    if(any(yimp[ii,]>.5)){
-      out[wmiss[ii],which.max(yimp[ii,])] <- 1
-    }
-  }
+  # # replace
+  # out[imiss,] <- -Inf
+  # wmiss <- which(imiss)
+  # for(ii in 1:sum(imiss)){
+  #   out[wmiss[ii],which.max(yimp[ii,])] <- max(yimp[ii,])
+  # }
   return(out)
 }
 

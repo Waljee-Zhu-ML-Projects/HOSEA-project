@@ -134,6 +134,7 @@ print(xgb_summ_samp[1:nsumm,])
 xgb_pdp('ageatindex',xgb_fit_samp,train_data_impute$impsamp)
 # weight
 xgb_pdp('weight',xgb_fit_samp,train_data_impute$impsamp)
+xgb_pdp('pud',xgb_fit_samp,train_data_impute$impsamp)
 # labs: WBC, BUN, Na (min)
 xgb_pdp('wbc_mean',xgb_fit_samp,train_data_impute$impsamp)
 xgb_pdp('bun_mean',xgb_fit_samp,train_data_impute$impsamp)
@@ -187,7 +188,8 @@ logistic_fit_reg <- fit_logistic(train_data = rbind(train_data_impute$impreg[,-1
                                                      valid_data_impute$impreg[,-1]),
                                   test_data = test_data_impute$impreg[,-1])
 print(logistic_fit_reg$auc)
-# .787 test AUC - better than baseline, worse than median, still using charlson?
+# .760 test AUC - better than baseline, worse than median, still using charlson?
+print(summary(logistic_fit_reg$model))
 
 # fit xgboost model
 xgb_fit_reg <- xgb.train(param_xg,
@@ -207,11 +209,11 @@ print(xgb_summ_reg[1:nsumm,])
 # age
 xgb_pdp('ageatindex',xgb_fit_reg,train_data_impute$impreg)
 xgb_pdp('hct_max',xgb_fit_reg,train_data_impute$impreg)
-xgb_pdp('A1c_max',xgb_fit_reg,train_data_impute$impreg)
+xgb_pdp('RD',xgb_fit_reg,train_data_impute$impreg)
 
 # evaluate AUCs (as helper in xgb_utils.R)
 xgb_auc_reg <- xgb_auc(xgb_fit_reg,dwatchlist_reg)
 print(xgb_auc_reg)
-# .836 test AUC 
+# .815 test AUC 
 
 
