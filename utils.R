@@ -87,6 +87,24 @@ fit_logistic <- function(train_data,test_data){
               auc=auc_mat))
 }
 
+logistic_auc_external <- function(logistic_model,
+                                  new_data){
+  # predictions
+  ptest <- predict(logistic_model,
+                   newdata=new_data,
+                   type='response')
+  # AUCs
+  auc_test <- ci.auc(response=new_data$CaseControl,
+                     predictor=ptest,
+                     conf.level=.95,
+                     method='delong')
+  # store in a matrix
+  auc_mat <- matrix(auc_test,nrow=1)
+  rownames(auc_mat) <- c('New Data')
+  colnames(auc_mat) <- c('LB','Est','UB')
+  return(auc_mat)
+}
+
 # row-normalized and column normalized tables
 
 table_rn <- function(x,y){

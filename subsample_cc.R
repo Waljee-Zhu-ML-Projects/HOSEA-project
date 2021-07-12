@@ -1,4 +1,6 @@
 # subsample a complete test set
+source('R_code/hosea-project/utils.R')
+
 
 # load complete data
 sub_master <- readRDS('R_data/subsample/sub_master.rds')
@@ -19,9 +21,9 @@ nonsub_complete_data <- complete_data %>%
   filter(!is.na(Black))
   
 set.seed(300)
-n2 <- 5000
-i_case <- sample(which(nonsub_complete_data$CaseControl==1),n2)
-i_control <- sample(which(nonsub_complete_data$CaseControl==0),n2)
+n2 <- 500
+i_case <- which(nonsub_complete_data$CaseControl==1)
+i_control <- sample(which(nonsub_complete_data$CaseControl==0),(2*n2 - length(i_case)))
   
 complete_test <- nonsub_complete_data[c(i_case,i_control),]
 
@@ -52,13 +54,9 @@ lab_vars <- list(c('A1c'),
 # blood lab longitudinal summaries
 lab_suffix <- c('_mean',
                 '_max','_min',
-                '_maxdiff','_mindiff','_tv')
-
-# impute colonoscopies, fobt labs and meds with zeros
-for(var in other_vars){
-  complete_test[[var]] <- fill_by_zero(complete_test[[var]])
-  #print(paste0('Impute ',var))
-}
+                '_maxdiff','_mindiff',
+                '_max_diff','_min_diff',
+                '_tv')
 
 # impute remaining vars with sample, save
 

@@ -66,3 +66,25 @@ xgb_auc <- function(xgb_model,
   return(auc_mat)
 }
 
+# function to evaluate the training and test AUCs with confidence intervals
+xgb_auc_external <- function(xgb_model,
+                    new_data){
+  # convert to xgb object
+  dnew <- xgb.DMatrix(as.matrix(new_data[-c(1,2)]),
+                        label=new_data$CaseControl)
+  # predict outsome
+  ptest <- predict(xgb_model,newdata=dnew,
+                    ntreelimit=xgb_model$best_ntreelimit,
+                    outputmargin=FALSE)
+  # AUCs
+  auc_test <- ci.auc(response=new_data$CaseControl,
+                     predictor=ptest,
+                     conf.level=.95,
+                     method='delong')
+  # store in a matrix
+  auc_mat <- matrix(auc_test,nrow=1)
+  rownames(auc_mat) <- c('New Data')
+  colnames(auc_mat) <- c('LB','Est','UB')
+  return(auc_mat)
+}
+
