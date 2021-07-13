@@ -69,7 +69,7 @@ xgb_multisamp <- function(train,test,valid,cc_test,
     temp_valid[['x']] <- impute_multisamp(valid)
     print('Impute')
     # prep data
-    temp_data <- xgb_prep(train,test,valid,dname='x')
+    temp_data <- xgb_prep(temp_train,temp_test,temp_valid,dname='x')
     temp_cctestdata <- xgb.DMatrix(as.matrix(cc_test[-c(1,2)]),
                         label=cc_test$CaseControl)
     print('Prepare data')
@@ -104,11 +104,11 @@ xgb_multisamp <- function(train,test,valid,cc_test,
                       predictor=expit(ptrain),
                       conf.level=.95,
                       method='delong')
-  auc_valid <- ci.auc(response=test$CaseControl,
+  auc_valid <- ci.auc(response=valid$CaseControl,
                       predictor=expit(pvalid),
                       conf.level=.95,
                       method='delong')
-  auc_test <- ci.auc(response=valid$CaseControl,
+  auc_test <- ci.auc(response=test$CaseControl,
                      predictor=expit(ptest),
                      conf.level=.95,
                      method='delong')

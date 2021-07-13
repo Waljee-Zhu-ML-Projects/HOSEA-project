@@ -130,7 +130,7 @@ print(logistic_auc_samp_cc) # 0.724
 # fit xgboost model
 xgb_fit_samp <- xgb.train(param_xg,
                         dwatchlist_samp$train, # training set
-                        nrounds=100,
+                        nrounds=1000,
                         dwatchlist_samp, # data watchlist
                         verbose=1,print_every_n=8,
                         early_stopping_rounds=10)
@@ -158,7 +158,7 @@ print(xgb_auc_samp)
 # honest .729 test AUC with sampling
 # evaluate AUC on complete cases
 xgb_auc_samp_cc <- xgb_auc_external(xgb_fit_samp,cc_test)
-print(xgb_auc_samp_cc) # 0.745
+print(xgb_auc_samp_cc) # 0.756
 
 #### fit with median imputation ####
 
@@ -255,10 +255,20 @@ xgb_fit_multisamp10 <- xgb_multisamp(train_data_impute$clean,
                                      param_xg=param_xg)
 
 # with 20 reps
+xgb_fit_multisamp20 <- xgb_multisamp(train_data_impute$clean,
+                                     test_data_impute$clean,
+                                     valid_data_impute$clean,
+                                     cc_test,
+                                     nreps=20,
+                                     param_xg=param_xg)
 
 # with 30 reps
-
-# ...
+xgb_fit_multisamp30 <- xgb_multisamp(train_data_impute$clean,
+                                     test_data_impute$clean,
+                                     valid_data_impute$clean,
+                                     cc_test,
+                                     nreps=30,
+                                     param_xg=param_xg)
 
 #### fit with multiple sample progressive 
 

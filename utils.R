@@ -53,10 +53,11 @@ fill_by_sample <- function(x) {
 }
 
 fill_by_sample_mat <- function(x) {
-  isamp <- which(apply(x,1,function(y){all(!is.na(y))}))
-  xsamp <- x[sample(isamp,nrow(x),replace=TRUE),]
-  x[is.na(x)] <- xsamp[is.na(x)]
-  return(x)
+  xmat <- as.matrix(x)
+  isamp <- which(apply(xmat,1,function(y){all(!is.na(y))}))
+  xsamp <- xmat[sample(isamp,nrow(xmat),replace=TRUE),]
+  xmat[is.na(xmat)] <- xsamp[is.na(xmat)]
+  return(as.data.frame(xmat))
 }
 
 expit <- function(x){
