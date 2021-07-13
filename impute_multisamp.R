@@ -131,11 +131,11 @@ xgb_multisamp <- function(train,test,valid,cc_test,
 # progressive version
 
 xgb_multisamp_prog <- function(train,test,valid,cc_test,
-                          nreps=1,
+                          nreps=1,nrounds=500,
                           param_xg){
   # initialize model, ntrees 
   temp_model <- NULL
-  prev_trees <- 0
+  #prev_trees <- 0
   # imputation reps
   for(nn in 1:nreps){
     print(paste0('For rep ',nn,':'))
@@ -153,30 +153,26 @@ xgb_multisamp_prog <- function(train,test,valid,cc_test,
     # fit
     temp_model <- xgb.train(param_xg,
                             temp_data$train, # training set
-                            nrounds=500,
+                            nrounds=nrounds,
                             temp_data, # data watchlist
                             verbose=0,
                             xgb_model=temp_model,
-                            early_stopping_rounds=10)
+                            early_stopping_rounds=NULL)
     print('Update XGB model')
-    # print ntrees
-    print(paste0(temp_model$best_ntreelimit - prev_trees,' new trees'))
-    # update ntrees
-    prev_trees <- temp_model$best_ntreelimit
   }
   
   # make predictions 
   ptrain <- predict(temp_model,newdata=temp_data$train,
-                                       ntreelimit=temp_model$best_ntreelimit,
+                                       ntreelimit=NULL,
                                        outputmargin=FALSE)
   ptest <- predict(temp_model,newdata=temp_data$test,
-                                     ntreelimit=temp_model$best_ntreelimit,
+                                     ntreelimit=NULL,
                                      outputmargin=FALSE)
   pvalid <- predict(temp_model,newdata=temp_data$valid,
-                                       ntreelimit=temp_model$best_ntreelimit,
+                                       ntreelimit=NULL,
                                        outputmargin=FALSE)
   pcctest <- predict(temp_model,newdata=temp_cctestdata,
-                                         ntreelimit=temp_model$best_ntreelimit,
+                                         ntreelimit=NULL,
                                          outputmargin=FALSE)
   print('Predictions')
   
@@ -199,7 +195,7 @@ xgb_multisamp_prog <- function(train,test,valid,cc_test,
                        method='delong')
   # store in a matrix
   auc_mat <- rbind(auc_train,auc_valid,auc_test,auc_cctest)
-  rownames(auc_mat) <- c('Training','Validation','Test','Test (complete)')
+  rownames(auc_mat) <- c('Training (final imp.)','Validation','Test','Test (complete)')
   colnames(auc_mat) <- c('LB','Est','UB')
   
   return(list(model=temp_model,

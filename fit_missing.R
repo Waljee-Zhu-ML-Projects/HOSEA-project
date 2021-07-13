@@ -79,6 +79,7 @@ dwatchlist_reg <- xgb_prep(train_data_impute,
 # global parameters for the 3 models
 param_xg <- list(max_depth=4,eta=.05,objective='binary:logistic',
                  eval_metric='logloss')
+# think about tuning max_depth,eta,nrounds with CV?
 
 # fit xgboost model
 xgb_fit_na <- xgb.train(param_xg,
@@ -247,6 +248,7 @@ print(xgb_auc_reg_cc) # 0.705, significantly worse but approaching
 #### fit with multiple sample imputation ####
 
 # with 10 reps
+set.seed(2003)
 xgb_fit_multisamp10 <- xgb_multisamp(train_data_impute$clean,
                                      test_data_impute$clean,
                                      valid_data_impute$clean,
@@ -255,6 +257,7 @@ xgb_fit_multisamp10 <- xgb_multisamp(train_data_impute$clean,
                                      param_xg=param_xg)
 
 # with 20 reps
+set.seed(2004)
 xgb_fit_multisamp20 <- xgb_multisamp(train_data_impute$clean,
                                      test_data_impute$clean,
                                      valid_data_impute$clean,
@@ -263,6 +266,7 @@ xgb_fit_multisamp20 <- xgb_multisamp(train_data_impute$clean,
                                      param_xg=param_xg)
 
 # with 30 reps
+set.seed(2005)
 xgb_fit_multisamp30 <- xgb_multisamp(train_data_impute$clean,
                                      test_data_impute$clean,
                                      valid_data_impute$clean,
@@ -270,5 +274,48 @@ xgb_fit_multisamp30 <- xgb_multisamp(train_data_impute$clean,
                                      nreps=30,
                                      param_xg=param_xg)
 
-#### fit with multiple sample progressive 
+#### fit with multiple sample progressive #### 
+
+# with 10 reps
+set.seed(2006)
+xgb_fit_multisampprog10 <- xgb_multisamp_prog(train_data_impute$clean,
+                                     test_data_impute$clean,
+                                     valid_data_impute$clean,
+                                     cc_test,
+                                     nreps=10,nrounds=50,
+                                     param_xg=param_xg)
+# see trace of training process by plotting model evaluation_log
+matplot(1:500,xgb_fit_multisampprog10$model$evaluation_log[,-1],
+        xlab='Trees',ylab='Loss',main='Training for 10 reps, 50 trees each',
+        type='p',pch=1,lty=1)
+for(ii in 1:10){
+  abline(v=50*ii,lty=2)
+}
+
+# with 20 reps
+set.seed(2007)
+xgb_fit_multisampprog20 <- xgb_multisamp_prog(train_data_impute$clean,
+                                              test_data_impute$clean,
+                                              valid_data_impute$clean,
+                                              cc_test,
+                                              nreps=20,nrounds=50,
+                                              param_xg=param_xg)
+
+# with 30 reps
+set.seed(2008)
+xgb_fit_multisampprog30 <- xgb_multisamp_prog(train_data_impute$clean,
+                                              test_data_impute$clean,
+                                              valid_data_impute$clean,
+                                              cc_test,
+                                              nreps=30,nrounds=50,
+                                              param_xg=param_xg)
+
+# save all the multiple sample imputation models/results
+save(xgb_fit_multisamp10,
+     xgb_fit_multisamp20,
+     xgb_fit_multisamp30,
+     xgb_fit_multisampprog10,
+     xgb_fit_multisampprog20,
+     xgb_fit_multisampprog30,
+     file='R_data/models/multisamp_models.RData')
 
