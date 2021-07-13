@@ -11,6 +11,7 @@ source('R_code/hosea-project/utils.R')
 source('R_code/hosea-project/utils_xgb.R')
 source('R_code/hosea-project/impute_models.R')
 source('R_code/hosea-project/impute_missing.R')
+source('R_code/hosea-project/impute_multisamp.R')
 
 #### import data ####
 
@@ -243,4 +244,21 @@ xgb_auc_reg_cc <- xgb_auc_external(xgb_fit_reg,cc_test)
 print(xgb_auc_reg_cc) # 0.705, significantly worse but approaching
 # random sample
 
+#### fit with multiple sample imputation ####
+
+# with 10 reps
+xgb_fit_multisamp10 <- xgb_multisamp(train_data_impute$clean,
+                                     test_data_impute$clean,
+                                     valid_data_impute$clean,
+                                     cc_test,
+                                     nreps=10,
+                                     param_xg=param_xg)
+
+# with 20 reps
+
+# with 30 reps
+
+# ...
+
+#### fit with multiple sample progressive 
 

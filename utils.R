@@ -52,6 +52,13 @@ fill_by_sample <- function(x) {
   return(x)
 }
 
+fill_by_sample_mat <- function(x) {
+  isamp <- which(apply(x,1,function(y){all(!is.na(y))}))
+  xsamp <- x[sample(isamp,nrow(x),replace=TRUE),]
+  x[is.na(x)] <- xsamp[is.na(x)]
+  return(x)
+}
+
 expit <- function(x){
   exp(x) / (1+exp(x))
 }
@@ -106,7 +113,6 @@ logistic_auc_external <- function(logistic_model,
 }
 
 # row-normalized and column normalized tables
-
 table_rn <- function(x,y){
   temp <- table(x,y)
   temp_n <- temp / rowSums(temp)
