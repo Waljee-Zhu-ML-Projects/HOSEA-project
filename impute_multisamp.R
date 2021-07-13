@@ -127,3 +127,85 @@ xgb_multisamp <- function(train,test,valid,cc_test,
               pcctest=pcctest,
               aucs=auc_mat))
 }
+
+# progressive version
+
+xgb_multisamp_prog <- function(train,test,valid,cc_test,
+                          nreps=1,
+                          param_xg){
+  # initialize model, ntrees 
+  temp_model <- NULL
+  prev_trees <- 0
+  # imputation reps
+  for(nn in 1:nreps){
+    print(paste0('For rep ',nn,':'))
+    # impute
+    temp_train <- temp_test <- temp_valid <- list()
+    temp_train[['x']] <- impute_multisamp(train)
+    temp_test[['x']] <- impute_multisamp(test)
+    temp_valid[['x']] <- impute_multisamp(valid)
+    print('Impute')
+    # prep data
+    temp_data <- xgb_prep(temp_train,temp_test,temp_valid,dname='x')
+    temp_cctestdata <- xgb.DMatrix(as.matrix(cc_test[-c(1,2)]),
+                                   label=cc_test$CaseControl)
+    print('Prepare data')
+    # fit
+    temp_model <- xgb.train(param_xg,
+                            temp_data$train, # training set
+                            nrounds=500,
+                            temp_data, # data watchlist
+                            verbose=0,
+                            xgb_model=temp_model,
+                            early_stopping_rounds=10)
+    print('Update XGB model')
+    # print ntrees
+    print(paste0(temp_model$best_ntreelimit - prev_trees,' new trees'))
+    # update ntrees
+    prev_trees <- temp_model$best_ntreelimit
+  }
+  
+  # make predictions 
+  ptrain <- predict(temp_model,newdata=temp_data$train,
+                                       ntreelimit=temp_model$best_ntreelimit,
+                                       outputmargin=FALSE)
+  ptest <- predict(temp_model,newdata=temp_data$test,
+                                     ntreelimit=temp_model$best_ntreelimit,
+                                     outputmargin=FALSE)
+  pvalid <- predict(temp_model,newdata=temp_data$valid,
+                                       ntreelimit=temp_model$best_ntreelimit,
+                                       outputmargin=FALSE)
+  pcctest <- predict(temp_model,newdata=temp_cctestdata,
+                                         ntreelimit=temp_model$best_ntreelimit,
+                                         outputmargin=FALSE)
+  print('Predictions')
+  
+  # calculate final AUCs
+  auc_train <- ci.auc(response=train$CaseControl,
+                      predictor=ptrain,
+                      conf.level=.95,
+                      method='delong')
+  auc_valid <- ci.auc(response=valid$CaseControl,
+                      predictor=pvalid,
+                      conf.level=.95,
+                      method='delong')
+  auc_test <- ci.auc(response=test$CaseControl,
+                     predictor=ptest,
+                     conf.level=.95,
+                     method='delong')
+  auc_cctest <- ci.auc(response=cc_test$CaseControl,
+                       predictor=pcctest,
+                       conf.level=.95,
+                       method='delong')
+  # store in a matrix
+  auc_mat <- rbind(auc_train,auc_valid,auc_test,auc_cctest)
+  rownames(auc_mat) <- c('Training','Validation','Test','Test (complete)')
+  colnames(auc_mat) <- c('LB','Est','UB')
+  
+  return(list(model=temp_model,
+              ptrain=ptrain,
+              ptest=ptest,
+              pvalid=pvalid,
+              pcctest=pcctest,
+              aucs=auc_mat))
+}
