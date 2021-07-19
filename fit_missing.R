@@ -39,6 +39,7 @@ valid[ivalid] <- TRUE
 traintrain <- as.logical(train*(!valid))
 
 #### impute each chunk ####
+# 10 cycles
 train_data_impute <- impute_missing_hosea(complete_data[traintrain,],ncycles=10,seed=1995)
 test_data_impute <- impute_missing_hosea(complete_data[test,],ncycles=10,seed=1996)
 valid_data_impute <- impute_missing_hosea(complete_data[valid,],ncycles=10,seed=1998)
@@ -354,7 +355,7 @@ xgb_fit_multisampprog100 <- xgb_multisamp_prog(train_data_impute$clean,
                                               param_xg=param_xg)
 # see trace of training process by plotting model evaluation_log
 matplot(1:500,xgb_fit_multisampprog100$model$evaluation_log[,-1],
-        xlab='Trees',ylab='Loss',main='Training for 30 reps, 20 trees each',
+        xlab='Trees',ylab='Loss',main='Training for 100 reps, 5 trees each',
         type='p',pch=1,lty=1)
 for(ii in 1:100){
   abline(v=5*ii,lty=2)

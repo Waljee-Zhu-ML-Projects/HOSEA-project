@@ -60,6 +60,20 @@ fill_by_sample_mat <- function(x) {
   return(as.data.frame(xmat))
 }
 
+# where first column is fully observed reference
+fill_by_nn_mat <- function(x){
+  xmat <- as.matrix(x)
+  isamp <- which(apply(xmat,1,function(y){all(!is.na(y))}))
+  for(ii in 1:nrow(xmat)){
+    ireplace <- is.na(xmat[ii,])
+    if(any(ireplace)){
+      replacerow <- which.min(abs(xmat[isamp,1]-xmat[ii,1]))
+      xmat[ii,ireplace] <- xmat[replacerow,ireplace]
+    }
+  }
+  return(as.data.frame(xmat))
+}
+
 expit <- function(x){
   exp(x) / (1+exp(x))
 }
