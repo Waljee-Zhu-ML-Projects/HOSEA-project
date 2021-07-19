@@ -39,15 +39,16 @@ valid[ivalid] <- TRUE
 traintrain <- as.logical(train*(!valid))
 
 #### impute each chunk ####
-train_data_impute <- impute_missing_hosea(complete_data[traintrain,],seed=1995)
-test_data_impute <- impute_missing_hosea(complete_data[test,],seed=1996)
-valid_data_impute <- impute_missing_hosea(complete_data[valid,],seed=1998)
+train_data_impute <- impute_missing_hosea(complete_data[traintrain,],ncycles=10,seed=1995)
+test_data_impute <- impute_missing_hosea(complete_data[test,],ncycles=10,seed=1996)
+valid_data_impute <- impute_missing_hosea(complete_data[valid,],ncycles=10,seed=1998)
 
 # save all imputed data
 save(train_data_impute,test_data_impute,valid_data_impute,
-     file='R_data/subsample/sub_complete_data_impute.RData')
+     file='R_data/subsample/sub_complete_data_impute_v02.RData')
+# v02 with renormalized regression imputation
 # can reload from here
-load('R_data/subsample/sub_complete_data_impute.RData')
+#load('R_data/subsample/sub_complete_data_impute.RData')
 
 #### format imputed data for xgboost ####
 # with NAs
@@ -212,9 +213,11 @@ logistic_fit_reg <- fit_logistic(train_data = rbind(train_data_impute$impreg[,-1
                                   test_data = test_data_impute$impreg[,-1])
 print(logistic_fit_reg$auc)
 # .760 test AUC - better than baseline, worse than median, still using charlson?
+# charlson gone with distn matching, still poor test performance?
 logistic_auc_reg_cc <- logistic_auc_external(logistic_fit_reg$model,
                                              cc_test)
 print(logistic_auc_reg_cc) # 0.557 significantly worse, again negative effects of Charlson?
+# 0.567 with distn matching, unclear why that performs so poorly
 
 # fit xgboost model
 xgb_fit_reg <- xgb.train(param_xg,
@@ -224,6 +227,7 @@ xgb_fit_reg <- xgb.train(param_xg,
                         verbose=1,print_every_n=8,
                         early_stopping_rounds=10)
 # stops at 362 trees
+# 228 with distn matching
 
 # print info about important variables
 xgb_summ_reg <- xgb.importance(model=xgb_fit_reg)
@@ -233,46 +237,49 @@ print(xgb_summ_reg[1:nsumm,])
 # need to pass raw training data matrix
 # age
 xgb_pdp('ageatindex',xgb_fit_reg,train_data_impute$impreg)
-xgb_pdp('hct_max',xgb_fit_reg,train_data_impute$impreg)
+xgb_pdp('wbc_max',xgb_fit_reg,train_data_impute$impreg)
+xgb_pdp('hct_tv',xgb_fit_reg,train_data_impute$impreg)
 xgb_pdp('RD',xgb_fit_reg,train_data_impute$impreg)
 
 # evaluate AUCs (as helper in xgb_utils.R)
 xgb_auc_reg <- xgb_auc(xgb_fit_reg,dwatchlist_reg)
 print(xgb_auc_reg)
 # .815 test AUC (possibly inflated)
+# .725 after distn matching
 # evaluate AUC on complete cases
 xgb_auc_reg_cc <- xgb_auc_external(xgb_fit_reg,cc_test)
 print(xgb_auc_reg_cc) # 0.705, significantly worse but approaching
 # random sample
+# 0.757 with distribution matching, performance similar to random sample
 
 #### fit with multiple sample imputation ####
 
-# with 10 reps
-set.seed(2003)
-xgb_fit_multisamp10 <- xgb_multisamp(train_data_impute$clean,
-                                     test_data_impute$clean,
-                                     valid_data_impute$clean,
-                                     cc_test,
-                                     nreps=10,
-                                     param_xg=param_xg)
-
-# with 20 reps
-set.seed(2004)
-xgb_fit_multisamp20 <- xgb_multisamp(train_data_impute$clean,
-                                     test_data_impute$clean,
-                                     valid_data_impute$clean,
-                                     cc_test,
-                                     nreps=20,
-                                     param_xg=param_xg)
-
-# with 30 reps
-set.seed(2005)
-xgb_fit_multisamp30 <- xgb_multisamp(train_data_impute$clean,
-                                     test_data_impute$clean,
-                                     valid_data_impute$clean,
-                                     cc_test,
-                                     nreps=30,
-                                     param_xg=param_xg)
+# # with 10 reps
+# set.seed(2003)
+# xgb_fit_multisamp10 <- xgb_multisamp(train_data_impute$clean,
+#                                      test_data_impute$clean,
+#                                      valid_data_impute$clean,
+#                                      cc_test,
+#                                      nreps=10,
+#                                      param_xg=param_xg)
+# 
+# # with 20 reps
+# set.seed(2004)
+# xgb_fit_multisamp20 <- xgb_multisamp(train_data_impute$clean,
+#                                      test_data_impute$clean,
+#                                      valid_data_impute$clean,
+#                                      cc_test,
+#                                      nreps=20,
+#                                      param_xg=param_xg)
+# 
+# # with 30 reps
+# set.seed(2005)
+# xgb_fit_multisamp30 <- xgb_multisamp(train_data_impute$clean,
+#                                      test_data_impute$clean,
+#                                      valid_data_impute$clean,
+#                                      cc_test,
+#                                      nreps=30,
+#                                      param_xg=param_xg)
 
 #### fit with multiple sample progressive #### 
 
@@ -292,14 +299,30 @@ for(ii in 1:10){
   abline(v=50*ii,lty=2)
 }
 
+# print AUCs
+print(xgb_fit_multisampprog10$aucs)
+# test AUC on complete records is 0.781
+
 # with 20 reps
 set.seed(2007)
 xgb_fit_multisampprog20 <- xgb_multisamp_prog(train_data_impute$clean,
                                               test_data_impute$clean,
                                               valid_data_impute$clean,
                                               cc_test,
-                                              nreps=20,nrounds=50,
+                                              nreps=20,nrounds=25,
                                               param_xg=param_xg)
+# see trace of training process by plotting model evaluation_log
+matplot(1:500,xgb_fit_multisampprog20$model$evaluation_log[,-1],
+        xlab='Trees',ylab='Loss',main='Training for 20 reps, 25 trees each',
+        type='p',pch=1,lty=1)
+for(ii in 1:20){
+  abline(v=25*ii,lty=2)
+}
+
+# print AUCs
+print(xgb_fit_multisampprog20$aucs)
+# test AUC on complete records is 0.778
+
 
 # with 30 reps
 set.seed(2008)
@@ -307,15 +330,50 @@ xgb_fit_multisampprog30 <- xgb_multisamp_prog(train_data_impute$clean,
                                               test_data_impute$clean,
                                               valid_data_impute$clean,
                                               cc_test,
-                                              nreps=30,nrounds=50,
+                                              nreps=30,nrounds=20,
                                               param_xg=param_xg)
+# see trace of training process by plotting model evaluation_log
+matplot(1:600,xgb_fit_multisampprog30$model$evaluation_log[,-1],
+        xlab='Trees',ylab='Loss',main='Training for 30 reps, 20 trees each',
+        type='p',pch=1,lty=1)
+for(ii in 1:30){
+  abline(v=20*ii,lty=2)
+}
+
+# print AUCs
+print(xgb_fit_multisampprog30$aucs)
+# test AUC on complete records is 0.778
+
+# with 100 reps
+set.seed(2009)
+xgb_fit_multisampprog100 <- xgb_multisamp_prog(train_data_impute$clean,
+                                              test_data_impute$clean,
+                                              valid_data_impute$clean,
+                                              cc_test,
+                                              nreps=100,nrounds=5,
+                                              param_xg=param_xg)
+# see trace of training process by plotting model evaluation_log
+matplot(1:500,xgb_fit_multisampprog100$model$evaluation_log[,-1],
+        xlab='Trees',ylab='Loss',main='Training for 30 reps, 20 trees each',
+        type='p',pch=1,lty=1)
+for(ii in 1:100){
+  abline(v=5*ii,lty=2)
+}
+
+# variable importance
+
+# look at partial dependence plots
+
+# print AUCs
+print(xgb_fit_multisampprog100$aucs)
+# test AUC on complete records is 0.806
 
 # save all the multiple sample imputation models/results
-save(xgb_fit_multisamp10,
-     xgb_fit_multisamp20,
-     xgb_fit_multisamp30,
-     xgb_fit_multisampprog10,
-     xgb_fit_multisampprog20,
-     xgb_fit_multisampprog30,
-     file='R_data/models/multisamp_models.RData')
+# save(xgb_fit_multisamp10,
+#      xgb_fit_multisamp20,
+#      xgb_fit_multisamp30,
+#      xgb_fit_multisampprog10,
+#      xgb_fit_multisampprog20,
+#      xgb_fit_multisampprog30,
+#      file='R_data/models/multisamp_models.RData')
 
