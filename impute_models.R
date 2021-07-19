@@ -2,8 +2,8 @@
 
 # linear regression for numeric/non-negative/binary cases
 impute_reg <- function(df,response,imiss,
-                               nneg=FALSE,
-                               binary=FALSE){
+                       nneg=FALSE,
+                       renormalize=TRUE){
   # store vector to return
   out <- response
   # response
@@ -19,17 +19,16 @@ impute_reg <- function(df,response,imiss,
   temp_model <- lm(y~.,data=df,subset=!imiss)
   # impute
   suppressWarnings(yimp <- predict(temp_model,newdata=df[imiss,]))
+  # option to 're-normalize' - convert yimp to standard normal
+  if(renormalize){
+    yimp <- quantile_normalize(yimp)
+  }
   # replace
-  if(binary){
-    out[imiss] <- as.integer(yimp > .5)
+  if(nneg){
+    out[imiss] <- pmax(exp(yimp)-1e-2,0)
   }
   else{
-    if(nneg){
-      out[imiss] <- pmax(exp(yimp)-1e-2,0)
-    }
-    else{
-      out[imiss] <- yimp
-    }
+    out[imiss] <- yimp
   }
   return(out)
 }

@@ -173,8 +173,7 @@ impute_missing_hosea <- function(data_raw,ncycles=5,seed=1){
           # impute
           temp <- impute_reg(temp_data,
                              complete_data_impute[[var]],
-                             imiss,
-                             nneg=F)
+                             imiss)
           # update complete_data_impute
           complete_data_impute[[var]] <- temp
           # print progress 
@@ -229,8 +228,7 @@ impute_missing_hosea <- function(data_raw,ncycles=5,seed=1){
         # impute
         temp <- impute_reg(temp_data,
                            complete_data_impute[[var]],
-                           imiss,
-                           nneg=F)
+                           imiss)
         # update complete_data_impute
         complete_data_impute[[var]] <- temp
         # print progress 
