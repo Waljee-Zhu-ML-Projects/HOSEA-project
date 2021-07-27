@@ -164,9 +164,17 @@ xgb_multisamp_prog <- function(train,test,valid,cc_test,
   ptrain <- predict(temp_model,newdata=temp_data$train,
                                        ntreelimit=NULL,
                                        outputmargin=FALSE)
-  ptest <- predict(temp_model,newdata=temp_data$test,
-                                     ntreelimit=NULL,
-                                     outputmargin=FALSE)
+  # ptest <- predict(temp_model,newdata=temp_data$test,
+  #                                    ntreelimit=NULL,
+  #                                    outputmargin=FALSE)
+  # multiple reps for test set (NOTE: ptest now on a different non-probability scale)
+  ptest <- rep(0,nrow(test))
+  for(nn in 1:nreps){
+    temp_test <- impute_multisamp(test)
+    ptest <- ptest + (1/nreps)*predict(temp_model,newdata=temp_test,
+                                       ntreelimit=NULL,
+                                       outputmargin=TRUE) 
+  }
   pvalid <- predict(temp_model,newdata=temp_data$valid,
                                        ntreelimit=NULL,
                                        outputmargin=FALSE)
