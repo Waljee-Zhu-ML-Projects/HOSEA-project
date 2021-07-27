@@ -40,13 +40,13 @@ traintrain <- as.logical(train*(!valid))
 
 #### impute each chunk ####
 # 10 cycles
-train_data_impute <- impute_missing_hosea(complete_data[traintrain,],ncycles=10,seed=1995)
-test_data_impute <- impute_missing_hosea(complete_data[test,],ncycles=10,seed=1996)
-valid_data_impute <- impute_missing_hosea(complete_data[valid,],ncycles=10,seed=1998)
+train_data_impute <- impute_missing_hosea(complete_data[traintrain,],ncycles=10,seed=1995,hybrid_reg=TRUE)
+test_data_impute <- impute_missing_hosea(complete_data[test,],ncycles=10,seed=1996,hybrid_reg=TRUE)
+valid_data_impute <- impute_missing_hosea(complete_data[valid,],ncycles=10,seed=1998,hybrid_reg=TRUE)
 
 # save all imputed data
 save(train_data_impute,test_data_impute,valid_data_impute,
-     file='R_data/subsample/sub_complete_data_impute_v02.RData')
+     file='R_data/subsample/sub_complete_data_impute_v03.RData')
 # v02 with renormalized regression imputation
 # can reload from here
 #load('R_data/subsample/sub_complete_data_impute.RData')
@@ -141,10 +141,10 @@ xgb_fit_samp <- xgb.train(param_xg,
 
 # print info about important variables
 xgb_summ_samp <- xgb.importance(model=xgb_fit_samp)
-print(xgb_summ_samp[1:nsumm,])
+print(xgb_summ_samp[200:219,])
 
 # pdp plots (as helper in xgb_utils.R)
-# need to pass raw training data matrix
+# need to pass raw training data matrixi
 # age
 xgb_pdp('ageatindex',xgb_fit_samp,train_data_impute$impsamp)
 # weight
@@ -219,6 +219,7 @@ logistic_auc_reg_cc <- logistic_auc_external(logistic_fit_reg$model,
                                              cc_test)
 print(logistic_auc_reg_cc) # 0.557 significantly worse, again negative effects of Charlson?
 # 0.567 with distn matching, unclear why that performs so poorly
+# 0.657 with distn matching + hybrid (may have been fitting spurious patterns to longitudinal vars)
 
 # fit xgboost model
 xgb_fit_reg <- xgb.train(param_xg,
@@ -229,17 +230,19 @@ xgb_fit_reg <- xgb.train(param_xg,
                         early_stopping_rounds=10)
 # stops at 362 trees
 # 228 with distn matching
+# 147 with distn matching + hybrid
 
 # print info about important variables
 xgb_summ_reg <- xgb.importance(model=xgb_fit_reg)
 print(xgb_summ_reg[1:nsumm,])
+# still some weird patterns with hct_max, etc.
 
 # pdp plots (as helper in xgb_utils.R)
 # need to pass raw training data matrix
 # age
 xgb_pdp('ageatindex',xgb_fit_reg,train_data_impute$impreg)
-xgb_pdp('wbc_max',xgb_fit_reg,train_data_impute$impreg)
-xgb_pdp('hct_tv',xgb_fit_reg,train_data_impute$impreg)
+xgb_pdp('A1c_mean',xgb_fit_reg,train_data_impute$impreg)
+xgb_pdp('hct_max',xgb_fit_reg,train_data_impute$impreg)
 xgb_pdp('RD',xgb_fit_reg,train_data_impute$impreg)
 
 # evaluate AUCs (as helper in xgb_utils.R)
@@ -252,6 +255,7 @@ xgb_auc_reg_cc <- xgb_auc_external(xgb_fit_reg,cc_test)
 print(xgb_auc_reg_cc) # 0.705, significantly worse but approaching
 # random sample
 # 0.757 with distribution matching, performance similar to random sample
+# still 0.757 with distn matching + hybrid, again similar to RS
 
 #### fit with multiple sample imputation ####
 
@@ -362,8 +366,13 @@ for(ii in 1:100){
 }
 
 # variable importance
-
+xgb_summ_multisamp <- xgb.importance(model=xgb_fit_multisampprog100$model)
+print(xgb_summ_multisamp)
 # look at partial dependence plots
+xgb_pdp('hct_mean',xgb_fit_multisampprog100$model,train_data_impute$impsamp)
+xgb_pdp('bun_mean',xgb_fit_multisampprog100$model,train_data_impute$impsamp)
+xgb_pdp('mch_tv',xgb_fit_multisampprog100$model,train_data_impute$impsamp)
+
 
 # print AUCs
 print(xgb_fit_multisampprog100$aucs)

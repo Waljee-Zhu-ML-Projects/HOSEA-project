@@ -90,8 +90,8 @@ impute_missing_hosea <- function(data_raw,ncycles=5,seed=1,hybrid_reg=FALSE){
   #print('Impute smoking status')
   
   print('Initial imputation')
+  print(mean(is.na(complete_data_samp)))
   print(mean(is.na(complete_data_init)))
-  print(meaan(is.na(complete_data_init)))
   
   #### median-based imputation ####
   

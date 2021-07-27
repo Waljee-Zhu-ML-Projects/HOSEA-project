@@ -67,7 +67,7 @@ fill_by_nn_mat <- function(x){
   for(ii in 1:nrow(xmat)){
     ireplace <- is.na(xmat[ii,])
     if(any(ireplace)){
-      replacerow <- which.min(abs(xmat[isamp,1]-xmat[ii,1]))
+      replacerow <- isamp[which.min(abs(xmat[isamp,1]-xmat[ii,1]))]
       xmat[ii,ireplace] <- xmat[replacerow,ireplace]
     }
   }
@@ -142,11 +142,14 @@ table_cn <- function(x,y){
 
 # converting to a vector to its corresponding normal quantiles
 quantile_normalize <- function(vec){
-  qnorm(rank(vec)/(1+length(vec)))
+  obs <- !is.na(vec)
+  temp <- rep(NA,length(vec))
+  temp[obs] <- qnorm(rank(vec[obs])/(1+length(vec[obs])))
+  return(temp)
 }
 # inverting
 quantile_unnormalize <- function(vec,wrt){
-  quantile(wrt,pnorm(vec),names=FALSE)
+  quantile(wrt,pnorm(vec),na.rm=TRUE,names=FALSE)
 }
 
 
