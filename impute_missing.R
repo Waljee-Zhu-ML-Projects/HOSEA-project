@@ -148,8 +148,14 @@ impute_missing_hosea <- function(data_raw,ncycles=5,seed=1,hybrid_reg=FALSE){
   for(cc in 1:ncycles){
     # impute lab means
     # temporary data for imputing
+    # temp_data <- select(complete_data_impute,
+    #                     all_of(c(demo_vars,smoke_vars,other_vars)))
+    # 
+    # temporary data
     temp_data <- select(complete_data_impute,
-                        all_of(c(demo_vars,smoke_vars,other_vars)))
+                        all_of(c(demo_vars,smoke_vars,other_vars,
+                                 paste0(unlist(lab_vars),'_mean'))))
+    
     # impute
     print(paste0('Cycle ',cc,', lab means'))
     for(ll in lab_order){
@@ -158,7 +164,7 @@ impute_missing_hosea <- function(data_raw,ncycles=5,seed=1,hybrid_reg=FALSE){
         # missing indices from complete_data
         imiss <- is.na(complete_data_raw[[var]])
         # impute
-        temp <- impute_reg(temp_data,
+        temp <- impute_reg(select(temp_data,!var),
                            complete_data_impute[[var]],
                            imiss)
         # update complete_data_impute
