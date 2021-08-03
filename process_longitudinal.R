@@ -49,8 +49,8 @@ process_longitudinal <- function(table_name,date_field,value_fields){
         temp[[paste0(var_name,'_min')]] <- mmin(tab[[var_name]])
         # max/min slope predictors
         slopes <- diff(tab[[var_name]])/pmax(diff(tab[[date_field]]),1)
-        temp[[paste0(var_name,'_max_diff')]] <- mmax(slopes)
-        temp[[paste0(var_name,'_min_diff')]] <- mmin(slopes)
+        temp[[paste0(var_name,'_maxdiff')]] <- mmax(slopes)
+        temp[[paste0(var_name,'_mindiff')]] <- mmin(slopes)
         if(nrow(tab) > 2){
           # total variation predictor
           temp[[paste0(var_name,'_tv')]] <- mmean(abs(slopes))
@@ -62,8 +62,8 @@ process_longitudinal <- function(table_name,date_field,value_fields){
       else{
         temp[[paste0(var_name,'_max')]] <- NA
         temp[[paste0(var_name,'_min')]] <- NA
-        temp[[paste0(var_name,'_max_diff')]] <- NA
-        temp[[paste0(var_name,'_min_diff')]] <- NA
+        temp[[paste0(var_name,'_maxdiff')]] <- NA
+        temp[[paste0(var_name,'_mindiff')]] <- NA
         temp[[paste0(var_name,'_tv')]] <- NA
       }
       return(temp)

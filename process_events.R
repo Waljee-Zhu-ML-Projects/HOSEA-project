@@ -34,10 +34,10 @@ process_events <- function(table_name,date_field){
     colnames(temp) <- paste0(table_name,'_n')
     if(nrow(tab) > 1){
       diffs <- 1/pmax(diff(tab[[date_field]]),1)
-      temp[[paste0(table_name,'_max_diff')]] <- max(diffs)
+      temp[[paste0(table_name,'_maxdiff')]] <- max(diffs)
     }
     else{
-      temp[[paste0(table_name,'_max_diff')]] <- NA
+      temp[[paste0(table_name,'_maxdiff')]] <- NA
     }
     return(temp)
   }

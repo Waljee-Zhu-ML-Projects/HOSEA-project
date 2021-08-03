@@ -55,7 +55,7 @@ lab_vars <- list(c('A1c'),
 lab_suffix <- c('_mean',
                 '_max','_min',
                 '_maxdiff','_mindiff',
-                '_max_diff','_min_diff',
+                #'_max_diff','_min_diff',
                 '_tv')
 
 # impute remaining vars with sample, save
