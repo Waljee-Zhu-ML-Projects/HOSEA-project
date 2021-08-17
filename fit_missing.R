@@ -46,8 +46,11 @@ valid_data_impute <- impute_missing_hosea(complete_data[valid,],ncycles=10,seed=
 
 # save all imputed data
 save(train_data_impute,test_data_impute,valid_data_impute,
-     file='R_data/subsample/sub_complete_data_impute_v03.RData')
+     file='R_data/subsample/sub_complete_data_impute_v04.RData')
 # v02 with renormalized regression imputation
+# v03 with renormalized hybrid regression imputation (joint sampling for longitudinal predictors)
+# v04 with renormalized hybrid regression imputation + extra predictors (doesn't converge)
+
 # can reload from here
 #load('R_data/subsample/sub_complete_data_impute.RData')
 
@@ -231,6 +234,7 @@ xgb_fit_reg <- xgb.train(param_xg,
 # stops at 362 trees
 # 228 with distn matching
 # 147 with distn matching + hybrid
+# 154 with distn matching + hybrid + extra vars
 
 # print info about important variables
 xgb_summ_reg <- xgb.importance(model=xgb_fit_reg)
@@ -250,12 +254,14 @@ xgb_auc_reg <- xgb_auc(xgb_fit_reg,dwatchlist_reg)
 print(xgb_auc_reg)
 # .815 test AUC (possibly inflated)
 # .725 after distn matching
+# .748 with extra variables
 # evaluate AUC on complete cases
 xgb_auc_reg_cc <- xgb_auc_external(xgb_fit_reg,cc_test)
 print(xgb_auc_reg_cc) # 0.705, significantly worse but approaching
 # random sample
 # 0.757 with distribution matching, performance similar to random sample
 # still 0.757 with distn matching + hybrid, again similar to RS
+# 0.715 with distn matching + hybrid + extra vars (inflated again)
 
 #### fit with multiple sample imputation ####
 
@@ -385,5 +391,6 @@ print(xgb_fit_multisampprog100$aucs)
 #      xgb_fit_multisampprog10,
 #      xgb_fit_multisampprog20,
 #      xgb_fit_multisampprog30,
+#      xgb_fit_multisampprog100,
 #      file='R_data/models/multisamp_models.RData')
 

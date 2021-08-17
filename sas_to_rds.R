@@ -5,6 +5,7 @@ fname <- 'sample'
 temp <- read_sas(paste0('unzipped_data/',fname,'.sas7bdat'))
 temp <- arrange(temp,ID,NA)
 saveRDS(temp,file=paste0('R_data/',fname,'.rds'))
+sample <- temp
 rm(temp)
 print(paste0('Saved ',fname,'.rds'))
 timestamp()
