@@ -17,8 +17,8 @@ saveRDS(sub_master,file='R_data/subsample/sub_master.rds')
 sub_IDs <- sub_master$ID
 print('sampled IDs')
 
-temp <- readRDS(paste0('R_data/complete_data_raw.rds'))
-sub_temp <- filter(temp,ID %in% sub_IDs)
-saveRDS(sub_temp,file='R_data/subsample/sub_complete_data_raw')
+complete_data <- readRDS('R_data/complete_data_raw.rds')
+sub_complete_data <- filter(complete_data,ID %in% sub_IDs)
+saveRDS(sub_complete_data,file='R_data/subsample/sub_complete_data_raw.rds')
 print('saved subsampled data')
 

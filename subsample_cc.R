@@ -19,9 +19,12 @@ nonsub_complete_data <- complete_data %>%
   filter(!is.na(smoke_current)) %>%
   filter(!is.na(bmi)) %>%
   filter(!is.na(Black))
+
+# check sample sizes
+table(nonsub_complete_data$CaseControl) # 290 complete cases, leaves 710 controls
   
 set.seed(300)
-n2 <- 500 # depends on number of rows in nonsub_complete
+n2 <- 500
 i_case <- which(nonsub_complete_data$CaseControl==1)
 i_control <- sample(which(nonsub_complete_data$CaseControl==0),(2*n2 - length(i_case)))
   
@@ -78,7 +81,7 @@ for(varname in demo_vars){
 smoke_miss <- is.na(complete_test[['smoke_current']])
 complete_test[smoke_miss,smoke_vars] <- complete_test[sample(which(!smoke_miss),sum(smoke_miss),replace=T),smoke_vars]
 
-saveRDS(complete_test,file='R_data/cc_complete_data_raw.rds')
+saveRDS(complete_test,file='R_data/cc_complete_data.rds')
   
   
   
