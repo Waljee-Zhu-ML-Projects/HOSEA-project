@@ -41,8 +41,8 @@ print('group by ID')
 
 # summary stats
 table_FOBT <- table_group %>%
-  summarise(FOBT_n = n(),
-            FOBT_maxdiff = max(slabdate))
+  summarise(labs_fobt_n = n(),
+            labs_fobt_maxdiff = max(slabdate))
 print('summarize FOBT')
 
 # save result

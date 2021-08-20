@@ -2,7 +2,7 @@
 source('R_code/hosea-project/utils.R')
 
 # begin with demographic table
-sample_tab <- readRDS('R_data/subsample/sub_sample.rds')
+sample_tab <- readRDS('R_data/sample.rds')
 demo_vars <- c('ID','CaseControl',
              'ageatindex','Gender','bmi','weight',
              'Asian','Black','HawaiianPacific','IndianAlaskan',
@@ -13,6 +13,8 @@ demo_vars <- c('ID','CaseControl',
              'cd','copd','diab_nc','mi','pud','pvd')
 
 complete_data <- sample_tab[,demo_vars] # 28 columns
+print('load sample data')
+timestamp()
 
 # convert factors to integer and expand multiple smoking classes
 # Gender
@@ -33,17 +35,19 @@ event_tables <- c('colonoscopy',
 # join summary tables (33 columns)
 for(tab in event_tables){
   print(paste0('For table ',tab,':'))
-  table <- readRDS(paste0('R_data/subsample/sub_',tab,'_summary.rds'))
+  table <- readRDS(paste0('R_data/',tab,'_summary.rds'))
   complete_data <- left_join(complete_data,table,by="ID")
   print('read in and join')
+  timestamp()
   rm(table)
 }
 
 # medication table (43 columns)
 print('For table: allmeds')
-table <- readRDS('R_data/subsample/sub_allmeds_summary.rds')
+table <- readRDS('R_data/allmeds_summary.rds')
 complete_data <- left_join(complete_data,table,by="ID")
 print('read in and join')
+timestamp()
 rm(table)
 
 # valued tables
@@ -57,12 +61,25 @@ value_tables <- c('labs_a1c',
 # join summary tables (241 columns)
 for(tab in value_tables){
   print(paste0('For table ',tab,':'))
-  table <- readRDS(paste0('R_data/subsample/sub_',tab,'_summary.rds'))
+  table <- readRDS(paste0('R_data/',tab,'_summary.rds'))
   complete_data <- left_join(complete_data,table,by="ID")
   print('read in and join')
+  timestamp()
   rm(table)
 }
+
+# fill in 0's for missing event, medication data
+other_vars <- c('colonoscopy_n','colonoscopy_maxdiff',
+                'labs_fobt_n','labs_fobt_max_diff',
+                'h2r_int','h2r_mean','h2r_max','h2r_maxdiff','h2r_tv',
+                'ppi_int','ppi_mean','ppi_max','ppi_maxdiff','ppi_tv')
+
+for(varname in other_vars){
+  complete_data[[varname]] <- fill_by_zero(complete_data[[varname]])
+}
+print('impute 0s for missing event data')
 
 # save complete data (241 columns)
 saveRDS(complete_data,
         file='R_data/subsample/sub_complete_data_raw.rds')
+print('save complete table')

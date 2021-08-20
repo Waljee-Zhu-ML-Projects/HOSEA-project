@@ -6,7 +6,7 @@ source('R_code/hosea-project/utils.R')
 sub_master <- readRDS('R_data/subsample/sub_master.rds')
 sub_IDs <- sub_master$ID
 
-complete_data <- readRDS('R_data/complete_data_clean.rds')
+complete_data <- readRDS('R_data/complete_data_raw.rds')
 
 nonsub_complete_data <- complete_data %>% 
   filter(!(ID %in% sub_IDs)) %>%
@@ -21,7 +21,7 @@ nonsub_complete_data <- complete_data %>%
   filter(!is.na(Black))
   
 set.seed(300)
-n2 <- 500
+n2 <- 500 # depends on number of rows in nonsub_complete
 i_case <- which(nonsub_complete_data$CaseControl==1)
 i_control <- sample(which(nonsub_complete_data$CaseControl==0),(2*n2 - length(i_case)))
   
@@ -39,7 +39,7 @@ demo_vars_num <- demo_vars[c(1,3,4)]
 demo_vars_ind <- demo_vars[-c(1,3,4)]
 smoke_vars <- c('smoke_current','smoke_former')
 # colonoscopy vars
-other_vars <- c('colonoscopy_n','colonoscopy_max_diff',
+other_vars <- c('colonoscopy_n','colonoscopy_maxdiff',
                 'labs_fobt_n','labs_fobt_max_diff',
                 'h2r_int','h2r_mean','h2r_max','h2r_maxdiff','h2r_tv',
                 'ppi_int','ppi_mean','ppi_max','ppi_maxdiff','ppi_tv')
@@ -55,11 +55,9 @@ lab_vars <- list(c('A1c'),
 lab_suffix <- c('_mean',
                 '_max','_min',
                 '_maxdiff','_mindiff',
-                #'_max_diff','_min_diff',
                 '_tv')
 
 # impute remaining vars with sample, save
-
 # blood labs
 set.seed(1999)
 for(lab in lab_vars){
@@ -67,7 +65,6 @@ for(lab in lab_vars){
     for(summ in lab_suffix){
       varname <- paste0(v,summ)
       complete_test[[varname]] <- fill_by_sample(complete_test[[varname]])
-      #print(paste0('Impute ',varname))
     }
   }
 }
@@ -75,15 +72,13 @@ for(lab in lab_vars){
 # demographic variables
 for(varname in demo_vars){
   complete_test[[varname]] <- fill_by_sample(complete_test[[varname]])
-  #print(paste0('Impute ',varname))
 }
 
 # smoking indicator
 smoke_miss <- is.na(complete_test[['smoke_current']])
 complete_test[smoke_miss,smoke_vars] <- complete_test[sample(which(!smoke_miss),sum(smoke_miss),replace=T),smoke_vars]
-#print('Impute smoking status')
 
-saveRDS(complete_test,file='R_data/subsample/cc_test.rds')
+saveRDS(complete_test,file='R_data/cc_complete_data_raw.rds')
   
   
   
