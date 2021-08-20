@@ -91,7 +91,7 @@ table_all <- table_keep %>%
                     srbc = drbc / dlabdate,
                     srdw = drdw / dlabdate,
                     swbc = dwbc / dlabdate)
-print('eosulate slopes')
+print('calculate slopes')
 
 # group by ID
 table_group <- table_all %>%
