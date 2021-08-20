@@ -30,7 +30,7 @@ print('remove ID changes')
 
 # get diffs and slopes
 table_all <- table_keep %>%
-             mutate(dlabdate = pmax(1,labdate - labdate_lag)) %>%
+             mutate(dlabdate = ifelse(labdate - labdate_lag==0,NA,labdate - labdate_lag)) %>%
              mutate(slabdate = 1 / dlabdate)
 print('calculate slopes')
 
@@ -42,7 +42,7 @@ print('group by ID')
 # summary stats
 table_FOBT <- table_group %>%
   summarise(labs_fobt_n = n(),
-            labs_fobt_maxdiff = max(slabdate))
+            labs_fobt_maxdiff = mmax(slabdate))
 print('summarize FOBT')
 
 # save result

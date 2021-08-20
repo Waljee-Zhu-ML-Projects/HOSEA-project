@@ -70,7 +70,7 @@ for(tab in value_tables){
 
 # fill in 0's for missing event, medication data
 other_vars <- c('colonoscopy_n','colonoscopy_maxdiff',
-                'labs_fobt_n','labs_fobt_max_diff',
+                'labs_fobt_n','labs_fobt_maxdiff',
                 'h2r_int','h2r_mean','h2r_max','h2r_maxdiff','h2r_tv',
                 'ppi_int','ppi_mean','ppi_max','ppi_maxdiff','ppi_tv')
 
@@ -81,5 +81,5 @@ print('impute 0s for missing event data')
 
 # save complete data (241 columns)
 saveRDS(complete_data,
-        file='R_data/subsample/sub_complete_data_raw.rds')
+        file='R_data/complete_data_raw.rds')
 print('save complete table')
