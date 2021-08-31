@@ -22,10 +22,10 @@ impute_missing_hosea <- function(data_raw,ncycles=5,seed=1,hybrid_reg=FALSE){
   demo_vars_ind <- demo_vars[-c(1,3,4)]
   smoke_vars <- c('smoke_current','smoke_former')
   # colonoscopy vars
-  other_vars <- c('colonoscopy_n','colonoscopy_max_diff',
-                  'labs_fobt_n','labs_fobt_max_diff',
-                  'H2R_int','H2R_mean','H2R_max','H2R_max_diff','H2R_tv',
-                  'PPI_int','PPI_mean','PPI_max','PPI_max_diff','PPI_tv')
+  other_vars <- c('colonoscopy_n','colonoscopy_maxdiff',
+                  'labs_fobt_n','labs_fobt_maxdiff',
+                  'h2r_int','h2r_mean','h2r_max','h2r_maxdiff','h2r_tv',
+                  'ppi_int','ppi_mean','ppi_max','ppi_maxdiff','ppi_tv')
   
   # blood lab measurements (all numeric)
   lab_vars <- list(c('A1c'),
@@ -37,7 +37,7 @@ impute_missing_hosea <- function(data_raw,ncycles=5,seed=1,hybrid_reg=FALSE){
   # blood lab longitudinal summaries
   lab_suffix <- c('_mean',
                   '_max','_min',
-                  '_max_diff','_min_diff','_tv')
+                  '_maxdiff','_mindiff','_tv')
   
   #### impute zeros ####
   
@@ -148,13 +148,13 @@ impute_missing_hosea <- function(data_raw,ncycles=5,seed=1,hybrid_reg=FALSE){
   for(cc in 1:ncycles){
     # impute lab means
     # temporary data for imputing
-    # temp_data <- select(complete_data_impute,
-    #                     all_of(c(demo_vars,smoke_vars,other_vars)))
+    temp_data <- select(complete_data_impute,
+                        all_of(c(demo_vars,smoke_vars,other_vars)))
     # 
     # temporary data
-    temp_data <- select(complete_data_impute,
-                        all_of(c(demo_vars,smoke_vars,other_vars,
-                                 paste0(unlist(lab_vars),'_mean'))))
+    # temp_data <- select(complete_data_impute,
+    #                     all_of(c(demo_vars,smoke_vars,other_vars,
+    #                              paste0(unlist(lab_vars),'_mean'))))
     
     # impute
     print(paste0('Cycle ',cc,', lab means'))
@@ -164,9 +164,12 @@ impute_missing_hosea <- function(data_raw,ncycles=5,seed=1,hybrid_reg=FALSE){
         # missing indices from complete_data
         imiss <- is.na(complete_data_raw[[var]])
         # impute
-        temp <- impute_reg(select(temp_data,!var),
+        temp <- impute_reg(temp_data,
                            complete_data_impute[[var]],
                            imiss)
+        # temp <- impute_reg(select(temp_data,!var),
+        #                    complete_data_impute[[var]],
+        #                    imiss)
         # update complete_data_impute
         complete_data_impute[[var]] <- temp
         # print progress 

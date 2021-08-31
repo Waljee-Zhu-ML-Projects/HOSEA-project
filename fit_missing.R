@@ -17,9 +17,7 @@ source('R_code/hosea-project/impute_multisamp.R')
 
 complete_data <- readRDS('R_data/subsample/sub_complete_data_raw.rds')
 # load complete case test set
-cc_test <- readRDS('R_data/subsample/cc_test.rds')
-cc_test <- cc_test[,c(1:33,35,34,36:38,40,39,41:241)]
-colnames(cc_test) <- colnames(complete_data)
+cc_test <- readRDS('R_data/cc_complete_data.rds')
 
 #### train/test/validation split #### 
 # take a test set of 1000
@@ -46,9 +44,9 @@ valid_data_impute <- impute_missing_hosea(complete_data[valid,],ncycles=10,seed=
 
 # save all imputed data
 save(train_data_impute,test_data_impute,valid_data_impute,
-     file='R_data/subsample/sub_complete_data_impute_v04.RData')
+     file='R_data/subsample/sub_complete_data_impute.RData')
 # v02 with renormalized regression imputation
-# v03 with renormalized hybrid regression imputation (joint sampling for longitudinal predictors)
+# CURRENT: v03 with renormalized hybrid regression imputation (joint sampling for longitudinal predictors)
 # v04 with renormalized hybrid regression imputation + extra predictors (doesn't converge)
 
 # can reload from here
@@ -116,10 +114,10 @@ xgb_pdp('rbc_mean',xgb_fit_na,train_data_impute$clean)
 # evaluate AUCs (as helper in xgb_utils.R)
 xgb_auc_na <- xgb_auc(xgb_fit_na,dwatchlist_na)
 print(xgb_auc_na)
-# inflated .942 test AUC with missing values
+# inflated .962 test AUC with missing values
 # evaluate AUC on complete cases
 xgb_auc_na_cc <- xgb_auc_external(xgb_fit_na,cc_test)
-print(xgb_auc_na_cc) # 0.643
+print(xgb_auc_na_cc) # 0.582
 
 #### fit with random sample imputation ####
 
@@ -140,11 +138,11 @@ xgb_fit_samp <- xgb.train(param_xg,
                         dwatchlist_samp, # data watchlist
                         verbose=1,print_every_n=8,
                         early_stopping_rounds=10)
-# stops at 169 trees
+# stops at 160 trees
 
 # print info about important variables
 xgb_summ_samp <- xgb.importance(model=xgb_fit_samp)
-print(xgb_summ_samp[200:219,])
+print(xgb_summ_samp[1:20,])
 
 # pdp plots (as helper in xgb_utils.R)
 # need to pass raw training data matrixi
@@ -173,10 +171,10 @@ logistic_fit_med <- fit_logistic(train_data = rbind(train_data_impute$impmed[,-1
                                                      valid_data_impute$impmed[,-1]),
                                   test_data = test_data_impute$impmed[,-1])
 print(logistic_fit_med$auc)
-# .810 test AUC with logistic regression + median imputation
+# .846 test AUC with logistic regression + median imputation
 logistic_auc_med_cc <- logistic_auc_external(logistic_fit_med$model,
                                               cc_test)
-print(logistic_auc_med_cc) # 0.585 significantly worse, negative effects of Charlson?
+print(logistic_auc_med_cc) # 0.583 significantly worse, negative effects of Charlson?
 
 
 # fit xgboost model
@@ -186,7 +184,7 @@ xgb_fit_med <- xgb.train(param_xg,
                           dwatchlist_med, # data watchlist
                           verbose=1,print_every_n=8,
                           early_stopping_rounds=10)
-# stops at 319 trees
+# stops at 174 trees
 
 # print info about important variables
 xgb_summ_med <- xgb.importance(model=xgb_fit_med)
@@ -231,10 +229,7 @@ xgb_fit_reg <- xgb.train(param_xg,
                         dwatchlist_reg, # data watchlist
                         verbose=1,print_every_n=8,
                         early_stopping_rounds=10)
-# stops at 362 trees
-# 228 with distn matching
-# 147 with distn matching + hybrid
-# 154 with distn matching + hybrid + extra vars
+# stops at 152 trees
 
 # print info about important variables
 xgb_summ_reg <- xgb.importance(model=xgb_fit_reg)
@@ -373,24 +368,21 @@ for(ii in 1:100){
 
 # variable importance
 xgb_summ_multisamp <- xgb.importance(model=xgb_fit_multisampprog100$model)
-print(xgb_summ_multisamp)
+print(xgb_summ_multisamp[1:20,])
 # look at partial dependence plots
-xgb_pdp('hct_mean',xgb_fit_multisampprog100$model,train_data_impute$impsamp)
-xgb_pdp('bun_mean',xgb_fit_multisampprog100$model,train_data_impute$impsamp)
-xgb_pdp('mch_tv',xgb_fit_multisampprog100$model,train_data_impute$impsamp)
+xgb_pdp('hgb_max',xgb_fit_multisampprog100$model,train_data_impute$impsamp)
+xgb_pdp('wbc_max',xgb_fit_multisampprog100$model,train_data_impute$impsamp)
+xgb_pdp('mcv_min',xgb_fit_multisampprog100$model,train_data_impute$impsamp)
 
 
 # print AUCs
 print(xgb_fit_multisampprog100$aucs)
-# test AUC on complete records is 0.806
+# test AUC on complete records is 0.891
 
 # save all the multiple sample imputation models/results
-# save(xgb_fit_multisamp10,
-#      xgb_fit_multisamp20,
-#      xgb_fit_multisamp30,
-#      xgb_fit_multisampprog10,
-#      xgb_fit_multisampprog20,
-#      xgb_fit_multisampprog30,
-#      xgb_fit_multisampprog100,
-#      file='R_data/models/multisamp_models.RData')
+save(xgb_fit_multisampprog10,
+     xgb_fit_multisampprog20,
+     xgb_fit_multisampprog30,
+     xgb_fit_multisampprog100,
+     file='R_data/models/multisamp_models.RData')
 

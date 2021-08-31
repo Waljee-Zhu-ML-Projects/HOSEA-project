@@ -20,8 +20,21 @@ nonsub_complete_data <- complete_data %>%
   filter(!is.na(bmi)) %>%
   filter(!is.na(Black))
 
+# nonsub_complete_data <- complete_data %>% 
+#   filter(!(ID %in% sub_IDs)) %>%
+#   filter(!is.na(CHF)) %>%
+#   filter(!is.na(A1c_tv)) %>%
+#   filter(!is.na(alkphos_tv)) %>%
+#   filter(!is.na(baso_tv)) %>%
+#   filter(!is.na(chol_tv)) %>%
+#   filter(!is.na(bun_tv)) %>%
+#   filter(!is.na(smoke_current)) %>%
+#   filter(!is.na(bmi)) %>%
+#   filter(!is.na(Black))
+
 # check sample sizes
 table(nonsub_complete_data$CaseControl) # 290 complete cases, leaves 710 controls
+# 196 with non-missing TV, leaves 804 controls
   
 set.seed(300)
 n2 <- 500
@@ -81,7 +94,8 @@ for(varname in demo_vars){
 smoke_miss <- is.na(complete_test[['smoke_current']])
 complete_test[smoke_miss,smoke_vars] <- complete_test[sample(which(!smoke_miss),sum(smoke_miss),replace=T),smoke_vars]
 
-saveRDS(complete_test,file='R_data/cc_complete_data.rds')
+saveRDS(complete_test,file='R_data/cc_complete_data_v02.rds')
+# v02 also has non-missing maxdiffs,mindiff and TV
   
   
   

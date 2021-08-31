@@ -29,7 +29,7 @@ impute_multisamp <- function(data){
   # blood lab longitudinal summaries
   lab_suffix <- c('_mean',
                   '_max','_min',
-                  '_max_diff','_min_diff','_tv')
+                  '_maxdiff','_mindiff','_tv')
   
   # impute
   for(lab in lab_vars){
@@ -170,8 +170,10 @@ xgb_multisamp_prog <- function(train,test,valid,cc_test,
   # multiple reps for test set (NOTE: ptest now on a different non-probability scale)
   ptest <- rep(0,nrow(test))
   for(nn in 1:nreps){
-    temp_test <- impute_multisamp(test)
-    ptest <- ptest + (1/nreps)*predict(temp_model,newdata=temp_test,
+    temp_test_rep <- list()
+    temp_test_rep[['x']] <- impute_multisamp(test)
+    temp_data_rep <- xgb_prep(temp_train,temp_test_rep,temp_valid,dname='x')
+    ptest <- ptest + (1/nreps)*predict(temp_model,newdata=temp_data_rep$test,
                                        ntreelimit=NULL,
                                        outputmargin=TRUE) 
   }
