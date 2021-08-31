@@ -18,7 +18,7 @@ cc_test <- readRDS('R_data/cc_complete_data.rds')
 demo_vars <- c(3:11,28:29)
 charlson_vars <- 12:27
 med_vars <- 34:43
-lab_vars <- c(28:33,44:241)
+lab_vars <- c(30:33,44:241)
 
 dwatchlist_demo <- xgb_prep_sub(train_data_impute,
                                 test_data_impute,
