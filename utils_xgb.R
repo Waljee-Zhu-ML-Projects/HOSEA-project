@@ -15,6 +15,21 @@ xgb_prep <- function(train,test,valid,dname){
   return(dwatchlist)
 }
 
+# same formatting for only a subset of predictors
+xgb_prep_sub <- function(train,test,valid,dname,subset){
+  # xgb formatting for each set
+  dtrain <- xgb.DMatrix(as.matrix(train[[dname]][subset]),
+                        label=train[[dname]]$CaseControl)
+  dvalid <- xgb.DMatrix(as.matrix(valid[[dname]][subset]),
+                        label=valid[[dname]]$CaseControl)
+  dtest <- xgb.DMatrix(as.matrix(test[[dname]][subset]),
+                       label=test[[dname]]$CaseControl)
+  # combine as a watchlist
+  dwatchlist <- list(train=dtrain,test=dtest,valid=dvalid)
+  # return
+  return(dwatchlist)
+}
+
 # function to create a partial dependence plot for an xgboost model
 xgb_pdp <- function(varname,
                     xgb_model,
