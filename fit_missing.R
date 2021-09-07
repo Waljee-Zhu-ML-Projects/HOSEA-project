@@ -37,7 +37,7 @@ valid[ivalid] <- TRUE
 traintrain <- as.logical(train*(!valid))
 
 #### impute each chunk ####
-# 10 cycles
+# 10 cycles, with hybrid regression
 train_data_impute <- impute_missing_hosea(complete_data[traintrain,],ncycles=10,seed=1995,hybrid_reg=TRUE)
 test_data_impute <- impute_missing_hosea(complete_data[test,],ncycles=10,seed=1996,hybrid_reg=TRUE)
 valid_data_impute <- impute_missing_hosea(complete_data[valid,],ncycles=10,seed=1998,hybrid_reg=TRUE)
@@ -45,9 +45,6 @@ valid_data_impute <- impute_missing_hosea(complete_data[valid,],ncycles=10,seed=
 # save all imputed data
 save(train_data_impute,test_data_impute,valid_data_impute,
      file='R_data/subsample/sub_complete_data_impute.RData')
-# v02 with renormalized regression imputation
-# CURRENT: v03 with renormalized hybrid regression imputation (joint sampling for longitudinal predictors)
-# v04 with renormalized hybrid regression imputation + extra predictors (doesn't converge)
 
 # can reload from here
 #load('R_data/subsample/sub_complete_data_impute.RData')
@@ -91,7 +88,6 @@ xgb_fit_na <- xgb.train(param_xg,
                      dwatchlist_na, # data watchlist
                      verbose=1,print_every_n=8,
                      early_stopping_rounds=10)
-# stops at 202 trees
 
 # print info about important variables
 nsumm <- 20
@@ -114,10 +110,10 @@ xgb_pdp('rbc_mean',xgb_fit_na,train_data_impute$clean)
 # evaluate AUCs (as helper in xgb_utils.R)
 xgb_auc_na <- xgb_auc(xgb_fit_na,dwatchlist_na)
 print(xgb_auc_na)
-# inflated .962 test AUC with missing values
+# inflated test AUC
 # evaluate AUC on complete cases
 xgb_auc_na_cc <- xgb_auc_external(xgb_fit_na,cc_test)
-print(xgb_auc_na_cc) # 0.582
+print(xgb_auc_na_cc) 
 
 #### fit with random sample imputation ####
 
@@ -126,10 +122,10 @@ logistic_fit_samp <- fit_logistic(train_data = rbind(train_data_impute$impsamp[,
                                                      valid_data_impute$impsamp[,-1]),
                                   test_data = test_data_impute$impsamp[,-1])
 print(logistic_fit_samp$auc)
-# honest .689 test AUC with logistic regression
+
 logistic_auc_samp_cc <- logistic_auc_external(logistic_fit_samp$model,
                                               cc_test)
-print(logistic_auc_samp_cc) # 0.724 
+print(logistic_auc_samp_cc) 
 
 # fit xgboost model
 xgb_fit_samp <- xgb.train(param_xg,
@@ -138,7 +134,6 @@ xgb_fit_samp <- xgb.train(param_xg,
                         dwatchlist_samp, # data watchlist
                         verbose=1,print_every_n=8,
                         early_stopping_rounds=10)
-# stops at 160 trees
 
 # print info about important variables
 xgb_summ_samp <- xgb.importance(model=xgb_fit_samp)
@@ -159,10 +154,9 @@ xgb_pdp('na_min',xgb_fit_samp,train_data_impute$impsamp)
 # evaluate AUCs (as helper in xgb_utils.R)
 xgb_auc_samp <- xgb_auc(xgb_fit_samp,dwatchlist_samp)
 print(xgb_auc_samp)
-# honest .729 test AUC with sampling
 # evaluate AUC on complete cases
 xgb_auc_samp_cc <- xgb_auc_external(xgb_fit_samp,cc_test)
-print(xgb_auc_samp_cc) # 0.756
+print(xgb_auc_samp_cc) 
 
 #### fit with median imputation ####
 
@@ -171,10 +165,10 @@ logistic_fit_med <- fit_logistic(train_data = rbind(train_data_impute$impmed[,-1
                                                      valid_data_impute$impmed[,-1]),
                                   test_data = test_data_impute$impmed[,-1])
 print(logistic_fit_med$auc)
-# .846 test AUC with logistic regression + median imputation
+
 logistic_auc_med_cc <- logistic_auc_external(logistic_fit_med$model,
                                               cc_test)
-print(logistic_auc_med_cc) # 0.583 significantly worse, negative effects of Charlson?
+print(logistic_auc_med_cc) 
 
 
 # fit xgboost model
@@ -184,7 +178,6 @@ xgb_fit_med <- xgb.train(param_xg,
                           dwatchlist_med, # data watchlist
                           verbose=1,print_every_n=8,
                           early_stopping_rounds=10)
-# stops at 174 trees
 
 # print info about important variables
 xgb_summ_med <- xgb.importance(model=xgb_fit_med)
@@ -202,10 +195,10 @@ xgb_pdp('A1c_max',xgb_fit_med,train_data_impute$impmed)
 # evaluate AUCs (as helper in xgb_utils.R)
 xgb_auc_med <- xgb_auc(xgb_fit_med,dwatchlist_med)
 print(xgb_auc_med)
-# .857 test AUC with median
+
 # evaluate AUC on complete cases
 xgb_auc_med_cc <- xgb_auc_external(xgb_fit_med,cc_test)
-print(xgb_auc_med_cc) # 0.623
+print(xgb_auc_med_cc)
 
 #### fit with regression imputation ####
 
@@ -214,13 +207,11 @@ logistic_fit_reg <- fit_logistic(train_data = rbind(train_data_impute$impreg[,-1
                                                      valid_data_impute$impreg[,-1]),
                                   test_data = test_data_impute$impreg[,-1])
 print(logistic_fit_reg$auc)
-# .760 test AUC - better than baseline, worse than median, still using charlson?
+
 # charlson gone with distn matching, still poor test performance?
 logistic_auc_reg_cc <- logistic_auc_external(logistic_fit_reg$model,
                                              cc_test)
-print(logistic_auc_reg_cc) # 0.557 significantly worse, again negative effects of Charlson?
-# 0.567 with distn matching, unclear why that performs so poorly
-# 0.657 with distn matching + hybrid (may have been fitting spurious patterns to longitudinal vars)
+print(logistic_auc_reg_cc) 
 
 # fit xgboost model
 xgb_fit_reg <- xgb.train(param_xg,
@@ -229,12 +220,10 @@ xgb_fit_reg <- xgb.train(param_xg,
                         dwatchlist_reg, # data watchlist
                         verbose=1,print_every_n=8,
                         early_stopping_rounds=10)
-# stops at 152 trees
 
 # print info about important variables
 xgb_summ_reg <- xgb.importance(model=xgb_fit_reg)
 print(xgb_summ_reg[1:nsumm,])
-# still some weird patterns with hct_max, etc.
 
 # pdp plots (as helper in xgb_utils.R)
 # need to pass raw training data matrix
@@ -247,47 +236,13 @@ xgb_pdp('RD',xgb_fit_reg,train_data_impute$impreg)
 # evaluate AUCs (as helper in xgb_utils.R)
 xgb_auc_reg <- xgb_auc(xgb_fit_reg,dwatchlist_reg)
 print(xgb_auc_reg)
-# .815 test AUC (possibly inflated)
-# .725 after distn matching
-# .748 with extra variables
+
 # evaluate AUC on complete cases
 xgb_auc_reg_cc <- xgb_auc_external(xgb_fit_reg,cc_test)
-print(xgb_auc_reg_cc) # 0.705, significantly worse but approaching
-# random sample
-# 0.757 with distribution matching, performance similar to random sample
-# still 0.757 with distn matching + hybrid, again similar to RS
-# 0.715 with distn matching + hybrid + extra vars (inflated again)
+print(xgb_auc_reg_cc) 
 
-#### fit with multiple sample imputation ####
-
-# # with 10 reps
-# set.seed(2003)
-# xgb_fit_multisamp10 <- xgb_multisamp(train_data_impute$clean,
-#                                      test_data_impute$clean,
-#                                      valid_data_impute$clean,
-#                                      cc_test,
-#                                      nreps=10,
-#                                      param_xg=param_xg)
-# 
-# # with 20 reps
-# set.seed(2004)
-# xgb_fit_multisamp20 <- xgb_multisamp(train_data_impute$clean,
-#                                      test_data_impute$clean,
-#                                      valid_data_impute$clean,
-#                                      cc_test,
-#                                      nreps=20,
-#                                      param_xg=param_xg)
-# 
-# # with 30 reps
-# set.seed(2005)
-# xgb_fit_multisamp30 <- xgb_multisamp(train_data_impute$clean,
-#                                      test_data_impute$clean,
-#                                      valid_data_impute$clean,
-#                                      cc_test,
-#                                      nreps=30,
-#                                      param_xg=param_xg)
-
-#### fit with multiple sample progressive #### 
+#### fit with multiple sample progressive training #### 
+# all models grow 500-600 trees
 
 # with 10 reps
 set.seed(2006)
@@ -307,7 +262,6 @@ for(ii in 1:10){
 
 # print AUCs
 print(xgb_fit_multisampprog10$aucs)
-# test AUC on complete records is 0.781
 
 # with 20 reps
 set.seed(2007)
@@ -327,8 +281,6 @@ for(ii in 1:20){
 
 # print AUCs
 print(xgb_fit_multisampprog20$aucs)
-# test AUC on complete records is 0.778
-
 
 # with 30 reps
 set.seed(2008)
@@ -348,7 +300,6 @@ for(ii in 1:30){
 
 # print AUCs
 print(xgb_fit_multisampprog30$aucs)
-# test AUC on complete records is 0.778
 
 # with 100 reps
 set.seed(2009)
@@ -374,10 +325,8 @@ xgb_pdp('hgb_max',xgb_fit_multisampprog100$model,train_data_impute$impsamp)
 xgb_pdp('wbc_max',xgb_fit_multisampprog100$model,train_data_impute$impsamp)
 xgb_pdp('mcv_min',xgb_fit_multisampprog100$model,train_data_impute$impsamp)
 
-
 # print AUCs
 print(xgb_fit_multisampprog100$aucs)
-# test AUC on complete records is 0.891
 
 # save all the multiple sample imputation models/results
 save(xgb_fit_multisampprog10,
