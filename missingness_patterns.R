@@ -1,0 +1,12 @@
+# exploring missingness patterns within the data
+# to check whether it would be viable to do reduced models
+
+# some dataset for development: dplyr::starwars
+# df = starwars
+missingness_patterns = function(df){
+  colnms <- colnames(df)
+  patterns = df %>%
+    filter_at(vars(all_of(colnms)), any_vars(is.na(.))) %>%
+    is.na %>% as_tibble %>%
+    distinct()
+}
