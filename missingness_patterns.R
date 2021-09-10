@@ -5,8 +5,9 @@
 # df = starwars
 missingness_patterns = function(df){
   colnms <- colnames(df)
-  patterns = df %>%
+  counts = df %>%
     filter_at(vars(all_of(colnms)), any_vars(is.na(.))) %>%
     is.na %>% as_tibble %>%
-    distinct()
+    group_by_all() %>% summarise(count = n())
+  return(counts)
 }
