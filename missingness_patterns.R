@@ -9,4 +9,11 @@ missingness_patterns = function(df){
     filter_at(vars(all_of(colnms)), any_vars(is.na(.))) %>%
     is.na %>% as_tibble %>%
     distinct()
+  return(patterns)
 }
+
+# load data
+load('R_data/subsample/sub_complete_data_impute.RData')
+
+# check patterns
+missingness_patterns(train_data_impute$clean)
