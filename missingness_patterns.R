@@ -16,4 +16,5 @@ missingness_patterns = function(df){
 load('R_data/subsample/sub_complete_data_impute.RData')
 
 # check patterns
-missingness_patterns(train_data_impute$clean)
+counts = missingness_patterns(train_data_impute$clean)
+counts = counts %>% arrange()
