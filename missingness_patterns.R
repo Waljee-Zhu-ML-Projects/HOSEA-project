@@ -15,12 +15,13 @@ missingness_patterns = function(df){
 # load data
 load('R_data/subsample/sub_complete_data_impute.RData')
 
-# df = train_data_impute
+df = train_data_impute$clean
 df = starwars 
 counts = missingness_patterns(df)
 n_groups = 5
 
 library(tidyverse)
+library(purrrlyr)
 # build tree
 pattern_tree = function(df, n_groups){
   # observed patterns
@@ -41,6 +42,14 @@ pattern_tree = function(df, n_groups){
   x = large_patterns %>% select(!count)
   y = large_patterns %>% select(count)
   
+  #
+  large_patterns$total = 0
+  for(i in range(nrow(large_patterns))){
+    pattern = x[i, ]
+    large_patterns[i, "total"] = sum(apply(patterns, 1, function(row) all(row >= pattern)))
+  }
+  
   return(large_patterns)
 }
 
+large_patterns = pattern_tree(df, 20)
