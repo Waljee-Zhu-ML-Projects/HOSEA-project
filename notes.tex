@@ -271,7 +271,6 @@ Processing in R begins with data saved as .sas7bdat files, after unzipping on te
   \item subsample.R takes a balanced subsample for testing (stores in R\_data/subsample)
   \item subsample\_cc.R finds a (mostly) complete cases/controls with no missing values, sample imputes and saves a complete test set.
   \item impute\_missing.R takes a table of the format of complete\_data\_raw.rds, prepares the tables, imputes with random sampling and/or chained regression models. impute\_models.R and impute\_multisamp.R contain helper functions.
-  %\item (NEXT) eval\_missing.R evaluates different imputation approaches \note{(written for subsample)}
   \item fit\_missing.R fits xgboost and logistic regression models \note{on the balanced subsample of 10,000} for different imputation approaches. Saves imputed datasets for training, test and validation (sub\_complete\_data\_impute.RData)
   \item fit\_varsubsets.R imports random sample imputed \note{balanced subsample} and fits models to different groups of variables (to assess information available in different groups)
 \end{itemize}
@@ -279,6 +278,7 @@ Processing in R begins with data saved as .sas7bdat files, after unzipping on te
 {\bf Saved data:}
 \begin{itemize}
   \item Most data corresponds to an initial SAS table, or a processed/summarized version (with '\_summary') appended.
+  \item alldxsX\_filter.rds for X from 1 to 5 has the alldxs records restricted to the current [index - 5y, index - 1y] prediction window.
   \item master.rds contains IDs and start/end prediction dates
   \item complete\_data\_raw.rds fully linked table produced by link\_summaries.R
   \item cc\_complete\_data.rds contains a subset of records which are (mostly) non-missing (see subsample\_cc.R).
@@ -315,6 +315,24 @@ For each input to the Charlson score, patients are coded with a 1 if they receiv
 Currently, all NA's are treated as missing, and imputed to match the observed distribution of 1's and 0's.
 
 A 'number of visits' variable may allow us to more intelligently impute these values (i.e. NA + lots of visits are more likely to a be a 0).
+
+This can be determined by looking at the number of unique dates (after start and before end) in the ``alldxsX'' tables (in /unzipped\_data).
+
+09/13: number of visits variable is now calculated, saved.
+
+Suppose the following simple model for disease code missingness (for simplicity say there is a single diagnosis code), $Y_i$ denotes the true disease status, $O_i$ denotes whether the node is observed, and $V_i$ is the number of visits (opportunities to be coded). Assume $Y_i$ is independent of $V_i$ and work conditional on $V_i$.
+
+We either observe $Y_{i,obs} = 1$ which means $Y_i=1$ and $O_i=1$, or $Y_{i,obs} = 0$ in any other case (in the data this groups the 0's and NA's interchangeably).
+
+Let $p$ denote the true prevalence of disease. The simple model assumes that at each visit, a patient with the disease has an independent chance to be coded for it with probability $\phi$. Then
+\[
+\mathbb{P}(Y_{i,obs}=1 | V_i) = p \cdot \mathbb{P}(\operatorname{Geom}(\phi) < V_i).
+\]
+This model can be used to estimate $\hat{\phi}$ and $\hat{p}$ from the data. Then each patient with $Y_{i,obs}=0$ will be coded with a 1 with plug-in probability
+\[
+\frac{\hat{p}\left(1 - \mathbb{P}(\operatorname{Geom}(\hat{\phi}) < V_i) \right)}{1-\hat{p} \left(\mathbb{P}(\operatorname{Geom}(\hat{\phi}) < V_i) \right)}
+\]
+If $V_i=0$, the patient is assigned a 1 with the estimated overall prevalence $\hat{p}$. If $V_i \rightarrow \infty$, the patient is assigned a 1 with probability 0.
 
 \section*{Sample imbalance}
 
