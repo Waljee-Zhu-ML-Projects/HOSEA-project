@@ -1,5 +1,6 @@
 # analysis of n_visits
 source('R_code/hosea-project/utils.R')
+source('R_code/hosea-project/utils_missingcharl.R')
 
 # import data
 complete_data <- readRDS('R_data/complete_data_raw.rds')
@@ -40,10 +41,11 @@ plot(as.matrix(prop_one)[1:401,],
      xlab='n_visits',
      ylab='P(COPD=1)')
 
-# next: extend analysis to cases as well
+# estimation for COPD
+theta_copd <- estimate_mm(as.integer(complete_data$copd %in% 1),complete_data$n_visits)
 
-
-
-
-
+# plot the estimated curve
+V <- 0:400
+pV <- theta_copd[1]*(1-(1-theta_copd[2])^V)
+lines(V,pV,col='red',type='l',lwd=2)
 
