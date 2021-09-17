@@ -14,6 +14,7 @@
 \usepackage{lscape}
 \usepackage[round]{natbib}
 \usepackage{graphicx}
+\graphicspath{{figures/}}
 \usepackage{amssymb}
 \usepackage{color}
 \usepackage{hyperref}
@@ -334,6 +335,40 @@ This model can be used to estimate $\hat{\phi}$ and $\hat{p}$ from the data. The
 \]
 If $V_i=0$, the patient is assigned a 1 with the estimated overall prevalence $\hat{p}$. If $V_i \rightarrow \infty$, the patient is assigned a 1 with probability 0.
 
+\subsubsection*{Number of visits results 09/15}
+
+A histogram of the total number of visits in the 4-year prediction window:
+
+\begin{center}
+\includegraphics[width=.7\textwidth]{nvisits_hist.pdf}
+\end{center}
+
+The median control has 22 visits, while the median case has 33 visits.
+
+Proportion of observed Charlson scores plotted against number of visits, separating controls (black) and cases (red):
+
+\begin{center}
+\includegraphics[width=.6\textwidth]{nvisits_scatter.pdf}
+\end{center}
+
+The same plot restricted to $\leq 200$ visits, where sample sizes are reasonably high (cases have a mean of 55 patients at each level of n\_visits):
+
+\begin{center}
+\includegraphics[width=.6\textwidth]{nvisits_scatter200.pdf}
+\end{center}
+
+Proportion of patient with COPD=1, plotted against number of visits, separating controls (black) and cases (red):
+
+\begin{center}
+\includegraphics[width=.6\textwidth]{nvisits_scatterCOPD.pdf}
+\end{center}
+
+The same plot restricted to $\leq 200$ visits. The blue line is a parametric estimate of \\ $\mathbb{P}(\text{COPD}=1 | \text{n\_visits})$ based on the geometric model above fit to both cases and controls.
+
+\begin{center}
+\includegraphics[width=.6\textwidth]{nvisits_scatterCOPD200.pdf}
+\end{center}
+
 \section*{Sample imbalance}
 
 The full data is highly imbalanced, about 11,000 cases to over 6.6 million controls.
@@ -346,7 +381,7 @@ Proposed approaches are to either upweight the cases (weight parameter in xgboos
 
 Currently, models are evaluated based on out-of-sample AUC, on 2 test sets of new observations, one with missing values (which are imputed the same way as the training data), and another with (mostly) observed records which are not imputed.
 
-Akbar suggested another evaluation approach 'decision curve analysis', see 2 references to papers by Vickers (saved on Gitlab).
+Akbar suggested another evaluation approach 'decision curve analysis', see 2 references to papers by Vickers (saved on gitlab).
 
 The current esophogeal risk score for comparison is the Kunzmann score (see paper on Gitlab) which is a logistic regression model, and achieves an AUC of about 0.800.
 
