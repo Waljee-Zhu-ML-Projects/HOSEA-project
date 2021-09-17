@@ -86,3 +86,43 @@ print('Saved')
 
 #### PART 3: similar processing for cases ####
 
+# re-import master
+master <- readRDS('R_data/master.rds')
+
+# load alldxscx
+alldxscx <- readRDS('R_data/alldxscx.rds')
+
+# join and filter
+alldxscx <- left_join(alldxscx,master,by='ID')
+alldxscx_filter <- filter(alldxscx,(Dxdate >= start) & (Dxdate <= end))
+
+# get n_distict for cases
+n_visits_case <- summarize(group_by(alldxscx_filter,ID),n_visits = n_distinct(Dxdate))
+
+# save as an rds file
+saveRDS(n_visits_case,file='R_data/n_visits_case.rds')
+
+#### PART 4: ICD9 vs ICD10 #### 
+
+# re-import master
+master <- readRDS('R_data/master.rds')
+
+# load alldxscx
+alldxscx <- readRDS('R_data/alldxscx.rds')
+
+# join and filter
+alldxscx <- left_join(alldxscx,master,by='ID')
+alldxscx_filter <- filter(alldxscx,(Dxdate >= start) & (Dxdate <= end))
+
+n_visits_case_icd9 <- summarize(group_by(filter(alldxscx_filter,icd10code=='*Unknown at this time*'),ID),n_visits = n_distinct(Dxdate))
+n_visits_case_icd10 <- summarize(group_by(filter(alldxscx_filter,icd9code=='*Unknown at this time*'),ID),n_visits = n_distinct(Dxdate))
+
+saveRDS(n_visits_case_icd9,file='R_data/n_visits_case_icd9.rds')
+saveRDS(n_visits_case_icd10,file='R_data/n_visits_case_icd10.rds')
+
+
+
+
+
+
+
