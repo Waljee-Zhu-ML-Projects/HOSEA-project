@@ -773,4 +773,70 @@ Labs ($p=202$) & 0.903 & 0.687 & 0.829 \\ \hline
 
 %\bibliography{mybib}
 
+\pagebreak
+
+\subsubsection*{09/21 update}
+
+{\bf Overall missingness of Charlson score inputs.} A histogram of the total number of visits in the 4-year prediction window:
+
+\begin{center}
+\includegraphics[width=.7\textwidth]{nvisits_hist.pdf}
+\end{center}
+
+The median control has 22 visits, while the median case has 33 visits.
+
+Proportion of observed Charlson scores plotted against number of visits, separating controls (black) and cases (red):
+
+\begin{center}
+\includegraphics[width=.6\textwidth]{nvisits_scatter.pdf}
+\end{center}
+
+The same plot restricted to $\leq 200$ visits.
+%Sample sizes are reasonably high (cases have a mean of 55 patients at each level of n\_visits):
+
+\begin{center}
+\includegraphics[width=.6\textwidth]{nvisits_scatter200.pdf}
+\end{center}
+
+{\bf Example: missingness of COPD.} Proportion of patients coded COPD=1, plotted against number of visits, separating controls (black) and cases (red):
+
+\begin{center}
+\includegraphics[width=.6\textwidth]{nvisits_scatterCOPD.pdf}
+\end{center}
+
+The same plot restricted to $\leq 200$ visits. The blue line is a model-based estimate of \\ $\mathbb{P}(\text{COPD}=1 | \text{n\_visits})$ using pooled case and control data.
+
+\begin{center}
+\includegraphics[width=.6\textwidth]{nvisits_scatterCOPD200.pdf}
+\end{center}
+
+For cases only, created a new COPD indicator based on the `alldxscx' table. For ICD9, 1 means you have a code `49x', for ICD10, 1 means you have a code starting with 'J44'.
+
+Cross-classification of old and new indicator for total of 11,395 cases (overall proportions in parentheses).
+
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+ & New COPD=1 & New COPD=0/NA \\ \hline
+ Old COPD=1 & 7845 (0.688) & 2791 (0.245) \\ \hline
+ New COPD=0/NA & 160 (0.014) & 599 (0.053) \\ \hline
+\end{tabular}
+\end{center}
+
+Proportion of patients with COPD=1 plotted against number of visits, restricted to $\leq 200$ visits, with the old indicator in red and the new indicator in blue.
+
+\begin{center}
+\includegraphics[width=.6\textwidth]{nvisits_scatternewCOPD200.pdf}
+\end{center}
+
+{\bf Next steps:} similarly code a new indicator for controls, see if it changes results. Generalize to other Charlson inputs (or other entirely new ICD codes), and look at ways to impute by incorporating n\_visits.
+
+\pagebreak
+
+Sample sizes for controls and cases for calculating the proportions in the above plots.
+
+\begin{center}
+\includegraphics[width=\textwidth]{nvisits_samplesize.pdf}
+\end{center}
+
 \end{document}

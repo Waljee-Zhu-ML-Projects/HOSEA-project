@@ -325,7 +325,7 @@ Suppose the following simple model for disease code missingness (for simplicity 
 
 We either observe $Y_{i,obs} = 1$ which means $Y_i=1$ and $O_i=1$, or $Y_{i,obs} = 0$ in any other case (in the data this groups the 0's and NA's interchangeably).
 
-Let $p$ denote the true prevalence of disease. The simple model assumes that at each visit, a patient with the disease has an independent chance to be coded for it with probability $\phi$. Then
+Let $p$ denote the true prevalence of disease (could model with two different prevalences, $p_{\mathrm{control}}$ and $p_{\mathrm{case}}$). The simple model assumes that at each visit, a patient with the disease has an independent chance to be coded for it with probability $\phi$. Then
 \[
 \mathbb{P}(Y_{i,obs}=1 | V_i) = p \cdot \mathbb{P}(\operatorname{Geom}(\phi) < V_i).
 \]
