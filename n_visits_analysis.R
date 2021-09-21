@@ -26,16 +26,16 @@ prop_obs <- complete_data %>% group_by(n_visits) %>% summarize(obs = mean(!is.na
 prop_ss <- complete_data %>% group_by(n_visits) %>% summarize(ss = n())
 
 
-plot(as.matrix(prop_obs),
-     main='Proportion of observed Charlson scores',
-     xlab='n_visits',
-     ylab='P(not NA)')
-
-# restricted to < 200, very nice pattern
-plot(as.matrix(prop_obs)[1:401,],
-     main='Proportion of observed Charlson scores',
-     xlab='n_visits',
-     ylab='P(not NA)')
+# plot(as.matrix(prop_obs),
+#      main='Proportion of observed Charlson scores',
+#      xlab='n_visits',
+#      ylab='P(not NA)')
+# 
+# # restricted to < 200, very nice pattern among controls
+# plot(as.matrix(prop_obs)[1:401,],
+#      main='Proportion of observed Charlson scores',
+#      xlab='n_visits',
+#      ylab='P(not NA)')
 
 # now look at cases and controls
 prop_obs_control <- complete_data %>% filter(CaseControl==0) %>%  group_by(n_visits) %>% summarize(obs = mean(!is.na(CHF)))
@@ -50,7 +50,28 @@ plot(as.matrix(prop_obs_control),
      ylab='P(not NA)')
 lines(as.matrix(prop_obs_case),type='p',col='red')
 
+par(mfrow=c(2,2))
+plot(as.matrix(prop_ss_control),
+     main="Sample sizes: controls",
+     xlab='n_visits',
+     ylab='sample size',type='l')
+plot(as.matrix(prop_ss_case),
+     type='l',col='red',
+     main="Sample sizes: cases",
+     xlab='n_visits',
+     ylab='sample size')
+plot(as.matrix(prop_ss_control)[1:201,],
+     main="Sample sizes: controls (<=200 visits)",
+     xlab='n_visits',
+     ylab='sample size',type='l')
+plot(as.matrix(prop_ss_case)[1:201,],
+     type='l',col='red',
+     main="Sample sizes: cases (<= 200 visits)",
+     xlab='n_visits',
+     ylab='sample size')
+
 # restricted to n_visits <= 200 to see the pattern?
+par(mfrow=c(1,1))
 plot(as.matrix(prop_obs_control)[1:201,],
      main='Proportion of observed Charlson scores',
      xlab='n_visits',
@@ -60,17 +81,17 @@ lines(as.matrix(prop_obs_case)[1:201,],type='p',col='red')
 
 # same code treating 0/NA as indistinguishable
 # need to pick a specific disease, here COPD, could do this for any code
-prop_one <- complete_data %>% group_by(n_visits) %>% summarize(obs = mean(copd %in% 1))
-
-plot(as.matrix(prop_one),
-     main='Proportion with COPD=1',
-     xlab='n_visits',
-     ylab='P(COPD=1)')
-
-plot(as.matrix(prop_one)[1:401,],
-     main='Proportion with COPD=1',
-     xlab='n_visits',
-     ylab='P(COPD=1)')
+# prop_one <- complete_data %>% group_by(n_visits) %>% summarize(obs = mean(copd %in% 1))
+# 
+# plot(as.matrix(prop_one),
+#      main='Proportion with COPD=1',
+#      xlab='n_visits',
+#      ylab='P(COPD=1)')
+# 
+# plot(as.matrix(prop_one)[1:401,],
+#      main='Proportion with COPD=1',
+#      xlab='n_visits',
+#      ylab='P(COPD=1)')
 
 # code again split by control/case
 prop_one_control <- complete_data %>% filter(CaseControl==0) %>% group_by(n_visits) %>% summarize(obs = mean(copd %in% 1))
