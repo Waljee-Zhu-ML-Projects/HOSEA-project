@@ -46,12 +46,12 @@ impute_missing_hosea <- function(train,test=train,ncycles=5,seed=1,hybrid_reg=FA
   train_x <- select(train,-all_of(c('ID','CaseControl')))
   test_y <- select(test,all_of(c('ID','CaseControl')))
   test_x <- select(test,-all_of(c('ID','CaseControl')))
-  cat("Original data")
+  cat("Original data", fill=T)
   logging(train_x, test_x)
   
   #### impute zeros ####
   
-  cat('Zero imputation for events')
+  cat('Zero imputation for events', fill=T)
   # impute colonoscopies, fobt labs and meds with zeros
   for(var in other_vars){
     train_x[[var]] <- fill_by_zero(train_x[[var]])
@@ -67,14 +67,14 @@ impute_missing_hosea <- function(train,test=train,ncycles=5,seed=1,hybrid_reg=FA
   # test_sample = lab_consistency(lab_vars, lab, df)
   # logging(test_sample)
   
-  cat('Sampling imputation (MICE)')
+  cat('Sampling imputation (MICE)', fill=T)
   df = sampling_imputation_mice(train_x, test_x)
   test_sample = lab_consistency(lab_vars, lab, df)
   logging(test_sample)
   
   #### median-based imputation ####
   
-  cat('Median imputation')
+  cat('Median imputation', fill=T)
   df = median_imputation(train_x, test_x)
   test_med = lab_consistency(lab_vars, lab, df)
   logging(test_med)
@@ -82,7 +82,7 @@ impute_missing_hosea <- function(train,test=train,ncycles=5,seed=1,hybrid_reg=FA
   #### model-based imputation ####
   
   set.seed(seed)
-  cat('Model-based imputation using MICE')
+  cat('Model-based imputation using MICE', fill=T)
   df = model_imputation(train_x, test_x)
   test_model = lab_consistency(lab_vars, lab, df)
   logging(test_model)
@@ -96,8 +96,8 @@ impute_missing_hosea <- function(train,test=train,ncycles=5,seed=1,hybrid_reg=FA
 
 
 logging = function(train_x, test_x=NULL) {
-  cat(paste("Missing proportion in training set:", mean(is.na(train_x))))
-  if(!missing(test_x)) cat(paste("Missing proportion in training set:", mean(is.na(test_x))))
+  cat(paste("Missing proportion in training set:", mean(is.na(train_x))), fill=T)
+  if(!missing(test_x)) cat(paste("Missing proportion in training set:", mean(is.na(test_x))), fill=T)
 }
 
 median_imputation = function(train_x, test_x) {
@@ -131,7 +131,7 @@ model_imputation = function(train_x, test_x) {
   # ignore tells mice to only fit the model on the training set
   # but still outputs imputation for the testing set
   mice_result = mice::mice(merged_x, method=NULL, m=1, maxit=5, 
-                           defaultMethod = c("norm", "logreg", "polyreg", "polr"),
+                           defaultMethod = c("pmm", "logreg", "polyreg", "polr"),
                            visitSequence="monotone", ignore=ignore)
   merged_imputed_x = mice::complete(mice_result)
   
