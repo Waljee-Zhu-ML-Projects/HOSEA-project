@@ -139,15 +139,15 @@ median_imputation = function(train_x, valid_x, test_x) {
   }
   # other variables
   for(varname in c(demo_vars, other_vars, smoke_vars, charlson_vars)){
-    train_med[[varname]] = fill_by_median(train_x[[varname]], test_med[[varname]])
-    valid_med[[varname]] = fill_by_median(train_x[[varname]], test_med[[varname]])
+    train_med[[varname]] = fill_by_median(train_x[[varname]], train_med[[varname]])
+    valid_med[[varname]] = fill_by_median(train_x[[varname]], valid_med[[varname]])
     test_med[[varname]] = fill_by_median(train_x[[varname]], test_med[[varname]])
   }
   # TODO: no missing values in other columns?
   return(list(train=train_med, valid=valid_med, test=test_med))
 }
 
-mice_imputation = function(train_x, valid_x, test_x, ...) {
+mice_imputation = function(train_x, valid_x, test_x, method, ...) {
   # merged to pass to mice
   merged_x = bind_rows(train_x, valid_x, test_x)
   train_n = nrow(train_x)
@@ -159,7 +159,8 @@ mice_imputation = function(train_x, valid_x, test_x, ...) {
   # call mice
   # ignore tells mice to only fit the model on the training set
   # but still outputs imputation for the testing set
-  mice_result = mice::mice(merged_x, m=1, maxit=5,
+  mice_result = mice::mice(merged_x, m=1, method=method,
+                           maxit=ifelse(method="sample", 1, 5),
                            visitSequence="monotone", ignore=ignore, ...)
   merged_imputed_x = mice::complete(mice_result)
   
