@@ -38,16 +38,19 @@ lab_suffix <- c('_mean',
 # specify ncycles
 # [DEPRECATED, kept for consistency] hybrid_reg 
 # if test is missing, it is assume we are imputing the training set directly
-impute_missing_hosea <- function(train,test=train,ncycles=5,seed=1,hybrid_reg=FALSE){
+impute_missing_hosea <- function(train,test=NULL,valid=NULL,
+                                 ncycles=5,seed=1,hybrid_reg=FALSE){
   
   #### pre-processing ####
   # import data
   train_y <- select(train,all_of(c('ID','CaseControl')))
   train_x <- select(train,-all_of(c('ID','CaseControl')))
+  valid_y <- select(valid,all_of(c('ID','CaseControl')))
+  valid_x <- select(valid,-all_of(c('ID','CaseControl')))
   test_y <- select(test,all_of(c('ID','CaseControl')))
   test_x <- select(test,-all_of(c('ID','CaseControl')))
   cat("Original data", fill=T)
-  logging(train_x, test_x)
+  logging(train_x, valid_x, test_x)
   
   #### impute zeros ####
   
@@ -56,8 +59,9 @@ impute_missing_hosea <- function(train,test=train,ncycles=5,seed=1,hybrid_reg=FA
   for(var in other_vars){
     train_x[[var]] <- fill_by_zero(train_x[[var]])
     test_x[[var]] <- fill_by_zero(test_x[[var]])
+    valid_x[[var]] <- fill_by_zero(valid_x[[var]])
   }
-  logging(train_x, test_x)
+  logging(train_x, valid_x, test_x)
   
   #### sampling imputation ####
   
@@ -68,121 +72,112 @@ impute_missing_hosea <- function(train,test=train,ncycles=5,seed=1,hybrid_reg=FA
   # logging(test_sample)
   
   cat('Sampling imputation (MICE)', fill=T)
-  df = sampling_imputation_mice(train_x, test_x)
-  test_sample = lab_consistency(lab_vars, lab, df)
-  logging(test_sample)
+  df = mice_imputation(train_x, valid_x, test_x, method="sample")
+  train_sample = lab_consistency(lab_vars, lab, df$train)
+  valid_sample = lab_consistency(lab_vars, lab, df$valid)
+  test_sample = lab_consistency(lab_vars, lab, df$test)
+  logging(train_sample, valid_sample, test_sample)
   
   #### median-based imputation ####
   
   cat('Median imputation', fill=T)
-  df = median_imputation(train_x, test_x)
-  test_med = lab_consistency(lab_vars, lab, df)
-  logging(test_med)
+  df = median_imputation(train_x, valid_x, test_x)
+  train_med = lab_consistency(lab_vars, lab, df$train)
+  valid_med = lab_consistency(lab_vars, lab, df$valid)
+  test_med = lab_consistency(lab_vars, lab, df$test)
+  logging(train_med, valid_med, test_med)
   
   #### model-based imputation ####
   
   set.seed(seed)
   cat('Model-based imputation using MICE', fill=T)
-  df = model_imputation(train_x, test_x)
-  test_model = lab_consistency(lab_vars, lab, df)
-  logging(test_model)
+  df = mice_imputation(train_x, test_x, method="cart")
+  train_model = lab_consistency(lab_vars, lab, df$train)
+  valid_model = lab_consistency(lab_vars, lab, df$valid)
+  test_model = lab_consistency(lab_vars, lab, df$test)
+  logging(train_model, valid_model, test_model)
   
-  #### return complete imputed data ####
-  return(list(clean=bind_cols(test_y,test_x),
+  #### prepare output ####
+  train = list(clean=bind_cols(train_y,train_x),
+               impmed=bind_cols(train_y,train_med),
+               impsamp=bind_cols(train_y,train_samp),
+               impreg=bind_cols(train_y,train_model))
+  valid = list(clean=bind_cols(valid_y,valid_x),
+               impmed=bind_cols(valid_y,valid_med),
+               impsamp=bind_cols(valid_y,valid_samp),
+               impreg=bind_cols(valid_y,valid_model))
+  test = list(clean=bind_cols(test_y,test_x),
               impmed=bind_cols(test_y,test_med),
               impsamp=bind_cols(test_y,test_samp),
-              impreg=bind_cols(test_y,test_model)))
+              impreg=bind_cols(test_y,test_model))
+  
+  #### return complete imputed data ####
+  return(list(train=train, valid=valid, test=test))
 }
 
 
-logging = function(train_x, test_x=NULL) {
+logging = function(train_x, valid_x=NULL, test_x=NULL) {
   cat(paste("Missing proportion in training set:", mean(is.na(train_x))), fill=T)
+  if(!missing(valid_x)) cat(paste("Missing proportion in validation set:", mean(is.na(valid_x))), fill=T)
   if(!missing(test_x)) cat(paste("Missing proportion in training set:", mean(is.na(test_x))), fill=T)
 }
 
-median_imputation = function(train_x, test_x) {
+median_imputation = function(train_x, valid_x, test_x) {
+  train_med = train_x
+  valid_med = valid_x
   test_med = test_x
   # blood labs
   for(lab in lab_vars){
     for(v in lab){
       for(summ in lab_suffix){
         varname <- paste0(v,summ)
+        train_med[[varname]] = fill_by_median(train_x[[varname]], train_med[[varname]])
+        valid_med[[varname]] = fill_by_median(train_x[[varname]], valid_med[[varname]])
         test_med[[varname]] = fill_by_median(train_x[[varname]], test_med[[varname]])
       }
     }
   }
   # other variables
   for(varname in c(demo_vars, other_vars, smoke_vars, charlson_vars)){
+    train_med[[varname]] = fill_by_median(train_x[[varname]], test_med[[varname]])
+    valid_med[[varname]] = fill_by_median(train_x[[varname]], test_med[[varname]])
     test_med[[varname]] = fill_by_median(train_x[[varname]], test_med[[varname]])
   }
   # TODO: no missing values in other columns?
-  return(test_med)
+  return(list(train=train_med, valid=valid_med, test=test_med))
 }
 
-model_imputation = function(train_x, test_x) {
+mice_imputation = function(train_x, valid_x, test_x, ...) {
   # merged to pass to mice
-  merged_x = bind_rows(train_x, test_x)
+  merged_x = bind_rows(train_x, valid_x, test_x)
   train_n = nrow(train_x)
+  valid_n = nrow(valid_x)
   test_n = nrow(test_x)
-  ignore = rep(T, train_n + test_n)
+  ignore = rep(T, train_n + test_n + valid_n)
   ignore[1:train_n] = F
   
   # call mice
   # ignore tells mice to only fit the model on the training set
   # but still outputs imputation for the testing set
-  mice_result = mice::mice(merged_x, method="cart", m=1, maxit=5, 
-                           defaultMethod = c("pmm", "logreg", "polyreg", "polr"),
+  mice_result = mice::mice(merged_x, m=1, maxit=5, 
                            visitSequence="monotone", ignore=ignore)
   merged_imputed_x = mice::complete(mice_result)
   
+  out = list()
+  # get training set
+  df = merged_imputed_x[1:train_n, ]
+  out$train = tibble(df)
+  # get validation set
+  df = merged_imputed_x[(train_n+1):(train_n+valid_n), ]
+  out$valid = tibble(df)
   # get testing set
-  df = merged_imputed_x[-(1:train_n), ]
+  df = merged_imputed_x[(train_n+valid_n+1):(train_n+valid_n+test_n), ]
+  out$test = tibble(df)
   
-  return(tibble(df))
+  return(out)
 }
 
-sampling_imputation_mice = function(train_x, test_x) {
-  # merged to pass to mice
-  merged_x = bind_rows(train_x, test_x)
-  train_n = nrow(train_x)
-  test_n = nrow(test_x)
-  ignore = rep(T, train_n + test_n)
-  ignore[1:train_n] = F
-  
-  # call mice
-  # ignore tells mice to only fit the model on the training set
-  # but still outputs imputation for the testing set
-  mice_result = mice::mice(merged_x, m=1, maxit=1, 
-                           method="sample",
-                           visitSequence="monotone", ignore=ignore)
-  merged_imputed_x = mice::complete(mice_result)
-  
-  # get testing set
-  df = merged_imputed_x[-(1:train_n), ]
-  
-  return(tibble(df))
-}
 
-sampling_imputation = function(train_x, test_x){
-  test_samp = test_x
-  
-  # blood labs
-  for(lab in lab_vars){
-    for(v in lab){
-      for(summ in lab_suffix){
-        varname <- paste0(v,summ)
-        test_samp[[varname]] =
-          fill_by_sample(train_x[[varname]], test_samp[[varname]])
-      }
-    }
-  }
-  
-  # demographic and smoke variables
-  for(varname in c(demo_vars, other_vars, smoke_vars, charlson_vars)){
-    test_samp[[varname]] = 
-      fill_by_sample(train_x[[varname]], test_samp[[varname]])
-  }
-}
 
 lab_consistency = function(lab_vars, lab, df) {
   for(lab in lab_vars){
