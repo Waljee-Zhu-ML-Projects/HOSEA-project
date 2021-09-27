@@ -34,22 +34,24 @@ ssum <- function(x){
   }
 }
 
-# apply median imputation
-fill_by_median <- function(x) {
-  x[is.na(x)] <- median(x, na.rm = TRUE)
-  return(x)
+# apply median imputation (y is target)
+fill_by_median <- function(x, y=x) {
+  y[is.na(y)] <- median(x, na.rm = TRUE)
+  return(y)
 }
 # apply zero imputation
 fill_by_zero <- function(x) {
   x[is.na(x)] <- 0
   return(x)
 }
-# apply random sample imputation
-fill_by_sample <- function(x) {
-  imiss <- is.na(x)
-  nmiss <- sum(imiss)
-  x[imiss] <- sample(x[!imiss],nmiss,replace=TRUE)
-  return(x)
+# apply random sample imputation (y is target)
+fill_by_sample <- function(x, y=x) {
+  imiss_y <- is.na(y)
+  nmiss <- sum(imiss_y)
+  if(nmiss < 1) return(y)
+  imiss_x <- is.na(x)
+  y[imiss_y] <- sample(x[!imiss_x],nmiss,replace=TRUE)
+  return(y)
 }
 
 fill_by_sample_mat <- function(x) {

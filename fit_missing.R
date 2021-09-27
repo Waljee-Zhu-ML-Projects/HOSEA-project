@@ -47,7 +47,7 @@ save(train_data_impute,test_data_impute,valid_data_impute,
      file='R_data/subsample/sub_complete_data_impute.RData')
 
 # can reload from here
-#load('R_data/subsample/sub_complete_data_impute.RData')
+load('R_data/subsample/sub_complete_data_impute.RData')
 
 #### format imputed data for xgboost ####
 # with NAs
@@ -58,9 +58,9 @@ dwatchlist_na <- xgb_prep(train_data_impute,
 
 # imputed with sampling
 dwatchlist_samp <- xgb_prep(train_data_impute,
-                          test_data_impute,
-                          valid_data_impute,
-                          dname='impsamp')
+                            test_data_impute,
+                            valid_data_impute,
+                            dname='impsamp')
 
 # imputed with median
 dwatchlist_med <- xgb_prep(train_data_impute,
@@ -79,7 +79,7 @@ dwatchlist_reg <- xgb_prep(train_data_impute,
 # global parameters for the 3 models
 param_xg <- list(max_depth=4,eta=.05,objective='binary:logistic',
                  eval_metric='logloss')
-# think about tuning max_depth,eta,nrounds with CV?
+# TODO: think about tuning max_depth,eta,nrounds with CV?
 
 # fit xgboost model
 xgb_fit_na <- xgb.train(param_xg,

@@ -1,12 +1,17 @@
 # Notes
 
-Last updated: **September 10th, 2021**
+Last updated: **September 23rd, 2021**
 
 ## Ideas
 
+### Survival Analysis
+
+- Is there a reason why we are not treating this as a survival analysis problem?
+- Prediction horizon
+
 ### Feature engineering
 
-- Why no mean difference? 
+- Why no mean difference? Instead of TV. TV shows just the amount of variability while mean difference would show the trend
 
 ### Imbalance
 
@@ -33,3 +38,7 @@ Last updated: **September 10th, 2021**
   - I think this could prevent more overfitting
   - Would need a more efficient imputation implementation
 - Could supply the AUC directly with `feval` ?
+
+### Charlson scores imputation
+
+- 

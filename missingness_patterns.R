@@ -18,16 +18,17 @@ load('R_data/subsample/sub_complete_data_impute.RData')
 df = train_data_impute$clean
 df = starwars 
 counts = missingness_patterns(df)
-n_groups = 5
+n_groups = 10
+min_size = 10
 
 library(tidyverse)
 library(purrrlyr)
 # build tree
-pattern_tree = function(df, n_groups){
+pattern_tree = function(df, n_groups=1, min_size=10){
   # observed patterns
   colnms = colnames(df)
   patterns = df %>%
-    filter_at(vars(all_of(colnms)), any_vars(is.na(.))) %>%
+    # filter_at(vars(all_of(colnms)), any_vars(is.na(.))) %>%
     is.na %>% (function(x) !x) %>% as_tibble
   
   # counts per pattern
@@ -36,18 +37,31 @@ pattern_tree = function(df, n_groups){
   common = counts %>% summarise_all(all)
   
   # keep largest
-  large_patterns = counts %>% slice_max(order_by=count, n=n_groups)
-  common$count = sum(counts$count) - sum(large_patterns$count)
-  large_patterns[nrow(large_patterns)+1, ] = common
-  x = large_patterns %>% select(!count)
-  y = large_patterns %>% select(count)
+  counts[nrow(counts)+1, ] = common
+  x = counts %>% select(!count)
+  y = counts %>% select(count)
   
-  #
-  large_patterns$total = 0
-  for(i in range(nrow(large_patterns))){
+  # size of each
+  counts$total = 0
+  for(i in seq(nrow(counts))){
     pattern = x[i, ]
-    large_patterns[i, "total"] = sum(apply(patterns, 1, function(row) all(row >= pattern)))
+    counts[i, "total"] = sum(apply(patterns, 1, function(row) all(row >= pattern)))
   }
+  
+  # keep largests and min size
+  large_patterns = counts %>% 
+    slice_max(order_by=total, n=n_groups) %>%
+    filter(total>min_size)
+  
+  # assignments
+  assignments = matrix(NA, nrow(patterns), nrow(large_patterns))
+  for(i in seq(nrow(large_patterns))){
+    pattern = large_patterns[i, 1:ncol(df)]
+    assignments[, i] = apply(patterns, 1, function(row) all(row >= pattern))
+  }
+  
+  hist(apply(assignments, 1, sum))
+  hist(apply(assignments, 2, sum))
   
   return(large_patterns)
 }
