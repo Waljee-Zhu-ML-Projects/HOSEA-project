@@ -160,7 +160,7 @@ mice_imputation = function(train_x, valid_x, test_x, method, ...) {
   # ignore tells mice to only fit the model on the training set
   # but still outputs imputation for the testing set
   mice_result = mice::mice(merged_x, m=1, method=method,
-                           maxit=ifelse(method="sample", 1, 5),
+                           maxit=ifelse(method=="sample", 1, 5),
                            visitSequence="monotone", ignore=ignore, ...)
   merged_imputed_x = mice::complete(mice_result)
   
