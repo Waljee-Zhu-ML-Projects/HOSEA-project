@@ -38,9 +38,9 @@ traintrain <- as.logical(train*(!valid))
 
 #### impute each chunk ####
 # 10 cycles, with hybrid regression
-train_data_impute <- impute_missing_hosea(complete_data[traintrain,],ncycles=10,seed=1995,hybrid_reg=TRUE)
-test_data_impute <- impute_missing_hosea(complete_data[test,],ncycles=10,seed=1996,hybrid_reg=TRUE)
-valid_data_impute <- impute_missing_hosea(complete_data[valid,],ncycles=10,seed=1998,hybrid_reg=TRUE)
+train_data_impute <- impute_missing_hosea(complete_data[traintrain,], complete_data[traintrain,],ncycles=10,seed=1995,hybrid_reg=TRUE)
+test_data_impute <- impute_missing_hosea(complete_data[traintrain,], complete_data[test,],ncycles=10,seed=1996,hybrid_reg=TRUE)
+valid_data_impute <- impute_missing_hosea(complete_data[traintrain,], complete_data[valid,],ncycles=10,seed=1998,hybrid_reg=TRUE)
 
 # save all imputed data
 save(train_data_impute,test_data_impute,valid_data_impute,
