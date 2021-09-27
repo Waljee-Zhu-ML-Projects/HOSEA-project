@@ -91,7 +91,7 @@ impute_missing_hosea <- function(train,test=NULL,valid=NULL,
   
   set.seed(seed)
   cat('\n=== Model-based imputation (MICE w/ CART) ===', fill=T)
-  df = mice_imputation(train_x, test_x, method="cart")
+  df = mice_imputation(train_x, valid_x, test_x, method="cart")
   train_model = lab_consistency(lab_vars, lab, df$train)
   valid_model = lab_consistency(lab_vars, lab, df$valid)
   test_model = lab_consistency(lab_vars, lab, df$test)
