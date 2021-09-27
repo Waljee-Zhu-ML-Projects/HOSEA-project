@@ -49,12 +49,12 @@ impute_missing_hosea <- function(train,test=NULL,valid=NULL,
   valid_x <- select(valid,-all_of(c('ID','CaseControl')))
   test_y <- select(test,all_of(c('ID','CaseControl')))
   test_x <- select(test,-all_of(c('ID','CaseControl')))
-  cat("Original data", fill=T)
+  cat("=== Original data ===", fill=T)
   logging(train_x, valid_x, test_x)
   
   #### impute zeros ####
   
-  cat('Zero imputation for events', fill=T)
+  cat('\n=== Zero imputation for events ===', fill=T)
   # impute colonoscopies, fobt labs and meds with zeros
   for(var in other_vars){
     train_x[[var]] <- fill_by_zero(train_x[[var]])
@@ -71,7 +71,7 @@ impute_missing_hosea <- function(train,test=NULL,valid=NULL,
   # test_sample = lab_consistency(lab_vars, lab, df)
   # logging(test_sample)
   
-  cat('Sampling imputation (MICE)', fill=T)
+  cat('\n=== Sampling imputation (MICE) ===', fill=T)
   df = mice_imputation(train_x, valid_x, test_x, method="sample")
   train_sample = lab_consistency(lab_vars, lab, df$train)
   valid_sample = lab_consistency(lab_vars, lab, df$valid)
@@ -80,7 +80,7 @@ impute_missing_hosea <- function(train,test=NULL,valid=NULL,
   
   #### median-based imputation ####
   
-  cat('Median imputation', fill=T)
+  cat('\n=== Median imputation ===', fill=T)
   df = median_imputation(train_x, valid_x, test_x)
   train_med = lab_consistency(lab_vars, lab, df$train)
   valid_med = lab_consistency(lab_vars, lab, df$valid)
@@ -90,7 +90,7 @@ impute_missing_hosea <- function(train,test=NULL,valid=NULL,
   #### model-based imputation ####
   
   set.seed(seed)
-  cat('Model-based imputation using MICE', fill=T)
+  cat('\n=== Model-based imputation (MICE w/ CART) ===', fill=T)
   df = mice_imputation(train_x, test_x, method="cart")
   train_model = lab_consistency(lab_vars, lab, df$train)
   valid_model = lab_consistency(lab_vars, lab, df$valid)
