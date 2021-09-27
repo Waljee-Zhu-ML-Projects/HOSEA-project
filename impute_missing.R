@@ -100,15 +100,15 @@ impute_missing_hosea <- function(train,test=NULL,valid=NULL,
   #### prepare output ####
   train = list(clean=bind_cols(train_y,train_x),
                impmed=bind_cols(train_y,train_med),
-               impsamp=bind_cols(train_y,train_samp),
+               impsamp=bind_cols(train_y,train_sample),
                impreg=bind_cols(train_y,train_model))
   valid = list(clean=bind_cols(valid_y,valid_x),
                impmed=bind_cols(valid_y,valid_med),
-               impsamp=bind_cols(valid_y,valid_samp),
+               impsamp=bind_cols(valid_y,valid_sample),
                impreg=bind_cols(valid_y,valid_model))
   test = list(clean=bind_cols(test_y,test_x),
               impmed=bind_cols(test_y,test_med),
-              impsamp=bind_cols(test_y,test_samp),
+              impsamp=bind_cols(test_y,test_sample),
               impreg=bind_cols(test_y,test_model))
   
   #### return complete imputed data ####
