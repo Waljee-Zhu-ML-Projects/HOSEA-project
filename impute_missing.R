@@ -46,12 +46,12 @@ impute_missing_hosea <- function(train,test=train,ncycles=5,seed=1,hybrid_reg=FA
   train_x <- select(train,-all_of(c('ID','CaseControl')))
   test_y <- select(test,all_of(c('ID','CaseControl')))
   test_x <- select(test,-all_of(c('ID','CaseControl')))
-  print("Original data")
+  noquote("Original data")
   logging(train_x, test_x)
   
   #### impute zeros ####
   
-  print('Zero imputation for events')
+  noquote('Zero imputation for events')
   # impute colonoscopies, fobt labs and meds with zeros
   for(var in other_vars){
     train_x[[var]] <- fill_by_zero(train_x[[var]])
@@ -67,14 +67,14 @@ impute_missing_hosea <- function(train,test=train,ncycles=5,seed=1,hybrid_reg=FA
   # test_sample = lab_consistency(lab_vars, lab, df)
   # logging(test_sample)
   
-  print('Sampling imputation (MICE)')
+  noquote('Sampling imputation (MICE)')
   df = sampling_imputation_mice(train_x, test_x)
   test_sample = lab_consistency(lab_vars, lab, df)
   logging(test_sample)
   
   #### median-based imputation ####
   
-  print('Median imputation')
+  noquote('Median imputation')
   df = median_imputation(train_x, test_x)
   test_med = lab_consistency(lab_vars, lab, df)
   logging(test_med)
@@ -82,7 +82,7 @@ impute_missing_hosea <- function(train,test=train,ncycles=5,seed=1,hybrid_reg=FA
   #### model-based imputation ####
   
   set.seed(seed)
-  print('Model-based imputation using MICE')
+  noquote('Model-based imputation using MICE')
   df = model_imputation(train_x, test_x)
   test_model = lab_consistency(lab_vars, lab, df)
   logging(test_model)
@@ -96,8 +96,8 @@ impute_missing_hosea <- function(train,test=train,ncycles=5,seed=1,hybrid_reg=FA
 
 
 logging = function(train_x, test_x=NULL) {
-  print(paste("Missing proportion in training set:", mean(is.na(train_x))))
-  if(!missing(test_x)) print(paste("Missing proportion in training set:", mean(is.na(test_x))))
+  noquote(paste("Missing proportion in training set:", mean(is.na(train_x))))
+  if(!missing(test_x)) noquote(paste("Missing proportion in training set:", mean(is.na(test_x))))
 }
 
 median_imputation = function(train_x, test_x) {
@@ -206,7 +206,7 @@ lab_consistency = function(lab_vars, lab, df) {
       df[[v_maxdiff]] = ifelse(flip, df[[v_mindiff]], df[[v_maxdiff]])
       # tv should be between abs(min) and abs(max), otherwise replace by average
       tv = (abs(df[[v_mindiff]]) + abs(df[[v_maxdiff]])) / 2.
-      between = (df[[v_tv]] >= abs(df[[v_mindiff]])) %AND% (abs(df[[v_maxdiff]]) >= df[[v_tv]])
+      between = (df[[v_tv]] >= abs(df[[v_mindiff]])) && (abs(df[[v_maxdiff]]) >= df[[v_tv]])
       df[[v_tv]] = ifelse(between, df[[v_tv]], tv)
     }
   }
