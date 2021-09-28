@@ -1,7 +1,7 @@
 # function to take training, test and validation sets and 
 # format for xgb fitting
 
-xgb_prep <- function(train,test,valid,dname){
+xgb_prep <- function(train,test,valid,dname,cc=NULL){
   # xgb formatting for each set
   dtrain <- xgb.DMatrix(as.matrix(train[[dname]][-c(1,2)]),
                            label=train[[dname]]$CaseControl)
@@ -9,8 +9,11 @@ xgb_prep <- function(train,test,valid,dname){
                            label=valid[[dname]]$CaseControl)
   dtest <- xgb.DMatrix(as.matrix(test[[dname]][-c(1,2)]),
                           label=test[[dname]]$CaseControl)
+  if(!missing(cc)) dcc = xgb.DMatrix(as.matrix(cc[-c(1,2)]),
+                                    label=cc$CaseControl)
   # combine as a watchlist
   dwatchlist <- list(train=dtrain,test=dtest,valid=dvalid)
+  if(!missing(cc)) dwatchlist = list(train=dtrain,test=dtest,cc=dcc,valid=dvalid)
   # return
   return(dwatchlist)
 }
