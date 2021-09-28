@@ -26,12 +26,25 @@ charlson_complete$n_visits <- fill_by_zero(charlson_complete$n_visits)
 # save table
 saveRDS(charlson_complete,file='R_data/charlson_complete_raw.rds')
 
-# next step:
-# subset to cases and controls
-# estimate missingness parameters for cases/controls separately for each indicator (list 
-# of thetas for cases and controls)
-# copy the tables and impute with expected value
-# bind rows and save as an imputed version
+# imputation with 'geometric' model 
+charlson_impute <- charlson_complete
 
+theta <- list()
 
+for(charl_name in charl_names){
+  print(paste0('For disease ',charl_name,':'))
+  timestamp()
+  
+  # estimate for controls 
+  theta[[charl_name]] <- estimate_mm(charlson_impute[[charl_name]],charlson_impute$n_visits)
+  print('Estimated')
 
+  # impute for control
+  charlson_impute[[charl_name]] <- impute_mm(charlson_impute[[charl_name]],
+                                                     charlson_impute$n_visits,
+                                                     theta[[charl_name]])
+  print('Imputed')
+}
+
+# save imputed table
+saveRDS(charlson_impute,file='R_data/charlson_complete_impute.rds')

@@ -51,6 +51,19 @@ newton_mm <- function(theta,Y_obs,V){
   return(theta_new)
 }
 
+# impute using theta estimated with the missingness model above
+impute_mm <- function(Y_obs,V,theta){
+  # copy
+  Y_new <- Y_obs
+  # calculate expectations
+  Q <- (1-theta[2])^V
+  Y_imp <- (theta[1]*Q) / (1-theta[1]*(1-Q))
+  # fill imputed values
+  Y_new[Y_new==0] <- Y_imp[Y_new==0]
+  # return imputed indicator
+  return(Y_new)
+}
+
 # define dictionaries to process the new charlson indicators
 # 15 diseases (no 'cancer' or 'met_car'), plus 'gerd' = 16 new indicators
 
