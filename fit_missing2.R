@@ -95,7 +95,7 @@ best_auc = function(xgb_fit){
   best_auc = c(
     train = xgb_fit$evaluation_log$train_auc[i],
     test = xgb_fit$evaluation_log$test_auc[i],
-    cc = xgb_fit$evaluation_log$ccauc[i],
+    cc = xgb_fit$evaluation_log$cc_auc[i]
   )
   return(best_auc)
 }
@@ -104,5 +104,7 @@ best_aucs = rbind(
   na = best_auc(xgb_fit_na),
   samp = best_auc(xgb_fit_samp),
   med = best_auc(xgb_fit_med),
-  reg = best_auc(xgb_fit_reg),
+  reg = best_auc(xgb_fit_reg)
 )
+
+write.csv(best_aucs, "R_data/results/best_auc_prelim.csv")
