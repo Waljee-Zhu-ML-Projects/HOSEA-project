@@ -9,7 +9,7 @@ xgb_prep <- function(train,test,valid,dname,cc=NULL){
                            label=valid[[dname]]$CaseControl)
   dtest <- xgb.DMatrix(as.matrix(test[[dname]][-c(1,2)]),
                           label=test[[dname]]$CaseControl)
-  if(!missing(cc)) dcc = xgb.DMatrix(as.matrix(xx)[-c(1,2)],
+  if(!missing(cc)) dcc = xgb.DMatrix(as.matrix(cc)[-c(1,2)],
                                     label=cc$CaseControl)
   # combine as a watchlist
   dwatchlist <- list(train=dtrain,test=dtest,valid=dvalid)
