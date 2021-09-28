@@ -7,7 +7,7 @@
 # fit models, inspect AUC, PDP plots, etc.
 
 #### source helper functions ####
-source('R_code/hosea-project/setup')
+source('R_code/hosea-project/setup.R')
 source('R_code/hosea-project/utils.R')
 source('R_code/hosea-project/utils_xgb.R')
 source('R_code/hosea-project/impute_models.R')
