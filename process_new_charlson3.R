@@ -16,7 +16,7 @@ for(cc in as.character(c(1:5,'cx'))){
 }
 
 # loop over disease names
-for(charl_name in charl_names[1:4]){
+for(charl_name in charl_names[9:12]){
   print(paste0('For disease ',charl_name,':'))
   timestamp()
   
