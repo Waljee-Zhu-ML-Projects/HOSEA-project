@@ -840,20 +840,39 @@ Sample sizes for controls and cases for calculating the proportions in the above
 \includegraphics[width=\textwidth]{nvisits_samplesize.pdf}
 \end{center}
 
+\pagebreak
 \subsubsection*{09/28 update}
+
+\begin{itemize}
+	\item Implemented new train/valid/test scheme
+	\begin{itemize}
+		\item Imputed records results are not exactly comparable
+		\item Complete records results are comparable
+	\end{itemize}
+	\item Experimentation with regression imputation
+	\item Experimentation with \texttt{xgboost} tuning parameters
+	\item Currently working on multiple random sample with new train/valid/test scheme
+\end{itemize}
 
 \begin{table}[ht]
 \centering
-\begin{tabular}{lrrr}
+\begin{tabular}{lccc}
   \toprule
- & train & test & cc \\ 
+ & \textbf{Training AUC} & \textbf{Test AUC} & \textbf{Test AUC} \\
+\textbf{Imputation method}& & \textbf{(imputed records)} & \textbf{(complete records)} \\
   \midrule
-na & 0.985 & 0.954 & 0.621 \\ 
-  samp & 0.985 & 0.777 & 0.885 \\ 
-  med & 0.980 & 0.939 & 0.685 \\ 
-  reg & 0.924 & 0.742 & 0.759 \\ 
+Separate class & 0.985 & 0.954 & 0.621 \\ 
+ & (0.985) & (0.962) & (0.582) \\ \addlinespace
+Median & 0.980 & 0.939 & 0.685 \\ 
+   & (0.963) & (0.911) & (0.618) \\ \addlinespace
+Regression & 0.924 & 0.742 & 0.759 \\ 
+   & (0.911) & (0.750) & (0.798) \\ \addlinespace
+Single rand. samp. & 0.985 & 0.777 & 0.885 \\ 
+   & (0.916) & (0.780) & (0.833) \\ 
    \bottomrule
 \end{tabular}
+   *all with \texttt{xgboost} prediction model; AUCs in parentheses 
+   denote previous results.
 \end{table}
 
 \end{document}
