@@ -50,6 +50,7 @@ dwatchlist_reg = xgb_prep(train_data_impute,
 #### XGBoost parameters ####
 param_xg = list(
   max_depth=4,
+  subsample=0.5,
   eta=.05,
   objective='binary:logistic',
   eval_metric='auc'
@@ -58,35 +59,35 @@ param_xg = list(
 # fit xgboost model, treating NA as extra bin
 xgb_fit_na <- xgb.train(param_xg,
                         dwatchlist_na$train,
-                        nrounds=1000,
+                        nrounds=10000,
                         dwatchlist_na,
                         verbose=1,
-                        print_every_n=8,
-                        early_stopping_rounds=10)
+                        print_every_n=10,
+                        early_stopping_rounds=50)
 
 # fit xgboost model with random sampling imputation
 xgb_fit_samp <- xgb.train(param_xg,
                           dwatchlist_samp$train,
-                          nrounds=1000,
+                          nrounds=10000,
                           dwatchlist_samp,
-                          verbose=1,print_every_n=8,
-                          early_stopping_rounds=10)
+                          verbose=1,print_every_n=10,
+                          early_stopping_rounds=50)
 
 # fit xgboost model with median imputation
 xgb_fit_med <- xgb.train(param_xg,
                          dwatchlist_med$train,
-                         nrounds=1000,
+                         nrounds=10000,
                          dwatchlist_med,
-                         verbose=1,print_every_n=8,
-                         early_stopping_rounds=10)
+                         verbose=1,print_every_n=10,
+                         early_stopping_rounds=50)
 
 # fit xgboost model with CART imputation
 xgb_fit_reg <- xgb.train(param_xg,
                          dwatchlist_reg$train,
-                         nrounds=1000,
+                         nrounds=10000,
                          dwatchlist_reg,
-                         verbose=1,print_every_n=8,
-                         early_stopping_rounds=10)
+                         verbose=1,print_every_n=10,
+                         early_stopping_rounds=50)
 
 #### Get AUC table ####
 
@@ -95,7 +96,7 @@ best_auc = function(xgb_fit){
   best_auc = c(
     train = xgb_fit$evaluation_log$train_auc[i],
     test = xgb_fit$evaluation_log$test_auc[i],
-    cc = xgb_fit$evaluation_log$ccauc[i],
+    cc = xgb_fit$evaluation_log$cc_auc[i]
   )
   return(best_auc)
 }
@@ -104,5 +105,12 @@ best_aucs = rbind(
   na = best_auc(xgb_fit_na),
   samp = best_auc(xgb_fit_samp),
   med = best_auc(xgb_fit_med),
-  reg = best_auc(xgb_fit_reg),
+  reg = best_auc(xgb_fit_reg)
 )
+
+write.csv(best_aucs, "R_data/results/best_auc_prelim4subsample.csv")
+
+best_aucs = read.csv("R_data/results/best_auc_prelim4subsample.csv", )
+rownames(best_aucs) = best_aucs$X
+best_aucs$X = NULL
+xtable::xtable(best_aucs, digits=3)
