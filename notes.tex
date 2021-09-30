@@ -265,24 +265,34 @@ Processing in R begins with data saved as .sas7bdat files, after unzipping on te
   \item setup.R sets wd and loads packages
   \item utils.R defines small helper functions
   \item utils\_xgb.R defines helper functions for xgboost models and evaluation (data preparation, PDPs, AUCs, ...)
+  \item utils\_missingcharl.R defines helper functions for coding new disease indicators (translated from Jenny's SQL code), and imputing missing values.
   \item sas\_to\_rds.R converts SAS database files to rds, performs reordering.
   \item master.R creates master table with start/end dates for prediction window
   \item process\_[...].R processes raw tables (.rds files) into longitudinal summaries by ID, processed version have '\_summary' appended to .rds file name.
+  \item process\_new\_charlson.R processes filtered diagnosis tables into new disease indicators.
   \item link\_summaries.R combines all the summary tables and creates a single table complete\_data\_raw.rds
+  \item link\_charlson.R combines all the charlson indicators tables and creates a raw and an imputed version.
   \item subsample.R takes a balanced subsample for testing (stores in R\_data/subsample)
   \item subsample\_cc.R finds a (mostly) complete cases/controls with no missing values, sample imputes and saves a complete test set.
   \item impute\_missing.R takes a table of the format of complete\_data\_raw.rds, prepares the tables, imputes with random sampling and/or chained regression models. impute\_models.R and impute\_multisamp.R contain helper functions.
   \item fit\_missing.R fits xgboost and logistic regression models \note{on the balanced subsample of 10,000} for different imputation approaches. Saves imputed datasets for training, test and validation (sub\_complete\_data\_impute.RData)
   \item fit\_varsubsets.R imports random sample imputed \note{balanced subsample} and fits models to different groups of variables (to assess information available in different groups)
+  \item n\_visits.R creates a variable for number of visits (unique dates with an ICD code in the 4-year prediction window).
+  \item n\_visits\_analysis.R does some additional analysis on this new variable, in relation to missingness of Charlson score inputs.
 \end{itemize}
 
 {\bf Saved data:}
 \begin{itemize}
   \item Most data corresponds to an initial SAS table, or a processed/summarized version (with '\_summary') appended.
-  \item alldxsX\_filter.rds for X from 1 to 5 has the alldxs records restricted to the current [index - 5y, index - 1y] prediction window.
+  \item alldxsX\_filter.rds for X from 1 to 5 has the alldxs records restricted to the current [index - 5y, index - 1y] prediction window. X = 'cx' corresponds to diagnoses for cases only
   \item master.rds contains IDs and start/end prediction dates
   \item complete\_data\_raw.rds fully linked table produced by link\_summaries.R
   \item cc\_complete\_data.rds contains a subset of records which are (mostly) non-missing (see subsample\_cc.R).
+  \item n\_visits.rds contains a number of visits variable for all controls.
+  \item n\_visits\_case.rds contains a number of visits variable for all cases.
+  \item charlson\_[xxx].rds contains newly processed indicators for each of the component diseases, and GERD.
+  \item charlson\_complete\_raw.rds contains the newly processed indicators in one table, with no imputation. Also includes number of visits.
+  \item charlson\_complete\_impute.rds contains the newly processed indicators in one table, with zeros imputed according to the simple `geometric' model described below, based on number of visits. Also includes number of visits.
   \item {\bf Within 'subsample':}
   \begin{itemize}
     \item sub\_master.rds contains IDs and start/end prediction dates for the subsample
@@ -334,6 +344,10 @@ This model can be used to estimate $\hat{\phi}$ and $\hat{p}$ from the data. The
 \frac{\hat{p}\left(1 - \mathbb{P}(\operatorname{Geom}(\hat{\phi}) < V_i) \right)}{1-\hat{p} \left(\mathbb{P}(\operatorname{Geom}(\hat{\phi}) < V_i) \right)}
 \]
 If $V_i=0$, the patient is assigned a 1 with the estimated overall prevalence $\hat{p}$. If $V_i \rightarrow \infty$, the patient is assigned a 1 with probability 0.
+
+09/30: Code is now written to estimate the parameters of this model on the re-coded indicators for each Charlson input (and GERD).
+
+The estimator minimizes the unconstrained likelihood function. If the resulting estimate is outside the constraint set, it reverts to the initializer (see estimate\_mm and impute\_mm in the file utils\_missingcharl.R)
 
 \subsubsection*{Number of visits results 09/15}
 
