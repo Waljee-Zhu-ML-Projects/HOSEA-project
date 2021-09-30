@@ -8,11 +8,15 @@ source('R_code/hosea-project/utils_missingcharl.R')
 charlson_complete <- readRDS('R_data/master.rds')
 
 for(charl_name in charl_names){
+  print(paste0('For disease ',charl_name,':'))
   # load indicator and join
   temp <- readRDS(paste0('R_data/charlson_',charl_name,'.rds'))
+  print('Load data')
   charlson_complete <- left_join(charlson_complete,temp,by='ID')
+  print('Join')
   # replace
   charlson_complete[[charl_name]] <- fill_by_zero(charlson_complete[[charl_name]])
+  print('Fill zeros')
 }
 
 # load n_visits for controls and cases
@@ -37,6 +41,10 @@ for(charl_name in charl_names){
   
   # estimate for controls 
   theta[[charl_name]] <- estimate_mm(charlson_impute[[charl_name]],charlson_impute$n_visits)
+  # if estimation leaves the constrained region just estimate with initializer
+  if(any(theta[[charl_name]] < 0) || any(theta[[charl_name]] > 1)){
+    theta[[charl_name]] <- init_mm(charlson_impute[[charl_name]],charlson_impute$n_visits,phi=TRUE)
+  }
   print('Estimated')
 
   # impute for control

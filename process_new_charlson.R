@@ -5,7 +5,7 @@
 source('R_code/hosea-project/utils_missingcharl.R')
 
 # loop over disease names
-for(charl_name in charl_names[1]){
+for(charl_name in charl_names[c(2,3,4,7,8,10,11,12,16)]){
   print(paste0('For disease ',charl_name,':'))
   timestamp()
   

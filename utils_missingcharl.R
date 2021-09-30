@@ -7,13 +7,14 @@
 
 estimate_mm <- function(Y_obs,V){
   # initialize
-  theta_old <- init_mm(Y_obs,V)
+  theta_old <- init_mm(Y_obs,V,phi=FALSE)
   # optimization parameters
   eps <- 1e-4
   Kmax <- 100
+  step_scale <- 1
   # loop
   for(kk in 1:Kmax){
-    theta_new <- newton_mm(theta_old,Y_obs,V)
+    theta_new <- newton_mm(theta_old,Y_obs,V,step_scale)
     if(mean((theta_old - theta_new)^2) < eps){
       break
     }
@@ -23,14 +24,18 @@ estimate_mm <- function(Y_obs,V){
   return(theta_new)
 }
 
-init_mm <- function(Y_obs,V){
+init_mm <- function(Y_obs,V,phi=FALSE){
   p_init <- mean(Y_obs[V > 200])
-  #phi_init <- 1-(mean(Y_obs[V==K/2]) / p_init)^(2/K)
-  phi_init <- 0.02
+  if(phi){
+    phi_init <- mean(na.omit(sapply(1:200,function(k){1-(1 - (mean(Y_obs[V==k])/p_init))^(1/k)})))
+  }
+  else{
+    phi_init <- 0.02
+  }
   return(c(p_init,phi_init))
 }
 
-newton_mm <- function(theta,Y_obs,V){
+newton_mm <- function(theta,Y_obs,V,step_scale=1){
   p <- theta[1]
   phi <- theta[2]
   # sub components of gradient and Hessian
@@ -47,7 +52,7 @@ newton_mm <- function(theta,Y_obs,V){
   H22 <- sum(((-c3*c1 - c2^2)/(c1^2))[((Y_obs==1) & (V > 0))]) + sum((((-c3*((1/p) - c1)) - c2^2)/(((1/p) - c1)^2))[((Y_obs==0) & (V > 0))])
   hess <- matrix(c(H11,H12,H12,H22),2,2)
   # newton step
-  theta_new <- theta - solve(hess,grad)
+  theta_new <- theta - step_scale*solve(hess,grad)
   return(theta_new)
 }
 
