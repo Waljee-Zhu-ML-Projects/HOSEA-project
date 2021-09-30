@@ -1,22 +1,11 @@
 # new indicators for identifying Charlson scores
-# processing in blocks due to memory limits:
-# block 1 1:4
-# block 2 5:8
-# block 3 9:12
-# block 4 13:16
+# processing individually due to memory limits
 
 # helpers and code checking dictionary
 source('R_code/hosea-project/utils_missingcharl.R')
 
-# load data
-alldxs <- list()
-for(cc in as.character(c(1:5,'cx'))){
-  alldxs[[cc]] <- readRDS(paste0('R_data/alldxs',cc,'_filter.rds'))
-  print(paste0('Loaded chunk ',cc))
-}
-
 # loop over disease names
-for(charl_name in charl_names[1:4]){
+for(charl_name in charl_names[1]){
   print(paste0('For disease ',charl_name,':'))
   timestamp()
   
@@ -28,8 +17,11 @@ for(charl_name in charl_names[1:4]){
 
   for(cc in as.character(c(1:5,'cx'))){
     print(paste0('For chunk ',cc))
+    # load chunk
+    alldxs_chunk <- readRDS(paste0('R_data/alldxs',cc,'_filter.rds'))
+    print(paste0('Loaded chunk ',cc))
     # new variables
-    alldxs_chunk <- mutate(alldxs[[cc]],charl9=check_code_icd9(icd9code))
+    alldxs_chunk <- mutate(alldxs_chunk,charl9=check_code_icd9(icd9code))
     if(cc == 'cx'){
       alldxs_chunk <- mutate(alldxs_chunk,charl10=check_code_icd10(icd10code))
     }
@@ -40,6 +32,10 @@ for(charl_name in charl_names[1:4]){
     # summarize
     charl_chunk[[cc]] <- summarize(group_by(alldxs_chunk,ID),charl=max(charl9 + charl10))
     print('Summarized chunk')
+    
+    # remove and gc
+    rm(alldxs_chunk)
+    gc()
   }
   
   # combine individual chunks
@@ -54,3 +50,4 @@ for(charl_name in charl_names[1:4]){
   saveRDS(charl,file=paste0('R_data/charlson_',charl_name,'.rds'))
   print('Saved')
 }
+
