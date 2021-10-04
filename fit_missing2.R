@@ -90,32 +90,13 @@ xgb_fit_reg <- xgb.train(param_xg,
                          early_stopping_rounds=50)
 
 # fit xgboost model with multiple samples imputation
-xgb_multisamp10 = xgb_multisamp_prog(
+set.seed(1)
+xgb_multisamp = xgb_multisamp_prog(
   train=train_data_impute$clean,
   valid=valid_data_impute$clean,
   test=test_data_impute$clean,
   cc=cc_test,
-  nreps=10,
-  param_xg,
-  mice_method="sample"
-)
-
-xgb_multisamp30 = xgb_multisamp_prog(
-  train=train_data_impute$clean,
-  valid=valid_data_impute$clean,
-  test=test_data_impute$clean,
-  cc=cc_test,
-  nreps=30,
-  param_xg,
-  mice_method="sample"
-)
-
-xgb_multisamp100 = xgb_multisamp_prog(
-  train=train_data_impute$clean,
-  valid=valid_data_impute$clean,
-  test=test_data_impute$clean,
-  cc=cc_test,
-  nreps=100,
+  nreps=c(1, 2, 5, 10, 20, 50, 100),
   param_xg,
   mice_method="sample"
 )
@@ -137,12 +118,10 @@ best_aucs = rbind(
   samp = best_auc(xgb_fit_samp),
   med = best_auc(xgb_fit_med),
   reg = best_auc(xgb_fit_reg),
-  multisamp10 = xgb_multisamp10,
-  multisamp30 = xgb_multisamp30,
-  multisamp100 = xgb_multisamp100
+  multisamp
 )
 
-write.csv(best_aucs, "R_data/results/best_auc_prelim4subsample.csv")
+write.csv(best_aucs, "R_data/results/best_auc_4subsample.csv")
 
 best_aucs = read.csv("R_data/results/best_auc_prelim4subsample.csv", )
 rownames(best_aucs) = best_aucs$X
