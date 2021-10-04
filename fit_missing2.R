@@ -18,6 +18,9 @@ source('R_code/hosea-project/impute_multisamp2.R')
 cc_test <- readRDS('R_data/cc_complete_data.rds')
 load('R_data/subsample/sub_complete_data_impute.RData')
 
+
+set.seed(1)
+
 #### format imputed data for xgboost ####
 # with NAs
 dwatchlist_na = xgb_prep(train_data_impute,
@@ -90,7 +93,7 @@ xgb_fit_reg <- xgb.train(param_xg,
                          early_stopping_rounds=50)
 
 # fit xgboost model with multiple samples imputation
-set.seed(1)
+
 xgb_multisamp = xgb_multisamp_prog(
   train=train_data_impute$clean,
   valid=valid_data_impute$clean,
@@ -115,15 +118,15 @@ best_auc = function(xgb_fit){
 
 best_aucs = rbind(
   na = best_auc(xgb_fit_na),
-  samp = best_auc(xgb_fit_samp),
   med = best_auc(xgb_fit_med),
   reg = best_auc(xgb_fit_reg),
-  multisamp
+  samp = best_auc(xgb_fit_samp),
+  xgb_multisamp
 )
 
 write.csv(best_aucs, "R_data/results/best_auc_4subsample.csv")
 
-best_aucs = read.csv("R_data/results/best_auc_prelim4subsample.csv", )
+best_aucs = read.csv("R_data/results/best_auc_4subsample.csv")
 rownames(best_aucs) = best_aucs$X
 best_aucs$X = NULL
 xtable::xtable(best_aucs, digits=3)
