@@ -12,7 +12,7 @@ source('R_code/hosea-project/utils.R')
 source('R_code/hosea-project/utils_xgb.R')
 source('R_code/hosea-project/impute_models.R')
 source('R_code/hosea-project/impute_missing.R')
-source('R_code/hosea-project/impute_multisamp.R')
+source('R_code/hosea-project/impute_multisamp2.R')
 
 #### import data ####
 cc_test <- readRDS('R_data/cc_complete_data.rds')
@@ -89,6 +89,37 @@ xgb_fit_reg <- xgb.train(param_xg,
                          verbose=1,print_every_n=10,
                          early_stopping_rounds=50)
 
+# fit xgboost model with multiple samples imputation
+xgb_multisamp10 = xgb_multisamp_prog(
+  train=train_data_impute$clean,
+  valid=valid_data_impute$clean,
+  test=test_data_impute$clean,
+  cc=cc_test,
+  nreps=10,
+  param_xg,
+  mice_method="sample"
+)
+
+xgb_multisamp30 = xgb_multisamp_prog(
+  train=train_data_impute$clean,
+  valid=valid_data_impute$clean,
+  test=test_data_impute$clean,
+  cc=cc_test,
+  nreps=30,
+  param_xg,
+  mice_method="sample"
+)
+
+xgb_multisamp100 = xgb_multisamp_prog(
+  train=train_data_impute$clean,
+  valid=valid_data_impute$clean,
+  test=test_data_impute$clean,
+  cc=cc_test,
+  nreps=100,
+  param_xg,
+  mice_method="sample"
+)
+
 #### Get AUC table ####
 
 best_auc = function(xgb_fit){
@@ -105,7 +136,10 @@ best_aucs = rbind(
   na = best_auc(xgb_fit_na),
   samp = best_auc(xgb_fit_samp),
   med = best_auc(xgb_fit_med),
-  reg = best_auc(xgb_fit_reg)
+  reg = best_auc(xgb_fit_reg),
+  multisamp10 = xgb_multisamp10,
+  multisamp30 = xgb_multisamp30,
+  multisamp100 = xgb_multisamp100
 )
 
 write.csv(best_aucs, "R_data/results/best_auc_prelim4subsample.csv")

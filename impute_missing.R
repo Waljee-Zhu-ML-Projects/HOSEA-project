@@ -42,14 +42,13 @@ impute_missing_hosea <- function(train,test=NULL,valid=NULL,
                                  ncycles=5,seed=1,hybrid_reg=FALSE){
   
   #### pre-processing ####
-  # import data
+  cat("=== Original data ===", fill=T)
   train_y <- select(train,all_of(c('ID','CaseControl')))
   train_x <- select(train,-all_of(c('ID','CaseControl')))
   valid_y <- select(valid,all_of(c('ID','CaseControl')))
   valid_x <- select(valid,-all_of(c('ID','CaseControl')))
   test_y <- select(test,all_of(c('ID','CaseControl')))
   test_x <- select(test,-all_of(c('ID','CaseControl')))
-  cat("=== Original data ===", fill=T)
   logging(train_x, valid_x, test_x)
   
   #### impute zeros ####
@@ -66,11 +65,6 @@ impute_missing_hosea <- function(train,test=NULL,valid=NULL,
   #### sampling imputation ####
   
   set.seed(seed)
-  # print('Sampling imputation')
-  # df = sampling_imputation(train_x, test_x)
-  # test_sample = lab_consistency(lab_vars, lab, df)
-  # logging(test_sample)
-  
   cat('\n=== Sampling imputation (MICE) ===', fill=T)
   df = mice_imputation(train_x, valid_x, test_x, method="sample")
   train_sample = lab_consistency(lab_vars, lab, df$train)
@@ -112,7 +106,10 @@ impute_missing_hosea <- function(train,test=NULL,valid=NULL,
               impreg=bind_cols(test_y,test_model))
   
   #### return complete imputed data ####
-  return(list(train=train, valid=valid, test=test))
+  return(list(
+    dfs=list(train=train, valid=valid, test=test),
+    models=list(sample=NULL, regression=NULL)  
+  ))
 }
 
 

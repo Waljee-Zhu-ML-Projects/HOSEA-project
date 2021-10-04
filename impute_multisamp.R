@@ -129,7 +129,7 @@ xgb_multisamp <- function(train,test,valid,cc_test,
 }
 
 # 'progressive' version
-xgb_multisamp_prog <- function(train,test,valid,cc_test,
+xgb_multisamp_prog_old <- function(train,test,valid,cc_test,
                           nreps=1,nrounds=500,
                           param_xg){
   # initialize model, ntrees 

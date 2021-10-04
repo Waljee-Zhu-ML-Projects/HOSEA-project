@@ -106,3 +106,14 @@ xgb_auc_external <- function(xgb_model,
   return(auc_mat)
 }
 
+# get AUCs
+best_auc = function(xgb_fit){
+  i = xgb_fit$best_iteration
+  best_auc = c(
+    train = xgb_fit$evaluation_log$train_auc[i],
+    test = xgb_fit$evaluation_log$test_auc[i],
+    cc = xgb_fit$evaluation_log$cc_auc[i]
+  )
+  return(best_auc)
+}
+
