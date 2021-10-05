@@ -43,6 +43,7 @@ xgb_multisamp_prog = function(
       cat(paste0('\n=== Round ', i, '/', m, ' ==='), fill=T)
       # recover imputed train/test/valid X
       merged_imputed_x = mice::complete(mice_result, i)
+      # merged_imputed_x = lab_consistency(lab_vars, lab, merged_imputed_x)
       train_x = merged_imputed_x[1:train_n, ]
       valid_x = merged_imputed_x[(train_n+1):(train_n+valid_n), ]
       # create watchlist
@@ -61,18 +62,21 @@ xgb_multisamp_prog = function(
         xgb_model=xgb_model
       )
     }
+    # best iteration
+    best_iter = which.max(xgb_model$evaluation_log$valid_auc)
     # aucs
-    best_aucs[paste0("multsamp", m), "train"] = tail(xgb_model$evaluation_log$train_auc, n=1)
-    best_aucs[paste0("multsamp", m), "cc"]    = tail(xgb_model$evaluation_log$cc_auc, n=1)
+    best_aucs[paste0("multsamp", m), "train"] = xgb_model$evaluation_log$train_auc[best_iter]
+    best_aucs[paste0("multsamp", m), "cc"]    = xgb_model$evaluation_log$cc_auc[best_iter]
     
     # ============================================================================
     cat('\n=== Evaluation on test sets ===', fill=T)
     ptest = matrix(0, nrow(test), m)
     for(i in seq(m)){
       merged_imputed_x = mice::complete(mice_result, i)
+      # merged_imputed_x = lab_consistency(lab_vars, lab, merged_imputed_x)
       test_x = merged_imputed_x[(train_n+valid_n+1):(train_n+valid_n+test_n), ]
       dtest = xgb.DMatrix(as.matrix(test_x), label=test_y$CaseControl)
-      ptest[, i] = predict(xgb_model, newdata=dtest)
+      ptest[, i] = predict(xgb_model, newdata=dtest, ntreelimit=best_iter)
     }
     ptest = apply(ptest, 1, mean)
     best_aucs[paste0("multsamp", m), "test"] = auc(test_y$CaseControl, ptest)

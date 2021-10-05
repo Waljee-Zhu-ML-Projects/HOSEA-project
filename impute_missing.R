@@ -178,8 +178,10 @@ mice_imputation = function(train_x, valid_x, test_x, method, ...) {
 
 
 lab_consistency = function(lab_vars, lab, df) {
+  cat("- Lab consistency --------", fill=T)
   for(lab in lab_vars){
     for(v in lab){
+      cat(paste0("\n. ", v), fill=T)
       v_mean = paste0(v,"_mean")
       v_max = paste0(v,"_max")
       v_min = paste0(v,"_min")
@@ -190,17 +192,21 @@ lab_consistency = function(lab_vars, lab, df) {
       flip = df[[v_min]] > df[[v_max]]
       df[[v_min]] = ifelse(flip, df[[v_max]], df[[v_min]])
       df[[v_max]] = ifelse(flip, df[[v_min]], df[[v_max]])
+      cat(paste0("  min/max flip: ", sum(flip), "/", length(flip)), fill=T)
       # if mean is not in between, replace by average
-      between = (df[[v_mean]] >= df[[v_min]]) && (df[[v_max]] >= df[[v_mean]])
+      between = (df[[v_mean]] >= df[[v_min]]) & (df[[v_max]] >= df[[v_mean]])
       df[[v_mean]] = ifelse(between, df[[v_mean]], (df[[v_max]]-df[[v_min]])/2)
+      cat(paste0("  mean not in between: ", sum(!between), "/", length(between)), fill=T)
       # flip diff if incorrect order
       flip = df[[v_mindiff]] > df[[v_maxdiff]]
       df[[v_mindiff]] = ifelse(flip, df[[v_maxdiff]], df[[v_mindiff]])
       df[[v_maxdiff]] = ifelse(flip, df[[v_mindiff]], df[[v_maxdiff]])
-      # tv should be between abs(min) and abs(max), otherwise replace by average
-      tv = (abs(df[[v_mindiff]]) + abs(df[[v_maxdiff]])) / 2.
-      between = (df[[v_tv]] >= abs(df[[v_mindiff]])) && (abs(df[[v_maxdiff]]) >= df[[v_tv]])
-      df[[v_tv]] = ifelse(between, df[[v_tv]], tv)
+      cat(paste0("  mindiff/maxdiff flip: ", sum(flip), "/", length(flip)), fill=T)
+      # # tv should be between abs(min) and abs(max), otherwise replace by average
+      # tv = (abs(df[[v_mindiff]]) + abs(df[[v_maxdiff]])) / 2.
+      # between = (df[[v_tv]] >= abs(df[[v_mindiff]])) & (abs(df[[v_maxdiff]]) >= df[[v_tv]])
+      # df[[v_tv]] = ifelse(between, df[[v_tv]], tv)
+      # cat(paste0("  tv not in between: ", sum(!between), "/", length(between)), fill=T)
     }
   }
   return(df)
