@@ -861,26 +861,23 @@ Sample sizes for controls and cases for calculating the proportions in the above
  & \textbf{Training AUC} & \textbf{Test AUC} & \textbf{Test AUC} \\
 \textbf{Imputation method}& & \textbf{(imputed records)} & \textbf{(complete records)} \\
   \midrule
-Separate class & 0.985 & 0.954 & 0.621 \\ 
+Separate class & 0.974 & 0.953 & 0.607 \\ 
  & (0.985) & (0.962) & (0.582) \\ \addlinespace
-Median & 0.980 & 0.939 & 0.685 \\ 
+Median & 0.979 & 0.939 & 0.649 \\
    & (0.963) & (0.911) & (0.618) \\ \addlinespace
-Regression & 0.924 & 0.742 & 0.759 \\ 
+Regression & 0.952 & 0.739 & 0.770 \\ 
    & (0.911) & (0.750) & (0.798) \\ \addlinespace
-Single rand. samp. & 0.985 & 0.777 & 0.885 \\ 
-   & (0.916) & (0.780) & (0.833) \\ 
-   
-na & 0.974 & 0.953 & 0.607 \\ 
-  med & 0.979 & 0.939 & 0.649 \\ 
-  reg & 0.952 & 0.739 & 0.770 \\ 
-  samp & 0.987 & 0.783 & 0.890 \\ 
-  multsamp1 & 1.000 & 0.792 & 0.914 \\ 
-  multsamp2 & 1.000 & 0.801 & 0.918 \\ 
-  multsamp5 & 0.977 & 0.807 & 0.928 \\ 
-  multsamp10 & 1.000 & 0.818 & 0.915 \\ 
-  multsamp20 & 0.953 & 0.804 & 0.909 \\ 
-  multsamp50 & 0.978 & 0.814 & 0.912 \\ 
-  multsamp100 & 0.975 & 0.822 & 0.925 \\ 
+1 rand. samp. & 0.987 & 0.783 & 0.890 \\
+   & (0.916) & (0.780) & (0.833) \\  \addlinespace
+2 rand. samp. & 1.000 & 0.801 & 0.918 \\  \addlinespace
+5 rand. samp. & 0.977 & 0.807 & 0.928 \\  \addlinespace
+10 rand. samp. & 1.000 & 0.818 & 0.915 \\ 
+   & (0.942) & (0.824) & (0.885) \\ \addlinespace
+20 rand. samp. & 0.953 & 0.804 & 0.909 \\ 
+   & (0.935) & (0.820) & (0.872) \\ \addlinespace
+50 rand. samp. & 0.978 & 0.814 & 0.912 \\ \addlinespace
+100 rand. samp. &  0.975 & 0.822 & 0.925 \\ 
+   & (0.931) & (0.824) & (0.891) \\ 
    \bottomrule
 \end{tabular}
    *all with \texttt{xgboost} prediction model; AUCs in parentheses 
