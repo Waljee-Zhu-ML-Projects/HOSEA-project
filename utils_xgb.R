@@ -18,8 +18,26 @@ xgb_prep <- function(train,test,valid,dname,cc=NULL){
   return(dwatchlist)
 }
 
+# same formatiing but drop columns
+xgb_prep_sub <- function(train,test,valid,dname,cc=NULL,drop){
+  # xgb formatting for each set
+  dtrain <- xgb.DMatrix(as.matrix(train[[dname]][-c(1,2,drop)]),
+                        label=train[[dname]]$CaseControl)
+  dvalid <- xgb.DMatrix(as.matrix(valid[[dname]][-c(1,2,drop)]),
+                        label=valid[[dname]]$CaseControl)
+  dtest <- xgb.DMatrix(as.matrix(test[[dname]][-c(1,2,drop)]),
+                       label=test[[dname]]$CaseControl)
+  if(!missing(cc)) dcc = xgb.DMatrix(as.matrix(cc[-c(1,2,drop)]),
+                                     label=cc$CaseControl)
+  # combine as a watchlist
+  dwatchlist <- list(train=dtrain,test=dtest,valid=dvalid)
+  if(!missing(cc)) dwatchlist = list(train=dtrain,test=dtest,cc=dcc,valid=dvalid)
+  # return
+  return(dwatchlist)
+}
+
 # same formatting for only a subset of predictors
-xgb_prep_sub <- function(train,test,valid,dname,subset){
+xgb_prep_sub <- function(train,test,valid,dname,cc=NULL,subset){
   # xgb formatting for each set
   dtrain <- xgb.DMatrix(as.matrix(train[[dname]][subset]),
                         label=train[[dname]]$CaseControl)
@@ -27,8 +45,11 @@ xgb_prep_sub <- function(train,test,valid,dname,subset){
                         label=valid[[dname]]$CaseControl)
   dtest <- xgb.DMatrix(as.matrix(test[[dname]][subset]),
                        label=test[[dname]]$CaseControl)
+  if(!missing(cc)) dcc = xgb.DMatrix(as.matrix(cc[subset]),
+                                     label=cc$CaseControl)
   # combine as a watchlist
   dwatchlist <- list(train=dtrain,test=dtest,valid=dvalid)
+  if(!missing(cc)) dwatchlist = list(train=dtrain,test=dtest,cc=dcc,valid=dvalid)
   # return
   return(dwatchlist)
 }

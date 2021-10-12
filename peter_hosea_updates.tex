@@ -869,6 +869,9 @@ Regression & 0.952 & 0.739 & 0.770 \\
    & (0.911) & (0.750) & (0.798) \\ \addlinespace
 1 rand. samp. & 0.987 & 0.783 & 0.890 \\
    & (0.916) & (0.780) & (0.833) \\  \addlinespace
+   \midrule
+   \multicolumn{4}{c}{10/04 update} \\
+   \midrule
 2 rand. samp. & 1.000 & 0.801 & 0.918 \\  \addlinespace
 5 rand. samp. & 0.977 & 0.807 & 0.928 \\  \addlinespace
 10 rand. samp. & 1.000 & 0.818 & 0.915 \\ 
@@ -883,5 +886,17 @@ Regression & 0.952 & 0.739 & 0.770 \\
    *all with \texttt{xgboost} prediction model; AUCs in parentheses 
    denote previous results.
 \end{table}
+
+
+\pagebreak
+\subsubsection*{10/04 update}
+
+\begin{itemize}
+	\item Implemented new train/valid/test scheme with multiple imputation
+	\item Updated table on previous page with result with multiple imputation
+	\item Some improvement with a single random simpling imputation
+	\item Some improvement compared to previous results, mostly for ``complete records'' test set
+	\item Next step: utilize all of the data
+\end{itemize}
 
 \end{document}
