@@ -67,43 +67,74 @@ impute_missing_hosea <- function(train,test=NULL,valid=NULL,
   set.seed(seed)
   cat('\n=== Sampling imputation (MICE) ===', fill=T)
   df = mice_imputation(train_x, valid_x, test_x, method="sample")
-  train_sample = lab_consistency(lab_vars, lab, df$train)
-  valid_sample = lab_consistency(lab_vars, lab, df$valid)
-  test_sample = lab_consistency(lab_vars, lab, df$test)
+  # train_sample = lab_consistency(lab_vars, lab, df$train)
+  # valid_sample = lab_consistency(lab_vars, lab, df$valid)
+  # test_sample = lab_consistency(lab_vars, lab, df$test)
+  train_sample = df$train
+  valid_sample = df$valid
+  test_sample = df$test
   logging(train_sample, valid_sample, test_sample)
+  
+  
+  #### sampling imputation, charlson probabilities ####
+  
+  cat('\n=== Sampling imputation (MICE), Charlson proba ===', fill=T)
+  train_sample_charlson_proba = patch_charlson(train_sample, train_x, train_y$ID, charlson_complete_impute, sample=F)
+  valid_sample_charlson_proba = patch_charlson(valid_sample, valid_x, valid_y$ID, charlson_complete_impute, sample=F)
+  test_sample_charlson_proba  = patch_charlson(test_sample , test_x , test_y$ID , charlson_complete_impute, sample=F)
+  logging(train_sample_charlson_proba, valid_sample_charlson_proba, test_sample_charlson_proba)
+  
+  #### sampling imputation, charlson sampling ####
+  
+  set.seed(seed)
+  cat('\n=== Sampling imputation (MICE), Charlson sample ===', fill=T)
+  train_sample_charlson_sample = patch_charlson(train_sample, train_x, train_y$ID, charlson_complete_impute, sample=T)
+  valid_sample_charlson_sample = patch_charlson(valid_sample, valid_x, valid_y$ID, charlson_complete_impute, sample=T)
+  test_sample_charlson_sample  = patch_charlson(test_sample , test_x , test_y$ID , charlson_complete_impute, sample=T)
+  logging(train_sample_charlson_sample, valid_sample_charlson_sample, test_sample_charlson_sample)
   
   #### median-based imputation ####
   
   cat('\n=== Median imputation ===', fill=T)
   df = median_imputation(train_x, valid_x, test_x)
-  train_med = lab_consistency(lab_vars, lab, df$train)
-  valid_med = lab_consistency(lab_vars, lab, df$valid)
-  test_med = lab_consistency(lab_vars, lab, df$test)
+  # train_med = lab_consistency(lab_vars, lab, df$train)
+  # valid_med = lab_consistency(lab_vars, lab, df$valid)
+  # test_med = lab_consistency(lab_vars, lab, df$test)
+  train_med = df$train
+  valid_med = df$valid
+  test_med = df$test
   logging(train_med, valid_med, test_med)
   
   #### model-based imputation ####
   
-  set.seed(seed)
-  cat('\n=== Model-based imputation (MICE w/ CART) ===', fill=T)
-  df = mice_imputation(train_x, valid_x, test_x, method="cart")
-  train_model = lab_consistency(lab_vars, lab, df$train)
-  valid_model = lab_consistency(lab_vars, lab, df$valid)
-  test_model = lab_consistency(lab_vars, lab, df$test)
-  logging(train_model, valid_model, test_model)
+  # set.seed(seed)
+  # cat('\n=== Model-based imputation (MICE w/ CART) ===', fill=T)
+  # df = mice_imputation(train_x, valid_x, test_x, method="cart")
+  # train_model = lab_consistency(lab_vars, lab, df$train)
+  # valid_model = lab_consistency(lab_vars, lab, df$valid)
+  # test_model = lab_consistency(lab_vars, lab, df$test)
+  # logging(train_model, valid_model, test_model)
   
   #### prepare output ####
   train = list(clean=bind_cols(train_y,train_x),
                impmed=bind_cols(train_y,train_med),
                impsamp=bind_cols(train_y,train_sample),
-               impreg=bind_cols(train_y,train_model))
+               # impreg=bind_cols(train_y,train_model),
+               impsampcp=bind_cols(train_y,train_sample_charlson_proba),
+               impsampcs=bind_cols(train_y,train_sample_charlson_sample)
+               )
   valid = list(clean=bind_cols(valid_y,valid_x),
                impmed=bind_cols(valid_y,valid_med),
                impsamp=bind_cols(valid_y,valid_sample),
-               impreg=bind_cols(valid_y,valid_model))
+               # impreg=bind_cols(valid_y,valid_model),
+               impsampcp=bind_cols(valid_y,valid_sample_charlson_proba),
+               impsampcs=bind_cols(valid_y,valid_sample_charlson_sample))
   test = list(clean=bind_cols(test_y,test_x),
               impmed=bind_cols(test_y,test_med),
               impsamp=bind_cols(test_y,test_sample),
-              impreg=bind_cols(test_y,test_model))
+              # impreg=bind_cols(test_y,test_model),
+              impsampcp=bind_cols(test_y,test_sample_charlson_proba),
+              impsampcs=bind_cols(test_y,test_sample_charlson_sample))
   
   #### return complete imputed data ####
   return(list(
@@ -175,7 +206,28 @@ mice_imputation = function(train_x, valid_x, test_x, method, ...) {
   return(out)
 }
 
-
+# df = train_x
+# ids = train_y$ID 
+patch_charlson = function(df, df_raw, ids, charlson_complete_impute, sample=F){
+  charlson = charlson_complete_impute[ids, -c(1, 2, 3, 4, 21)]
+  nms = c(
+    'CHF','CTD','DEM','DIAB_C','GerdAtIndex','HIV','MLD','MSLD','PARA','RD',
+    'cd','copd','diab_nc','mi','pud','pvd'
+  ) # fix case
+  names(charlson) = nms
+  # some have no match (why?), so replace them with average probability
+  charlson = charlson %>% tidyr::replace_na(as.list(colMeans(charlson, na.rm=T)))
+  if(sample){
+    u = matrix(runif(prod(dim(charlson))), nrow(charlson), ncol(charlson))
+    colnames(u) = nms
+    charlson[,nms] = u[, nms] < charlson[,nms]
+  }
+  for(col in nms){
+    missing = is.na(df_raw[,col])
+    df[missing, col] = charlson[missing, col]
+  }
+  return(df)
+}
 
 lab_consistency = function(lab_vars, lab, df) {
   cat("- Lab consistency --------", fill=T)

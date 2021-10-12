@@ -42,7 +42,7 @@ traintrain <- as.logical(train*(!valid))
 # test_data_impute <- impute_missing_hosea(complete_data[traintrain,], complete_data[test,],ncycles=10,seed=1996,hybrid_reg=TRUE)
 # valid_data_impute <- impute_missing_hosea(complete_data[traintrain,], complete_data[valid,],ncycles=10,seed=1998,hybrid_reg=TRUE)
 
-out = impute_missing_hosea(complete_data[traintrain,], complete_data[valid,], complete_data[test,], seed=1995)
+out = impute_missing_hosea(complete_data[traintrain,], complete_data[valid,], complete_data[test,], seed=1995)$dfs
 train_data_impute = out$train
 test_data_impute = out$test
 valid_data_impute = out$valid
