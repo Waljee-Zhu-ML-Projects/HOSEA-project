@@ -1,7 +1,7 @@
 
 xgb_multisamp_prog = function(
   train, test, valid, cc, 
-  nreps, param_xg, mice_method="sample", ...
+  nreps, param_xg, drop=NULL, mice_method="sample", ...
 ){
   # ============================================================================
   cat('\n=== IMPUTATION ===', fill=T)
@@ -9,11 +9,11 @@ xgb_multisamp_prog = function(
   
   # split x/y
   train_y = select(train,all_of(c('ID','CaseControl')))
-  train_x = select(train,-all_of(c('ID','CaseControl')))
+  train_x = select(train,-all_of(c('ID','CaseControl', drop)))
   valid_y = select(valid,all_of(c('ID','CaseControl')))
-  valid_x = select(valid,-all_of(c('ID','CaseControl')))
+  valid_x = select(valid,-all_of(c('ID','CaseControl', drop)))
   test_y  = select(test,all_of(c('ID','CaseControl')))
-  test_x  = select(test,-all_of(c('ID','CaseControl')))
+  test_x  = select(test,-all_of(c('ID','CaseControl', drop)))
   
   # merged to pass to mice
   merged_x = bind_rows(train_x, valid_x, test_x)
@@ -33,7 +33,7 @@ xgb_multisamp_prog = function(
   best_aucs = matrix(0, length(nreps), 3)
   rownames(best_aucs) = paste0("multsamp", nreps)
   colnames(best_aucs) = c("train", "test", "cc")
-  dcc = xgb.DMatrix(as.matrix(select(cc,-all_of(c('ID','CaseControl')))), 
+  dcc = xgb.DMatrix(as.matrix(select(cc,-all_of(c('ID','CaseControl', drop)))), 
                     label=cc$CaseControl)
   
   for(m in nreps){

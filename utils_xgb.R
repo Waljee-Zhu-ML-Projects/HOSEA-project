@@ -19,15 +19,15 @@ xgb_prep <- function(train,test,valid,dname,cc=NULL){
 }
 
 # same formatiing but drop columns
-xgb_prep_sub <- function(train,test,valid,dname,cc=NULL,drop){
+xgb_prep_drop <- function(train,test,valid,dname,cc=NULL,drop){
   # xgb formatting for each set
-  dtrain <- xgb.DMatrix(as.matrix(train[[dname]][-c(1,2,drop)]),
+  dtrain <- xgb.DMatrix(as.matrix(train[[dname]] %>% select(-one_of(c("ID","CaseControl",drop)))),
                         label=train[[dname]]$CaseControl)
-  dvalid <- xgb.DMatrix(as.matrix(valid[[dname]][-c(1,2,drop)]),
+  dvalid <- xgb.DMatrix(as.matrix(valid[[dname]] %>% select(-one_of(c("ID","CaseControl",drop)))),
                         label=valid[[dname]]$CaseControl)
-  dtest <- xgb.DMatrix(as.matrix(test[[dname]][-c(1,2,drop)]),
+  dtest <- xgb.DMatrix(as.matrix(test[[dname]] %>% select(-one_of(c("ID","CaseControl",drop)))),
                        label=test[[dname]]$CaseControl)
-  if(!missing(cc)) dcc = xgb.DMatrix(as.matrix(cc[-c(1,2,drop)]),
+  if(!missing(cc)) dcc = xgb.DMatrix(as.matrix(cc %>% select(-one_of(c("ID","CaseControl",drop)))),
                                      label=cc$CaseControl)
   # combine as a watchlist
   dwatchlist <- list(train=dtrain,test=dtest,valid=dvalid)

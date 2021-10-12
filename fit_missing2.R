@@ -40,7 +40,7 @@ dwatchlist_samp_no_charlson = xgb_prep_drop(train_data_impute,
                            valid_data_impute,
                            dname='impsamp',
                            cc=cc_test,
-                           drop=charlon_vars)
+                           drop=charlson_vars)
 
 # imputed with median
 dwatchlist_med = xgb_prep(train_data_impute,
@@ -101,12 +101,6 @@ xgb_fit_reg = xgb.train(param_xg,
 # fit xgboost model with random sampling imputation
 # the cahrlson variables are defined in 'charlson_vars'
 # in the impute_missing.R file
-dwatchlist_samp_no_charlson = xgb_prep_drop(train_data_impute,
-                                            test_data_impute,
-                                            valid_data_impute,
-                                            dname='impsamp',
-                                            cc=cc_test,
-                                            drop=charlon_vars)
 xgb_fit_samp_no_charlson = xgb.train(param_xg,
                                      dwatchlist_samp_no_charlson$train,
                                       nrounds=10000,
@@ -123,7 +117,8 @@ xgb_multisamp = xgb_multisamp_prog(
   cc=cc_test,
   nreps=c(1, 2, 5, 10, 20, 50, 100),
   param_xg,
-  mice_method="sample"
+  mice_method="sample",
+  drop=charlson_vars
 )
 
 #### Get AUC table ####
@@ -147,9 +142,14 @@ best_aucs = rbind(
   xgb_multisamp
 )
 
-write.csv(best_aucs, "R_data/results/best_auc_4subsample.csv")
+best_aucs = rbind(
+  samp_no_charlson = best_auc(xgb_fit_samp_no_charlson),
+  xgb_multisamp
+)
 
-best_aucs = read.csv("R_data/results/best_auc_4subsample.csv")
+write.csv(best_aucs, "R_data/results/best_auc_4subsample_no_charlson.csv")
+
+best_aucs = read.csv("R_data/results/best_auc_4subsample_no_charlson.csv")
 rownames(best_aucs) = best_aucs$X
 best_aucs$X = NULL
 xtable::xtable(best_aucs, digits=3)
