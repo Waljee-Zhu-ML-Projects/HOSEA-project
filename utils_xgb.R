@@ -18,6 +18,18 @@ xgb_prep <- function(train,test,valid,dname,cc=NULL){
   return(dwatchlist)
 }
 
+# drop columns from a watchlist
+xgb_drop = function(dwatchlist, to_drop){
+  out = lapply(dwatchlist, function(df){
+    data = df$data
+    label = df$label
+    data = data[, -to_drop]
+    return(xgb.DMatrix(data=data, label=label))
+  })
+  names(out) = names(dwatchlist)
+  return(out)
+}
+
 # same formatting for only a subset of predictors
 xgb_prep_sub <- function(train,test,valid,dname,subset){
   # xgb formatting for each set

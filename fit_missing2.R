@@ -60,7 +60,7 @@ param_xg = list(
 )
 
 # fit xgboost model, treating NA as extra bin
-xgb_fit_na <- xgb.train(param_xg,
+xgb_fit_na = xgb.train(param_xg,
                         dwatchlist_na$train,
                         nrounds=10000,
                         dwatchlist_na,
@@ -69,7 +69,7 @@ xgb_fit_na <- xgb.train(param_xg,
                         early_stopping_rounds=50)
 
 # fit xgboost model with random sampling imputation
-xgb_fit_samp <- xgb.train(param_xg,
+xgb_fit_samp = xgb.train(param_xg,
                           dwatchlist_samp$train,
                           nrounds=10000,
                           dwatchlist_samp,
@@ -77,7 +77,7 @@ xgb_fit_samp <- xgb.train(param_xg,
                           early_stopping_rounds=50)
 
 # fit xgboost model with median imputation
-xgb_fit_med <- xgb.train(param_xg,
+xgb_fit_med = xgb.train(param_xg,
                          dwatchlist_med$train,
                          nrounds=10000,
                          dwatchlist_med,
@@ -85,12 +85,23 @@ xgb_fit_med <- xgb.train(param_xg,
                          early_stopping_rounds=50)
 
 # fit xgboost model with CART imputation
-xgb_fit_reg <- xgb.train(param_xg,
+xgb_fit_reg = xgb.train(param_xg,
                          dwatchlist_reg$train,
                          nrounds=10000,
                          dwatchlist_reg,
                          verbose=1,print_every_n=10,
                          early_stopping_rounds=50)
+
+# fit xgboost model with random sampling imputation
+# the cahrlson variables are defined in 'charlson_vars'
+# in the impute_missing.R file
+dwatchlist_samp_no_charlson = xgb_drop(dwatchlist_samp, charlson_vars)
+xgb_fit_samp_no_charlson = xgb.train(param_xg,
+                                     dwatchlist_samp_no_charlson$train,
+                                      nrounds=10000,
+                                      dwatchlist_samp_no_charlson,
+                                      verbose=1,print_every_n=10,
+                                      early_stopping_rounds=50)
 
 # fit xgboost model with multiple samples imputation
 
@@ -121,6 +132,7 @@ best_aucs = rbind(
   med = best_auc(xgb_fit_med),
   reg = best_auc(xgb_fit_reg),
   samp = best_auc(xgb_fit_samp),
+  samp_no_charlson = best_auc(xgb_fit_samp_no_charlson),
   xgb_multisamp
 )
 
