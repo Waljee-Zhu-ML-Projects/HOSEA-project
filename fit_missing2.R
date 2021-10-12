@@ -31,10 +31,16 @@ dwatchlist_na = xgb_prep(train_data_impute,
 
 # imputed with sampling
 dwatchlist_samp = xgb_prep(train_data_impute,
-                            test_data_impute,
-                            valid_data_impute,
-                            dname='impsamp',
+                           test_data_impute,
+                           valid_data_impute,
+                           dname='impsamp',
                            cc=cc_test)
+dwatchlist_samp_no_charlson = xgb_prep_drop(train_data_impute,
+                           test_data_impute,
+                           valid_data_impute,
+                           dname='impsamp',
+                           cc=cc_test,
+                           drop=charlon_vars)
 
 # imputed with median
 dwatchlist_med = xgb_prep(train_data_impute,
@@ -95,7 +101,12 @@ xgb_fit_reg = xgb.train(param_xg,
 # fit xgboost model with random sampling imputation
 # the cahrlson variables are defined in 'charlson_vars'
 # in the impute_missing.R file
-dwatchlist_samp_no_charlson = xgb_drop(dwatchlist_samp, charlson_vars)
+dwatchlist_samp_no_charlson = xgb_prep_drop(train_data_impute,
+                                            test_data_impute,
+                                            valid_data_impute,
+                                            dname='impsamp',
+                                            cc=cc_test,
+                                            drop=charlon_vars)
 xgb_fit_samp_no_charlson = xgb.train(param_xg,
                                      dwatchlist_samp_no_charlson$train,
                                       nrounds=10000,
