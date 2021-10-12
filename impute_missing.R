@@ -202,6 +202,7 @@ lab_consistency = function(lab_vars, lab, df) {
       df[[v_mindiff]] = ifelse(flip, df[[v_maxdiff]], df[[v_mindiff]])
       df[[v_maxdiff]] = ifelse(flip, df[[v_mindiff]], df[[v_maxdiff]])
       cat(paste0("  mindiff/maxdiff flip: ", sum(flip), "/", length(flip)), fill=T)
+      # this seem to cause issues, so i will drop it
       # # tv should be between abs(min) and abs(max), otherwise replace by average
       # tv = (abs(df[[v_mindiff]]) + abs(df[[v_maxdiff]])) / 2.
       # between = (df[[v_tv]] >= abs(df[[v_mindiff]])) & (abs(df[[v_maxdiff]]) >= df[[v_tv]])
