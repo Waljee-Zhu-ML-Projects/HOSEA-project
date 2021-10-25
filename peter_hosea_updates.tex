@@ -900,19 +900,44 @@ Regression & 0.952 & 0.739 & 0.770 \\
 \end{itemize}
 
 
+\pagebreak
+\subsubsection*{10/12 update}
+
+\begin{itemize}
+	\item Redo analysis with various Charlson variable treatments:
+	\begin{itemize}
+		\item no Charlson
+		\item sampling from observed values (what was done previously)
+		\item imputing a probability using number of visit (see Peter's proposed Geometric model)
+		\item imputing by sampling using the previous probability
+	\end{itemize}
+	\item Results:
+	\begin{itemize}
+		\item see table below
+		\item dropping Charlson leads to a small decrease in testing performance for both imputed and ``complete'' records
+		\item sampling with fitted probability has similar performance compare to the previous methods
+		\item imputing the fitted probability leads to a huge improvement in performance
+	\end{itemize}
+	\item Currently examining where this large improvement comes from, still suspicious
+	\item Try the same with multiple random samples
+	\item Working on utilizing all data ...
+\end{itemize}
+
 \begin{table}[ht]
 \centering
-\begin{tabular}{rrrr}
-  \hline
- & train & test & cc \\ 
-  \hline
-na & 0.974 & 0.953 & 0.607 \\ 
-  med & 0.990 & 0.941 & 0.674 \\ 
-  samp & 0.999 & 0.786 & 0.905 \\ 
-  sampnc & 0.988 & 0.771 & 0.873 \\ 
-  sampcp & 1.000 & 0.906 & 0.975 \\ 
-  sampcs & 0.997 & 0.795 & 0.896 \\ 
-   \hline
+\begin{tabular}{lccc}
+  \toprule
+ & \textbf{Training AUC} & \textbf{Test AUC} & \textbf{Test AUC} \\
+\textbf{Imputation method}& & \textbf{(imputed)} & \textbf{(complete)} \\
+  \midrule
+Separate class & 0.974 & 0.953 & 0.607 \\ \addlinespace
+  Median & 0.990 & 0.941 & 0.674 \\ \addlinespace
+  \multicolumn{4}{l}{\textbf{Simple random sample}} \\
+  no Charlson & 0.988 & 0.771 & 0.873 \\ 
+  random Charlson & 0.999 & 0.786 & 0.905 \\ 
+  proba. Charlson & 1.000 & 0.906 & 0.975 \\ 
+  proba.-weighted random Charlson & 0.997 & 0.795 & 0.896 \\ 
+   \bottomrule
 \end{tabular}
 \end{table}
 
