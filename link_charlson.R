@@ -23,7 +23,7 @@ for(charl_name in charl_names){
 n_visits <- readRDS('R_data/n_visits.rds')
 n_visits_case <- readRDS('R_data/n_visits_case.rds')
 
-# bind, join tables and impute
+# bind, join tables and impute NA <- 0
 charlson_complete <- left_join(charlson_complete,bind_rows(n_visits,n_visits_case),by='ID')
 charlson_complete$n_visits <- fill_by_zero(charlson_complete$n_visits)
 

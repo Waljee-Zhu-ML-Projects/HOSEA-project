@@ -178,6 +178,7 @@ xtable::xtable(best_aucs, digits=3)
 
 # print info about important variables
 xgb_fit = xgb_fit_sampcp
+# xgb_fit = xgb_fit_samp
 nsumm <- 20
 xgb_summ_na <- xgb.importance(model=xgb_fit)
 print(xgb_summ_na[1:nsumm,])
