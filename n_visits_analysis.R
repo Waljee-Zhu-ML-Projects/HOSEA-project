@@ -4,6 +4,7 @@ source('R_code/hosea-project/utils_missingcharl.R')
 
 # import data
 complete_data <- readRDS('R_data/complete_data_raw.rds')
+complete_data$n_visits = NULL
 n_visits <- readRDS('R_data/n_visits.rds')
 n_visits_case <- readRDS('R_data/n_visits_case.rds')
 
@@ -94,8 +95,10 @@ lines(as.matrix(prop_obs_case)[1:201,],type='p',col='red')
 #      ylab='P(COPD=1)')
 
 # code again split by control/case
-prop_one_control <- complete_data %>% filter(CaseControl==0) %>% group_by(n_visits) %>% summarize(obs = mean(copd %in% 1))
-prop_one_case <- complete_data %>% filter(CaseControl==1) %>% group_by(n_visits) %>% summarize(obs = mean(copd %in% 1))
+prop_one_control <- complete_data %>% filter(CaseControl==0) %>% 
+   group_by(n_visits) %>% summarize(obs = mean(copd %in% 1))
+prop_one_case <- complete_data %>% filter(CaseControl==1) %>% 
+   group_by(n_visits) %>% summarize(obs = mean(copd %in% 1))
 
 plot(as.matrix(prop_one_control),
      main='Proportion with COPD=1',

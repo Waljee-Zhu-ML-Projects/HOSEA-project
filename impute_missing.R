@@ -1,4 +1,5 @@
 # imputation script (subsample)
+source('R_code/hosea-project/utils.R')
 
 #### global variables ####
 
@@ -78,20 +79,20 @@ impute_missing_hosea <- function(train,test=NULL,valid=NULL,
   
   #### sampling imputation, charlson probabilities ####
   
-  cat('\n=== Sampling imputation (MICE), Charlson proba ===', fill=T)
-  train_sample_charlson_proba = patch_charlson(train_sample, train_x, train_y$ID, charlson_complete_impute, sample=F)
-  valid_sample_charlson_proba = patch_charlson(valid_sample, valid_x, valid_y$ID, charlson_complete_impute, sample=F)
-  test_sample_charlson_proba  = patch_charlson(test_sample , test_x , test_y$ID , charlson_complete_impute, sample=F)
-  logging(train_sample_charlson_proba, valid_sample_charlson_proba, test_sample_charlson_proba)
+  # cat('\n=== Sampling imputation (MICE), Charlson proba ===', fill=T)
+  # train_sample_charlson_proba = patch_charlson(train_sample, train_x, train_y$ID, charlson_complete_impute, sample=F)
+  # valid_sample_charlson_proba = patch_charlson(valid_sample, valid_x, valid_y$ID, charlson_complete_impute, sample=F)
+  # test_sample_charlson_proba  = patch_charlson(test_sample , test_x , test_y$ID , charlson_complete_impute, sample=F)
+  # logging(train_sample_charlson_proba, valid_sample_charlson_proba, test_sample_charlson_proba)
   
   #### sampling imputation, charlson sampling ####
   
-  set.seed(seed)
-  cat('\n=== Sampling imputation (MICE), Charlson sample ===', fill=T)
-  train_sample_charlson_sample = patch_charlson(train_sample, train_x, train_y$ID, charlson_complete_impute, sample=T)
-  valid_sample_charlson_sample = patch_charlson(valid_sample, valid_x, valid_y$ID, charlson_complete_impute, sample=T)
-  test_sample_charlson_sample  = patch_charlson(test_sample , test_x , test_y$ID , charlson_complete_impute, sample=T)
-  logging(train_sample_charlson_sample, valid_sample_charlson_sample, test_sample_charlson_sample)
+  # set.seed(seed)
+  # cat('\n=== Sampling imputation (MICE), Charlson sample ===', fill=T)
+  # train_sample_charlson_sample = patch_charlson(train_sample, train_x, train_y$ID, charlson_complete_impute, sample=T)
+  # valid_sample_charlson_sample = patch_charlson(valid_sample, valid_x, valid_y$ID, charlson_complete_impute, sample=T)
+  # test_sample_charlson_sample  = patch_charlson(test_sample , test_x , test_y$ID , charlson_complete_impute, sample=T)
+  # logging(train_sample_charlson_sample, valid_sample_charlson_sample, test_sample_charlson_sample)
   
   #### median-based imputation ####
   
@@ -118,23 +119,25 @@ impute_missing_hosea <- function(train,test=NULL,valid=NULL,
   #### prepare output ####
   train = list(clean=bind_cols(train_y,train_x),
                impmed=bind_cols(train_y,train_med),
-               impsamp=bind_cols(train_y,train_sample),
+               impsamp=bind_cols(train_y,train_sample)
                # impreg=bind_cols(train_y,train_model),
-               impsampcp=bind_cols(train_y,train_sample_charlson_proba),
-               impsampcs=bind_cols(train_y,train_sample_charlson_sample)
+               # impsampcp=bind_cols(train_y,train_sample_charlson_proba),
+               # impsampcs=bind_cols(train_y,train_sample_charlson_sample)
                )
   valid = list(clean=bind_cols(valid_y,valid_x),
                impmed=bind_cols(valid_y,valid_med),
-               impsamp=bind_cols(valid_y,valid_sample),
+               impsamp=bind_cols(valid_y,valid_sample)
                # impreg=bind_cols(valid_y,valid_model),
-               impsampcp=bind_cols(valid_y,valid_sample_charlson_proba),
-               impsampcs=bind_cols(valid_y,valid_sample_charlson_sample))
+               # impsampcp=bind_cols(valid_y,valid_sample_charlson_proba),
+               # impsampcs=bind_cols(valid_y,valid_sample_charlson_sample)
+               )
   test = list(clean=bind_cols(test_y,test_x),
               impmed=bind_cols(test_y,test_med),
-              impsamp=bind_cols(test_y,test_sample),
+              impsamp=bind_cols(test_y,test_sample)
               # impreg=bind_cols(test_y,test_model),
-              impsampcp=bind_cols(test_y,test_sample_charlson_proba),
-              impsampcs=bind_cols(test_y,test_sample_charlson_sample))
+              # impsampcp=bind_cols(test_y,test_sample_charlson_proba),
+              # impsampcs=bind_cols(test_y,test_sample_charlson_sample)
+              )
   
   #### return complete imputed data ####
   return(list(

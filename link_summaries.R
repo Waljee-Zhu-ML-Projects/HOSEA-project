@@ -32,6 +32,27 @@ event_tables <- c('colonoscopy',
                   'labs_fobt')
 # removed EGD and other procedures
 
+# update charlson with new coding
+charlson_complete_raw = readRDS(file='R_data/charlson_complete_raw.rds')
+# rename columns to match original column names
+names(charlson_complete_raw) = c(
+  "ID",       "case",     "start",    "end",      "CHF",      
+  "CTD",      "DEM",      "DIAB_C",   "GerdAtIndex",    
+  "HIV",      "MLD",      "MSLD",     "PARA",     "RD",       
+  "cd",       "copd",     "diab_nc",  "mi",      
+  "pud",      "pvd",      "n_visits"
+)
+# replace columns
+charl_names = c(
+  "CHF",      "CTD",      "DEM",      "DIAB_C",   "GerdAtIndex",    
+  "HIV",      "MLD",      "MSLD",     "PARA",     "RD",       
+  "cd",       "copd",     "diab_nc",  "mi",       "pud",      "pvd"
+)
+for(charl_name in charl_names){
+  complete_data[[charl_name]] = charlson_complete_raw[[charl_name]]
+}
+complete_data$n_visits = charlson_complete_raw$n_visits
+
 # join summary tables (33 columns)
 for(tab in event_tables){
   print(paste0('For table ',tab,':'))
@@ -58,7 +79,7 @@ value_tables <- c('labs_a1c',
                   'labs_lft',
                   'labs_lipid')
 
-# join summary tables (241 columns)
+# join summary tables (242 columns)
 for(tab in value_tables){
   print(paste0('For table ',tab,':'))
   table <- readRDS(paste0('R_data/',tab,'_summary.rds'))
@@ -79,7 +100,7 @@ for(varname in other_vars){
 }
 print('impute 0s for missing event data')
 
-# save complete data (241 columns)
+# save complete data (242 columns)
 saveRDS(complete_data,
         file='R_data/complete_data_raw.rds')
 print('save complete table')

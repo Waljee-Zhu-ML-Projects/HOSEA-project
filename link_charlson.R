@@ -33,14 +33,16 @@ saveRDS(charlson_complete,file='R_data/charlson_complete_raw.rds')
 # imputation with 'geometric' model 
 charlson_impute <- charlson_complete
 
-theta <- list()
+theta <- data.frame(matrix(NA, length(charl_names), 2))
+rownames(theta) = charl_names
+colnames(theta) = c("p", "phi")
 
 for(charl_name in charl_names){
   print(paste0('For disease ',charl_name,':'))
   timestamp()
   
   # estimate for controls 
-  theta[[charl_name]] <- estimate_mm(charlson_impute[[charl_name]],charlson_impute$n_visits)
+  theta[charl_name, ] <- estimate_mm(charlson_impute[[charl_name]],charlson_impute$n_visits)
   # if estimation leaves the constrained region just estimate with initializer
   if(any(theta[[charl_name]] < 0) || any(theta[[charl_name]] > 1)){
     theta[[charl_name]] <- init_mm(charlson_impute[[charl_name]],charlson_impute$n_visits,phi=TRUE)
@@ -56,3 +58,6 @@ for(charl_name in charl_names){
 
 # save imputed table
 saveRDS(charlson_impute,file='R_data/charlson_complete_impute.rds')
+
+# save imputation parameters
+saveRDS(theta,file='R_data/charlson_imputation_parameters.rds')
