@@ -909,13 +909,13 @@ Regression & 0.952 & 0.739 & 0.770 \\
 		\item no Charlson
 		\item sampling from observed values (what was done previously)
 		\item imputing a probability using number of visit (see Peter's proposed Geometric model)
-		\item imputing by sampling using the previous probability
+		\item imputing by sampling using the fitted probability
 	\end{itemize}
 	\item Results:
 	\begin{itemize}
 		\item see table below
 		\item dropping Charlson leads to a small decrease in testing performance for both imputed and ``complete'' records
-		\item sampling with fitted probability has similar performance compare to the previous methods
+		\item sampling with fitted probability has similar performance compared to the previous methods
 		\item imputing the fitted probability leads to a huge improvement in performance
 	\end{itemize}
 	\item Currently examining where this large improvement comes from, still suspicious
