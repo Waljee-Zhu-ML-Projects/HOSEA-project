@@ -160,6 +160,8 @@ for(n in ns){
                                verbose=1,print_every_n=10,
                                early_stopping_rounds=50)
   
+
+  
   param_xg$scale_pos_weight = n0/n1
   xgb_fit_weight = xgb.train(param_xg,
                              dwatchlist$train,
@@ -196,11 +198,23 @@ for(n in ns){
 
 aucs = read.csv("R_data/results/best_aucs_large.csv")
 aucs$X = NULL
+aucs$type = "old"
 aucs = aucs[-1, ]
+
+for(n in c(1e4, 2e4, 5e4, 1e5)){
+  aucs_n = read.csv(paste0("R_data/results/best_aucs_large_", n, ".csv"))
+  aucs_n$X = NULL
+  aucs_n$type = "new"
+  aucs_n = aucs_n[-1, ]
+  aucs = rbind(aucs, aucs_n)
+}
+
 aucs = aucs[order(aucs$n), ]
 aucs = aucs[order(aucs$method), ]
+aucs = aucs[order(aucs$type), ]
 xtable::xtable(aucs, digits=3, include.rownames=F)
 
 library(ggplot2)
-ggplot(aucs, aes(n, cc, group=method, colour=method)) + 
-  geom_line()
+ggplot(aucs, aes(n, cc, group=interaction(method, type), colour=method, linetype=type)) + 
+  geom_line() + scale_x_continuous(trans="log10") +
+  xlab("Nb. controls") + ylab("CC AUC")
