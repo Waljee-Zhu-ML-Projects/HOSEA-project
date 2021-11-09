@@ -18,7 +18,7 @@ log = function(df) cat(paste("Full data set: ", nrow(df), "observations,",
                              (df$CaseControl==0)%>%sum, "controls"), fill=T)
 
 # subsampling of controls
-n_controls = 1e6
+n_controls = 2e6
 sub_complete_data = subsample_controls(complete_data, n_controls)
 log(sub_complete_data)
 rm(complete_data)
@@ -160,8 +160,6 @@ for(n in ns){
                                verbose=1,print_every_n=10,
                                early_stopping_rounds=50)
   
-
-  
   param_xg$scale_pos_weight = n0/n1
   xgb_fit_weight = xgb.train(param_xg,
                              dwatchlist$train,
@@ -198,23 +196,41 @@ for(n in ns){
 
 aucs = read.csv("R_data/results/best_aucs_large.csv")
 aucs$X = NULL
-aucs$type = "old"
+aucs$tuning = "old"
 aucs = aucs[-1, ]
 
-for(n in c(1e4, 2e4, 5e4, 1e5)){
+for(n in ns){
   aucs_n = read.csv(paste0("R_data/results/best_aucs_large_", n, ".csv"))
   aucs_n$X = NULL
-  aucs_n$type = "new"
-  aucs_n = aucs_n[-1, ]
+  aucs_n$tuning = "new"
+  aucs_n = aucs_n[-1,, ]
   aucs = rbind(aucs, aucs_n)
 }
 
+
 aucs = aucs[order(aucs$n), ]
 aucs = aucs[order(aucs$method), ]
-aucs = aucs[order(aucs$type), ]
-xtable::xtable(aucs, digits=3, include.rownames=F)
+aucs = aucs[order(aucs$tuning), ]
 
 library(ggplot2)
-ggplot(aucs, aes(n, cc, group=interaction(method, type), colour=method, linetype=type)) + 
+aucs = aucs %>% filter(method != "weighted_sq")
+
+pdf("R_code/hosea-project/figures/best_aucs_large_test.pdf", width=8, height=5)
+ggplot(aucs, aes(n, test, group=interaction(method, tuning), colour=method, linetype=tuning)) + 
   geom_line() + scale_x_continuous(trans="log10") +
-  xlab("Nb. controls") + ylab("CC AUC")
+  xlab("Nb. controls") + ylab("Test AUC")
+dev.off()
+
+
+pdf("R_code/hosea-project/figures/best_aucs_large_valid.pdf", width=8, height=5)
+ggplot(aucs, aes(n, valid, group=interaction(method, tuning), colour=method, linetype=tuning)) + 
+  geom_line() + scale_x_continuous(trans="log10") +
+  xlab("Nb. controls") + ylab("Valid. AUC")
+dev.off()
+
+
+pdf("R_code/hosea-project/figures/best_aucs_large_cc.pdf", width=8, height=5)
+ggplot(aucs, aes(n, cc, group=interaction(method, tuning), colour=method, linetype=tuning)) + 
+  geom_line() + scale_x_continuous(trans="log10") +
+  xlab("Nb. controls") + ylab("C.C. AUC")
+dev.off()
