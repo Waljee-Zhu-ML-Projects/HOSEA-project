@@ -890,36 +890,6 @@ Regression & 0.952 & 0.739 & 0.770 \\
 
 
 
-\begin{table}[ht]
-\centering
-\begin{tabular}{rlrrrrr}
-  \hline
- & method & n & train & valid & test & cc \\ 
-  \hline
-1 & 0 &    0 & 0.000 & 0.000 & 0.000 & 0.000 \\ 
-  3 & downsample & 10000 & 0.969 & 0.817 & 0.808 & 0.916 \\ 
-  9 & downsample & 20000 & 0.977 & 0.815 & 0.805 & 0.922 \\ 
-  15 & downsample & 50000 & 0.966 & 0.809 & 0.805 & 0.907 \\ 
-  4 & resample & 10000 & 0.955 & 0.820 & 0.808 & 0.910 \\ 
-  10 & resample & 20000 & 0.946 & 0.825 & 0.817 & 0.929 \\ 
-  16 & resample & 50000 & 0.952 & 0.824 & 0.826 & 0.948 \\ 
-  2 & unweighted & 10000 & 0.937 & 0.818 & 0.803 & 0.900 \\ 
-  8 & unweighted & 20000 & 0.944 & 0.820 & 0.811 & 0.925 \\ 
-  14 & unweighted & 50000 & 0.928 & 0.822 & 0.816 & 0.941 \\ 
-  5 & weighted & 10000 & 0.981 & 0.824 & 0.809 & 0.916 \\ 
-  11 & weighted & 20000 & 0.945 & 0.816 & 0.809 & 0.914 \\ 
-  17 & weighted & 50000 & 0.936 & 0.815 & 0.811 & 0.925 \\ 
-  7 & weighted\_sq & 10000 & 0.978 & 0.823 & 0.808 & 0.914 \\ 
-  13 & weighted\_sq & 20000 & 0.928 & 0.807 & 0.800 & 0.896 \\ 
-  19 & weighted\_sq & 50000 & 0.927 & 0.780 & 0.779 & 0.880 \\ 
-  6 & weighted\_sqrt & 10000 & 0.980 & 0.823 & 0.809 & 0.923 \\ 
-  12 & weighted\_sqrt & 20000 & 0.945 & 0.822 & 0.812 & 0.923 \\ 
-  18 & weighted\_sqrt & 50000 & 0.958 & 0.822 & 0.816 & 0.942 \\ 
-   \hline
-\end{tabular}
-\end{table}
-
-
 \pagebreak
 \subsubsection*{10/04 update}
 
@@ -941,13 +911,13 @@ Regression & 0.952 & 0.739 & 0.770 \\
 		\item no Charlson
 		\item sampling from observed values (what was done previously)
 		\item imputing a probability using number of visit (see Peter's proposed Geometric model)
-		\item imputing by sampling using the previous probability
+		\item imputing by sampling using the fitted probability
 	\end{itemize}
 	\item Results:
 	\begin{itemize}
 		\item see table below
 		\item dropping Charlson leads to a small decrease in testing performance for both imputed and ``complete'' records
-		\item sampling with fitted probability has similar performance compare to the previous methods
+		\item sampling with fitted probability has similar performance compared to the previous methods
 		\item imputing the fitted probability leads to a huge improvement in performance
 	\end{itemize}
 	\item Currently examining where this large improvement comes from, still suspicious
@@ -973,5 +943,230 @@ Separate class & 0.974 & 0.953 & 0.607 \\ \addlinespace
 \end{tabular}
 \end{table}
 
+
+
+
+\pagebreak
+\subsubsection*{10/26 update}
+
+\textbf{Some follow-ups:}
+\begin{itemize}
+	\item Using number of visits to impute Charlson/GERD variables:
+	\begin{itemize}
+		\item Imputing probabilities is not a good idea as it is easy to spot missing values (between 0 and 1) from observed values (0/1)
+		\item randomizing using the probability does not improve performance
+		\item preferable to have a unified treatment
+	\end{itemize}
+	\item ICD codes reconding for cases comparing before and after
+	\begin{itemize}
+		\item we no longer see the large discrepancy between cases and control
+		\item see COPD graphs below
+	\end{itemize}
+	\item Does the ``tv'' lab summaries contain some information about the number of measurements?
+	\begin{itemize}
+		\item there were some concern that variability would be associated with numer of measurements
+		\item see density plots for ``chol'', ``hdl'' and ``trig'' below
+		\item ``tv'' stands for ``total variation'' and is the average absolute  change between measurement (standardized by time between measurements)
+		\item there does not seem to be strong associations
+	\end{itemize}
+\end{itemize}
+
+\begin{center}
+\includegraphics[width=.9\textwidth]{nvisits_scatterCOPD200.pdf}
+\includegraphics[width=.9\textwidth]{nvisits_scatterCOPDnew.pdf}
+\end{center}
+
+
+
+
+\begin{center}
+\includegraphics[width=.6\textwidth]{nvisits_chol_tv.pdf}
+\includegraphics[width=.6\textwidth]{nvisits_hdl_tv.pdf}
+\includegraphics[width=.6\textwidth]{nvisits_trig_tv.pdf}
+\end{center}
+
+\newpage
+
+\textbf{Using all data:}
+\begin{itemize}
+	\item Scalability study
+	\item Sample 1M controls, keep all 11.4K cases (1M/11.4K)
+	\item Train-test split 75-25 stratified
+	\begin{itemize}
+		\item Fixed test set (250K/2.8K)
+		\item Training using increasing subsets of (750K/8.5K)
+	\end{itemize}
+	\item Working training set consisting of downsampling the controls
+	\begin{itemize}
+		\item $n=$10K, 20K, 50K, 100K
+		\item keeping all 8.5K cases
+		\item as $n$ increases, the training set becomes more and more unbalanced
+		\item $n=$10K is close to balanced
+	\end{itemize}
+	\item Validation set: stratified 2-1
+	\begin{itemize}
+		\item Model/imputation trained on 67\%, validation/model selection on 33\%
+	\end{itemize}
+	\item Extra testing set: ``complete cases'' (same as before, 710/290)
+	\begin{itemize}
+		\item small, with possible overlap 
+		\item not a super reliable testing set
+	\end{itemize}
+	\item Methods (e.g. with 100K/8.5K $\to$ 66.7K/5.7K)
+	\begin{itemize}
+		\item Unweighted: do nothing special
+		\item Downsample: sample controls to get a balance training set (5.7K/5.7K)
+		\item Resample: resample cases to get a balance training set (66.7K/66.7K)
+		\item Weighted: cases' loss reweighted by $w=66.7/5.7$
+		\item Weighted\_ sqrt: by $\sqrt(w)$
+		\item Weighted\_ sq: by $w^2$
+	\end{itemize}
+\end{itemize}
+
+\begin{center}
+\includegraphics[width=.9\textwidth]{aucs_large_test.pdf}
+\end{center}
+
+\begin{center}
+\includegraphics[width=.9\textwidth]{aucs_large.pdf}
+\end{center}
+
+
+
+
+\pagebreak
+\subsubsection*{11/02 update}
+
+
+\subsubsection*{Tuning}
+
+\begin{itemize}
+	\item subsampling each iteration, learning rate, tree depth
+	\item Some improvement is still possible
+	\item Dependent on the training set size
+	\begin{itemize}
+		\item Tuned on small smaple size, improvments don't necessarly carry to larger sample size
+		\item prohibitive to tune on large dataset
+	\end{itemize}
+\end{itemize}
+
+
+\subsubsection*{Training set size}
+
+\begin{itemize}
+	\item Training becomes \textit{very} slow
+	\item Early results show improvement beyond 100K
+	\item Exploring ways to speed up training (lightgbm, catboost)
+\end{itemize}
+
+
+
+\newpage
+\begin{center}
+\includegraphics[width=.9\textwidth]{aucs_large_test_new.pdf}
+\end{center}
+
+\begin{center}
+\includegraphics[width=.9\textwidth]{aucs_large_cc_new.pdf}
+\end{center}
+
+
+
+\pagebreak
+\subsubsection*{11/09 update}
+
+\subsubsection*{Training set size}
+
+\begin{itemize}
+	\item Added results for $>100K$ controls
+	\item Goal:
+	\begin{itemize}
+		\item Harness all data
+		\item Study how the increasing case/control imbalance affects results
+	\end{itemize}
+	\item Similar train/valid/test split as before
+	\begin{itemize}
+		\item 2M control + 11K cases (increased from 1M previously to allow the 1M case)
+		\item All splits are stratified (cases/control proportion preserved)
+		\item test: 25\%, train+valid: 75\%
+		\item $N$: number of controls in train+valid
+		\item subsample train+valid controls down to $N$
+		\item train: 67\%, valid: 33\%
+		\item NB: test set is fixed with $N$, validation set increases with $N$
+	\end{itemize}
+	\item Imputation:
+	\begin{itemize}
+		\item Simple random sampling from the training set into validation and testing sets
+	\end{itemize}
+	\item \texttt{xgboost} parameters:
+	\begin{itemize}
+		\item Default values, except:
+		\item \texttt{subsample = 0.5}
+		\item \texttt{max\_depth = 5}
+		\item \texttt{eta = 0.5} (stepsize)
+		\item NB: these values are represented with vertical dashed lines in the following ``Tuning'' section
+	\end{itemize}
+	\item Methods:
+	\begin{description}
+		\item[downsample] sample controls down to the number of cases
+		\item[resample] sample (w/ replacement) the controls up to the number of controls (note that controls appearing more than once get different imputation)
+		\item[unweighted] no resample, no rewighing
+		\item[weighted] no resampling, cases upweighted by $n_{\text{controls}} / n_{\text{cases}}$
+		\item[weighted\_sqrt] no resampling, cases upweighted by $\sqrt{n_{\text{controls}} / n_{\text{cases}}}$
+		\item[weighted\_sq] no resampling, cases upweighted by $(n_{\text{controls}} / n_{\text{cases}})^2$ (dropped from graph because much worse values and changed the scale too much to see others well)
+	\end{description}
+	\item Plots:
+	\begin{itemize}
+		\item y-axis: Test set AUC and Validation set AUC
+		\item x-axis: Nb. of controls before train/valid split
+		\item colors: which method is used to deal with imbalance
+		\item linetype: new vs. old tuning. The new tuning was performed manually with 100K controls; the old tuning with 10K controls. For more on tuning, see next section.
+	\end{itemize}
+	\item Results and analysis:
+	\begin{itemize}
+		\item Single repetition, so there is some variablity due to the sampling. To get a sense of the scale of the variability, the ``downsample'' method should be the same across the range. I might do multiple repititions in the future, but this gets very long for large $N$, so I am avoiding it for now.
+		\item The ``resampling'' method seems to be the best across the board
+		\item The ``unweighted'' method seems more stable?
+		\item Not much to gain beyond 50K-100K (decrease? within variability?). The best tuning parameters might not be the same for larger datasets, as is apparent between old/new tuning curves.
+	\end{itemize}
+\end{itemize}
+
+\begin{center}
+\includegraphics[width=.9\textwidth]{best_aucs_large_valid.pdf}
+\includegraphics[width=.9\textwidth]{best_aucs_large_test.pdf}
+\end{center}
+
+\pagebreak
+\subsubsection*{Tuning}
+
+\begin{itemize}
+	\item Protocol:
+	\begin{itemize}
+		\item Same as above, except:
+		\begin{itemize}
+			\item Fix Nb. controls to $N=100K$
+			\item Use ``resample'' method only
+		\end{itemize}
+		\item Fix all parameters to their default value stated above (and blotted with a vertical dashed line), vary one parameter along a plausible range
+	\end{itemize}
+	\item Parameters:
+		\begin{description}
+			\item[max\_depth] Control the complexity of the tree added at each iteration (deeper trees have more explanatory power, but can overfit)
+			\item[subsample] Determines what percetage of the training set is used to fit the next tree (more subsampling prevents overfitting but slows down fitting)
+			\item[eta] (step-size) controls how much the new tree contributes to the model (small step-size prevents overfitting, but slows down fitting)
+		\end{description}
+	\item Results and analysis:
+	\begin{description}
+		\item[max\_depth] Above depth 4-5, not much variation on valid/test AUCs; some improvment on train/cc AUCs
+		\item[subsample] Except for small proportions, not much variation for all 4 datasets; best seems to be around 0.4-0.75
+		\item[eta] waiting for results ...
+	\end{description}
+\end{itemize}
+
+
+\begin{center}
+\includegraphics[width=.9\textwidth]{best_aucs_tuning_max_depth.pdf}
+\includegraphics[width=.9\textwidth]{best_aucs_tuning_subsample.pdf}
+\end{center}
 
 \end{document}
