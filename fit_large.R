@@ -145,8 +145,10 @@ results_to_df = function(method, n) {
   auc_df$method = method
   tr_metrics = results$metrics$classification
   tr_metrics_df = data.frame(tr_metrics[[1]])
+  tr_metrics_df$tr = as.numeric(rownames(tr_metrics_df))
   tr_metrics_df$test_df = names(tr_metrics)[1]
   for(df in names(tr_metrics)[-1]){
+    tr_metrics[[df]]$tr = as.numeric(rownames(tr_metrics[[df]]))
     tr_metrics[[df]]$test_df = df
     tr_metrics_df = rbind(tr_metrics_df, tr_metrics[[df]])
   }
@@ -166,14 +168,39 @@ for(n in ns){
 }
 
 # auc plots
-#drop sq
-aucs = aucs %>% filter(method != "weighted_sq")
+tmethod = "resample"
+tcurve = "pr"
+# filter & melt
+aucs = auc_df %>% filter(method == tmethod)
+aucs = aucs %>% filter(curve == tcurve)
+dfs = c("all", "cc", "0_5", "5_10", "10_30", "30_100")
 
-ggplot(aucs, aes(n, test, group=interaction(method, tuning), colour=method, linetype=tuning)) +
+aucs = as.data.frame(aucs %>% tidyr::pivot_longer(cols=dfs))
+colnames(aucs) = c("curve", "n", "method", "test_df", "auc")
+
+pdf(paste0("R_code/hosea-project/figures/size_", tmethod, "_", tcurve, ".pdf"), width=8, height=5)
+ggplot(aucs, aes(n, auc, group=test_df, colour=test_df)) +
   geom_line() + scale_x_continuous(trans="log10") +
-  xlab("Nb. controls") + ylab("Test AUC")
+  xlab("Nb. controls") + ylab(paste("auc", tcurve)) +
+  ggtitle(paste0("Method: ", tmethod))
+dev.off()
 
+# threshold metrics
+colnames(tr_df)
+metric = "detection_prevalance"
+tmethod = "resample"
+ttest_df = "all"
+# filter
+trm = tr_df %>% filter(method==tmethod)
+trm = trm %>% filter(test_df==ttest_df)
 
+pdf(paste0("R_code/hosea-project/figures/size_", tmethod, "_", ttest_df, "_", metric, ".pdf"), 
+    width=8, height=5)
+ggplot(trm, aes(tr, detection_prevalance, group=n, colour=n)) +
+  geom_line() +
+  xlab("Threshold") + ylab(metric) +
+  ggtitle(paste0("Method: ", tmethod, ", Test df: ", ttest_df))
+dev.off()
 # aucs = read.csv("R_data/results/best_aucs_large.csv")
 # aucs$X = NULL
 # aucs$tuning = "old"

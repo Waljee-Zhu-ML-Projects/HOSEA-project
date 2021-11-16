@@ -132,3 +132,8 @@ for(param in names(values)){
     saveRDS(out, filepath)
   }
 }
+
+test_sets
+sapply(test_sets, function(df) sum(getinfo(df, "label")))
+
+       

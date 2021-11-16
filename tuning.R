@@ -50,8 +50,7 @@ param_xg_base = list(
 values = list(
   # max_depth = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
   # subsample = c(0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1.),
-  # eta = c(0.01, 0.03, 0.05, 0.1, 0.3, 0.5, 1.)
-  eta = c(0.0001, 0.0003, 0.0005, 0.001, 0.003, 0.001, 0.003, 0.005)
+  eta = c(0.01, 0.03, 0.05, 0.1, 0.3, 0.5, 1.)
 )
 for(param in names(values)){
   aucs = data.frame(matrix(0., 1, 5))
@@ -89,7 +88,7 @@ for(param in names(values)){
     set.seed(1)
     xgb_fit_resample = xgb.train(param_xg,
                                  dwatchlist_resample$train,
-                                 nrounds=10000,
+                                 nrounds=5000,
                                  dwatchlist_resample,
                                  verbose=1,print_every_n=10,
                                  early_stopping_rounds=50)
@@ -97,26 +96,26 @@ for(param in names(values)){
     
     aucs = rbind(aucs, c(value, best_auc(xgb_fit_resample)))
     
-    write.csv(aucs, paste0("R_data/results/best_aucs_tuning_", param,"_small.csv"))
+    write.csv(aucs, paste0("R_data/results/best_aucs_tuning_", param,".csv"))
   }
 }
-
+library(ggplot2)
 # for(param in names(values)){
-for(param in c("max_depth", "subsample")){
+param="subsample"
+
   aucs = read.csv(paste0("R_data/results/best_aucs_tuning_", param,".csv"))
   aucs$X = NULL
   aucs = aucs[-1, ]
   # to long format
-  aucs_long = tidyr::pivot_longer(aucs, c("train", "valid", "test", "cc"), 
+  aucs_long = tidyr::pivot_longer(aucs, c("valid", "test"),# c("train", "valid", "test", "cc"), 
                                   names_to="dataset", values_to="auc")
   value_base = param_xg_base[[param]]
   
   pdf(paste0("R_code/hosea-project/figures/best_aucs_tuning_", param, ".pdf"), width=8, height=5)
   ggplot(aucs_long, aes(value, auc, group=dataset, colour=dataset)) + 
     geom_line() + geom_vline(xintercept=value_base, linetype="dashed") +
-    xlab(param) + ylab("AUC")
+    xlab(param) + ylab("AUC") # + scale_x_continuous(trans="log10")
   dev.off()
-}
 
 # aucs = read.csv("R_data/results/best_aucs_large.csv")
 # aucs$X = NULL
