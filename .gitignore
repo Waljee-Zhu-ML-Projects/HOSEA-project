@@ -10,3 +10,4 @@
 *.toc
 *.thm
 .DS_Store
+.Rproj.user

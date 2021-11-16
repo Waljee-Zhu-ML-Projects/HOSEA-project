@@ -1109,8 +1109,8 @@ Separate class & 0.974 & 0.953 & 0.607 \\ \addlinespace
 	\item Methods:
 	\begin{description}
 		\item[downsample] sample controls down to the number of cases
-		\item[resample] sample (w/ replacement) the controls up to the number of controls (note that controls appearing more than once get different imputation)
-		\item[unweighted] no resample, no rewighing
+		\item[resample] sample (w/ replacement) the cases up to the number of controls (note that controls appearing more than once get different imputation)
+		\item[unweighted] no resample, no reweighting
 		\item[weighted] no resampling, cases upweighted by $n_{\text{controls}} / n_{\text{cases}}$
 		\item[weighted\_sqrt] no resampling, cases upweighted by $\sqrt{n_{\text{controls}} / n_{\text{cases}}}$
 		\item[weighted\_sq] no resampling, cases upweighted by $(n_{\text{controls}} / n_{\text{cases}})^2$ (dropped from graph because much worse values and changed the scale too much to see others well)
@@ -1152,7 +1152,7 @@ Separate class & 0.974 & 0.953 & 0.607 \\ \addlinespace
 	\item Parameters:
 		\begin{description}
 			\item[max\_depth] Control the complexity of the tree added at each iteration (deeper trees have more explanatory power, but can overfit)
-			\item[subsample] Determines what percetage of the training set is used to fit the next tree (more subsampling prevents overfitting but slows down fitting)
+			\item[subsample] Determines what percetage of the training set is used to fit the next tree (more subsampling prevents overfitting but slows down fitting and may lead to under-fitting)
 			\item[eta] (step-size) controls how much the new tree contributes to the model (small step-size prevents overfitting, but slows down fitting)
 		\end{description}
 	\item Results and analysis:
@@ -1161,6 +1161,14 @@ Separate class & 0.974 & 0.953 & 0.607 \\ \addlinespace
 		\item[subsample] Except for small proportions, not much variation for all 4 datasets; best seems to be around 0.4-0.75
 		\item[eta] waiting for results ...
 	\end{description}
+\end{itemize}
+
+
+\subsubsection*{Next steps}
+
+\begin{itemize}
+	\item Tuning for larger number of controls
+	\item Alternative metrics
 \end{itemize}
 
 
