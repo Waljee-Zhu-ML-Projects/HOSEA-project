@@ -48,9 +48,10 @@ param_xg_base = list(
 
 # grids
 values = list(
-  max_depth = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-  subsample = c(0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1.),
-  eta = c(0.01, 0.03, 0.05, 0.1, 0.3, 0.5, 1.)
+  # max_depth = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+  # subsample = c(0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1.),
+  # eta = c(0.01, 0.03, 0.05, 0.1, 0.3, 0.5, 1.)
+  eta = c(0.0001, 0.0003, 0.0005, 0.001, 0.003, 0.001, 0.003, 0.005)
 )
 for(param in names(values)){
   aucs = data.frame(matrix(0., 1, 5))
@@ -88,7 +89,7 @@ for(param in names(values)){
     set.seed(1)
     xgb_fit_resample = xgb.train(param_xg,
                                  dwatchlist_resample$train,
-                                 nrounds=5000,
+                                 nrounds=10000,
                                  dwatchlist_resample,
                                  verbose=1,print_every_n=10,
                                  early_stopping_rounds=50)
@@ -96,7 +97,7 @@ for(param in names(values)){
     
     aucs = rbind(aucs, c(value, best_auc(xgb_fit_resample)))
     
-    write.csv(aucs, paste0("R_data/results/best_aucs_tuning_", param,".csv"))
+    write.csv(aucs, paste0("R_data/results/best_aucs_tuning_", param,"_small.csv"))
   }
 }
 
