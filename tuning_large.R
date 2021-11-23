@@ -37,7 +37,7 @@ log(train)
 log(test)
 
 # prepare stuff
-n = 1e6
+n = 1e5
 method = "resample"
 
 # base XGBoost parameters
@@ -53,9 +53,9 @@ param_xg_base = list(
 
 # grids
 values = list(
-  max_depth = c(3, 4, 5, 7, 10),
-  subsample = c(0.05, 0.1, 0.2, 0.3, 0.5),
-  eta = c(0.001, 0.003, 0.01, 0.03, 0.1)
+  # max_depth = c(3, 4, 5, 7, 10),
+  # subsample = c(0.05, 0.1, 0.2, 0.3, 0.5),
+  eta = c(0.0001, 0.0003, 0.0005, 0.001)
 )
 
 # datasets
@@ -115,10 +115,10 @@ for(param in names(values)){
     )
     xgb_fit = xgb.train(param_xg,
                         dwatchlist$train,
-                        nrounds=5000,
+                        nrounds=20000,
                         dwatchlist,
-                        verbose=1,print_every_n=50,
-                        early_stopping_rounds=50)
+                        verbose=1,print_every_n=200,
+                        early_stopping_rounds=1000)
     # evaluate
     calibration_metrics = lapply(test_sets, function(df) calibration(xgb_fit, df))
     threshold_metrics = lapply(test_sets, function(df) 
@@ -128,7 +128,7 @@ for(param in names(values)){
       xgb_fit=xgb_fit,
       metrics=list(calibration=calibration_metrics, classification=threshold_metrics)
     )
-    filepath = paste0("R_data/results/models_tuning_large/", param, "_", value, ".rds")
+    filepath = paste0("R_data/results/models_tuning_large/", param, "_", value, "_patchsmall.rds")
     saveRDS(out, filepath)
   }
 }

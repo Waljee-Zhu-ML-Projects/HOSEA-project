@@ -32,6 +32,8 @@ gc()
 out = train_test_split(df=sub_complete_data, weights=c(3, 1))
 train = out[[1]]
 test = out[[2]]
+rm(sub_complete_data)
+gc()
 
 log(train)
 log(test)
@@ -40,14 +42,14 @@ log(test)
 ns = c(1e6)
 # ns = c(1e4, 2e4, 5e4, 1e5, 2e5, 5e5)
 methods = c(
-  # "resample",
+  "resample",
   # "unweighted",
   # "weighted",
-  "weighted_sqrt"
+  # "weighted_sqrt"
 )
 param_xg = list(
   max_depth = 5,
-  subsample = 0.5,
+  subsample = 0.2,
   eta = .05,
   objective = 'binary:logistic',
   eval_metric = 'auc'
@@ -59,6 +61,7 @@ for(n in ns){
   log(sub_train)
   set.seed(0)
   out = train_test_split(df=sub_train, weights=c(2, 1))
+  rm(sub_train);gc()
   train_n = out[[1]]
   valid_n = out[[2]]
   n0 = (train_n$CaseControl==0)%>%sum
@@ -107,19 +110,37 @@ for(n in ns){
                         early_stopping_rounds=50)
     # prepare testing sets
     test_sets = evaluation_split(test, test_)
+    test_sets_groups = split_by_vargoups(test, test_)
+    test_sets = append(test_sets, test_sets_groups)
+    rm(test_sets_groups); gc()
+    test_set_summaries = t(rbind(
+      N=sapply(test_sets, nrow),
+      Ncases=sapply(test_sets, function(df) sum(getinfo(df, "label"))),
+      propcases=sapply(test_sets, function(df) mean(getinfo(df, "label")))
+    ))
     # evaluate
     calibration_metrics = lapply(test_sets, function(df) calibration(xgb_fit, df))
     threshold_metrics = lapply(test_sets, function(df) 
       classification_metrics(xgb_fit, df, seq(0.01, 0.99, 0.01)))
+    calibration_curves = lapply(test_sets, function(df) calibration_curve(xgb_fit, df))
     # save
     out = list(
       xgb_fit=xgb_fit,
-      metrics=list(calibration=calibration_metrics, classification=threshold_metrics)
+      metrics=list(calibration=calibration_metrics, 
+                   classification=threshold_metrics,
+                   calibration_curves=calibration_curves)
     )
     filepath = paste0("R_data/results/models/", method, "_n", n, ".rds")
     saveRDS(out, filepath)
   }
 }
+
+out=readRDS(filepath)
+xgb_fit=out$xgb_fit
+
+curve = calibration_curves[[1]]
+plot(curve$mid, curve$propcase, log="xy", ylim=c(1e-5, 1.), xlim=c(1e-5, 1.))
+abline(0, 1)
 
 # plot results
 

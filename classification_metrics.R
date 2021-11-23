@@ -3,6 +3,22 @@
 # df = dwatchlist_resample$valid
 # threshold = seq(0.01, 0.99, 0.01)
 
+calibration_curve = function(xgb_fit, df, nbins=50){
+  proba = predict(xgb_fit, newdata=df)
+  y = xgboost::getinfo(df, "label")
+  bins = c(0., quantile(proba, seq(0., 1., length.out=nbins+1))+1e-6)
+  L = bins[-length(bins)]; U = bins[-1]
+  bindf = cbind(L=L, U=U, mid=0.5*(L+U))
+  out = t(apply(bindf, 1, function(row){
+    ids = (proba>=row["L"]) & (proba<row["U"])
+    N = sum(ids)
+    Ncase = sum(y[ids])
+    propcase = mean(y[ids])
+    return(c(row, N=N, Ncase=Ncase, propcase=propcase))
+  }))
+  return(data.frame(out))
+}
+
 classification_metrics = function(xgb_fit, df, threshold=0.5){
   threshold = c(threshold)
   threshold = sort(threshold)

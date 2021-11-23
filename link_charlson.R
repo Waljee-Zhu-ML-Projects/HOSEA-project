@@ -15,8 +15,8 @@ for(charl_name in charl_names){
   charlson_complete <- left_join(charlson_complete,temp,by='ID')
   print('Join')
   # replace
-  charlson_complete[[charl_name]] <- fill_by_zero(charlson_complete[[charl_name]])
-  print('Fill zeros')
+  # charlson_complete[[charl_name]] <- fill_by_zero(charlson_complete[[charl_name]])
+  # print('Fill zeros')
 }
 
 # load n_visits for controls and cases
@@ -25,10 +25,10 @@ n_visits_case <- readRDS('R_data/n_visits_case.rds')
 
 # bind, join tables and impute NA <- 0
 charlson_complete <- left_join(charlson_complete,bind_rows(n_visits,n_visits_case),by='ID')
-charlson_complete$n_visits <- fill_by_zero(charlson_complete$n_visits)
+# charlson_complete$n_visits <- fill_by_zero(charlson_complete$n_visits)
 
 # save table
-saveRDS(charlson_complete,file='R_data/charlson_complete_raw.rds')
+saveRDS(charlson_complete,file='R_data/charlson_complete.rds')
 
 # imputation with 'geometric' model 
 charlson_impute <- charlson_complete

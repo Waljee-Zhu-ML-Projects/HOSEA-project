@@ -33,7 +33,7 @@ event_tables <- c('colonoscopy',
 # removed EGD and other procedures
 
 # update charlson with new coding
-charlson_complete_raw = readRDS(file='R_data/charlson_complete_raw.rds')
+charlson_complete_raw = readRDS(file='R_data/charlson_complete.rds')
 # rename columns to match original column names
 names(charlson_complete_raw) = c(
   "ID",       "case",     "start",    "end",      "CHF",      
