@@ -28,26 +28,26 @@ for(nm in names(all)){
 }
 
 
-pdf("R_code/hosea-project/figures/dp_allcurves.pdf", 8, 5)
+pdf("R_code/hosea-project/figures/2M_ppv_allcurves.pdf", 8, 5)
 plotdf = alldf
-ggplot(data=plotdf, aes(x=tr, y=detection_prevalance, group=interaction(method, df), 
+ggplot(data=plotdf, aes(x=tr, y=ppv, group=interaction(method, df), 
                        color=df, linetype=method)) + 
   geom_line() + scale_x_continuous(trans="log10")
 dev.off()
 
 
-pdf("R_code/hosea-project/figures/dp_missing.pdf", 8, 5)
+pdf("R_code/hosea-project/figures/2M_ppv_missing.pdf", 8, 5)
 plotdf = alldf %>% filter(df  %in% c("all", "cc", "all_0_5", "all_5_10", "all_10_30",
                                      "all_30_100"))
-ggplot(data=plotdf, aes(x=tr, y=detection_prevalance, group=interaction(method, df), 
+ggplot(data=plotdf, aes(x=tr, y=ppv, group=interaction(method, df), 
                         color=df, linetype=method)) + 
   geom_line() + scale_x_continuous(trans="log10")
 dev.off()
 
-pdf("R_code/hosea-project/figures/dp_vars.pdf", 8, 5)
+pdf("R_code/hosea-project/figures/2M_ppv_vars.pdf", 8, 5)
 plotdf = alldf %>% filter(!(df %in% c("all", "cc", "all_0_5", "all_5_10", "all_10_30",
                                      "all_30_100")))
-ggplot(data=plotdf, aes(x=tr, y=detection_prevalance, group=interaction(method, df), 
+ggplot(data=plotdf, aes(x=tr, y=ppv, group=interaction(method, df), 
                         color=df, linetype=method)) + 
   geom_line() + scale_x_continuous(trans="log10")
 dev.off()
@@ -70,7 +70,7 @@ for(df in names(unweighted$metrics$calibration)){
 aucs = aucs[-1, ]
 aucs$auc = as.numeric(aucs$auc)
 
-pdf("R_code/hosea-project/figures/aucs.pdf", 8, 5)
+pdf("R_code/hosea-project/figures/2M_aucs.pdf", 8, 5)
 ggplot(data=aucs, aes(x=df, y=auc, fill=method)) + 
   geom_bar(position="dodge", stat="identity") +
   theme(axis.text.x=element_text(angle=45, hjust=1)) + 
@@ -103,7 +103,7 @@ rocs = rocs[-1, ]
 tdf = "all"
 tmethod = "resample"
 auroc = aucs[aucs$df==tdf & aucs$method==tmethod, "auc"]
-filepath = paste0("R_code/hosea-project/figures/roc_", tmethod, "_", tdf, ".pdf")
+filepath = paste0("R_code/hosea-project/figures/2M_roc_", tmethod, "_", tdf, ".pdf")
 plotdf = rocs %>% filter(df == tdf & method == tmethod)
 colnames(plotdf) = c("fpr", "tpr", "Threshold", "df", "method")
 g = ggplot(data=plotdf, aes(x=fpr, y=tpr, color=Threshold)) + geom_line() +
@@ -122,7 +122,7 @@ for(tdf in names(unweighted$metrics$calibration)){
       scale_color_gradientn(colors=rainbow(20)) + theme(aspect.ratio=1) +
       ggtitle(paste0("Df: ", tdf, ", method: ", tmethod, ", AUROC=", round(auroc, 4)))
     # dev.off()
-    ggsave(paste0("R_code/hosea-project/figures/roc/", tmethod, "_", tdf, ".pdf"), g,
+    ggsave(paste0("R_code/hosea-project/figures/roc/2M_", tmethod, "_", tdf, ".pdf"), g,
            width=6, height=5)
   }
 }
@@ -155,7 +155,7 @@ log = T
 for(tdf in names(unweighted$metrics$calibration)){
   for(tmethod in c("resample", "unweighted")){
     for(log in c(T, F)){
-      filename = paste0("R_code/hosea-project/figures/calibration_curves/", tmethod, "_", 
+      filename = paste0("R_code/hosea-project/figures/calibration_curves/2M_", tmethod, "_", 
                  tdf,  ifelse(log, "_log", ""), ".pdf")
       plotdf = alldf %>% filter(df == tdf & method == tmethod)
       g = ggplot(data=plotdf, aes(x=mid, y=propcase)) + theme(aspect.ratio=1) + 
