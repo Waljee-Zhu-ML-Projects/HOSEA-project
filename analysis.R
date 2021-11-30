@@ -2,7 +2,7 @@ setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 library(dplyr)
 library(ggplot2)
 
-n = 1e6
+n = "2M"
 results = list()
 resample = readRDS(paste0("R_data/results/models/resample_n", n, ".rds"))
 unweighted = readRDS(paste0("R_data/results/models/unweighted_n", n, ".rds"))
@@ -32,7 +32,7 @@ pdf("R_code/hosea-project/figures/dp_allcurves.pdf", 8, 5)
 plotdf = alldf
 ggplot(data=plotdf, aes(x=tr, y=detection_prevalance, group=interaction(method, df), 
                        color=df, linetype=method)) + 
-  geom_line()
+  geom_line() + scale_x_continuous(trans="log10")
 dev.off()
 
 
@@ -41,7 +41,7 @@ plotdf = alldf %>% filter(df  %in% c("all", "cc", "all_0_5", "all_5_10", "all_10
                                      "all_30_100"))
 ggplot(data=plotdf, aes(x=tr, y=detection_prevalance, group=interaction(method, df), 
                         color=df, linetype=method)) + 
-  geom_line()
+  geom_line() + scale_x_continuous(trans="log10")
 dev.off()
 
 pdf("R_code/hosea-project/figures/dp_vars.pdf", 8, 5)
@@ -49,7 +49,7 @@ plotdf = alldf %>% filter(!(df %in% c("all", "cc", "all_0_5", "all_5_10", "all_1
                                      "all_30_100")))
 ggplot(data=plotdf, aes(x=tr, y=detection_prevalance, group=interaction(method, df), 
                         color=df, linetype=method)) + 
-  geom_line()
+  geom_line() + scale_x_continuous(trans="log10")
 dev.off()
 
 
@@ -73,7 +73,8 @@ aucs$auc = as.numeric(aucs$auc)
 pdf("R_code/hosea-project/figures/aucs.pdf", 8, 5)
 ggplot(data=aucs, aes(x=df, y=auc, fill=method)) + 
   geom_bar(position="dodge", stat="identity") +
-  theme(axis.text.x=element_text(angle=45, hjust=1))
+  theme(axis.text.x=element_text(angle=45, hjust=1)) + 
+  coord_cartesian(ylim=c(0.6, 0.88))
 dev.off()
 
 # ROC curves
@@ -99,15 +100,30 @@ for(df in names(unweighted$metrics$calibration)){
 }
 rocs = rocs[-1, ]
 
+tdf = "all"
+tmethod = "resample"
+auroc = aucs[aucs$df==tdf & aucs$method==tmethod, "auc"]
+filepath = paste0("R_code/hosea-project/figures/roc_", tmethod, "_", tdf, ".pdf")
+plotdf = rocs %>% filter(df == tdf & method == tmethod)
+colnames(plotdf) = c("fpr", "tpr", "Threshold", "df", "method")
+g = ggplot(data=plotdf, aes(x=fpr, y=tpr, color=Threshold)) + geom_line() +
+  scale_color_gradientn(colors=rainbow(10)) + theme(aspect.ratio=1) +
+  xlab("1 - Specificity") + ylab("Sensitivity") + 
+  geom_abline(intercept=0, slope=1, linetype="dotted")
+# dev.off()
+ggsave(filepath, g, width=8, height=7)
+
 for(tdf in names(unweighted$metrics$calibration)){
   for(tmethod in c("resample", "unweighted")){
     auroc = aucs[aucs$df==tdf & aucs$method==tmethod, "auc"]
-    pdf(paste0("R_code/hosea-project/figures/roc/", tmethod, "_", tdf, ".pdf"), 6, 5)
+    # pdf(paste0("R_code/hosea-project/figures/roc/", tmethod, "_", tdf, ".pdf"), 6, 5)
     plotdf = rocs %>% filter(df == tdf & method == tmethod)
-    ggplot(data=plotdf, aes(x=fpr, y=tpr, color=tr)) + geom_line() +
+    g = ggplot(data=plotdf, aes(x=fpr, y=tpr, color=tr)) + geom_line() +
       scale_color_gradientn(colors=rainbow(20)) + theme(aspect.ratio=1) +
       ggtitle(paste0("Df: ", tdf, ", method: ", tmethod, ", AUROC=", round(auroc, 4)))
-    dev.off()
+    # dev.off()
+    ggsave(paste0("R_code/hosea-project/figures/roc/", tmethod, "_", tdf, ".pdf"), g,
+           width=6, height=5)
   }
 }
 
@@ -139,8 +155,8 @@ log = T
 for(tdf in names(unweighted$metrics$calibration)){
   for(tmethod in c("resample", "unweighted")){
     for(log in c(T, F)){
-      pdf(paste0("R_code/hosea-project/figures/calibration_curves/", tmethod, "_", 
-                 tdf,  ifelse(log, "_log", ""), ".pdf"), 5, 5)
+      filename = paste0("R_code/hosea-project/figures/calibration_curves/", tmethod, "_", 
+                 tdf,  ifelse(log, "_log", ""), ".pdf")
       plotdf = alldf %>% filter(df == tdf & method == tmethod)
       g = ggplot(data=plotdf, aes(x=mid, y=propcase)) + theme(aspect.ratio=1) + 
         geom_point()  +
@@ -152,8 +168,7 @@ for(tdf in names(unweighted$metrics$calibration)){
       }else{
         g = g + xlim(0., 1.) + ylim(0., 1.)
       }
-      g
-      dev.off()
+      ggsave(filename, g, width=5, height=5)
     }
   }
 }
