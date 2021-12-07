@@ -26,8 +26,8 @@ log = function(df) cat(paste("Full data set: ", nrow(df), "observations,",
 
 
 # train-test split
-n_controls = 2e6
-complete_data = subsample_controls(complete_data, n_controls)
+# n_controls = 2e6
+# complete_data = subsample_controls(complete_data, n_controls)
 out = train_test_split(df=complete_data, weights=c(3, 1))
 train = out[[1]]
 test = out[[2]]
@@ -53,7 +53,7 @@ param_xg = list(
 )
 
 # loop
-n = "2M"
+n = "all"
 set.seed(0)
 out = train_test_split(df=train, weights=c(2, 1))
 rm(train);gc()
@@ -104,7 +104,7 @@ for(method in methods){
   )
   xgb_fit = xgb.train(param_xg,
                       dwatchlist$train,
-                      nrounds=10000,
+                      nrounds=20000,
                       dwatchlist,
                       verbose=1,print_every_n=100,
                       early_stopping_rounds=100)
@@ -120,7 +120,8 @@ for(method in methods){
   ))
   # evaluate
   calibration_metrics = lapply(test_sets, function(df) calibration(xgb_fit, df))
-  thresholds = c(seq(0.0001, 0.00098, 0.00002), 
+  thresholds = c(seq(0.00001, 0.000098, 0.000002), 
+                 seq(0.0001, 0.00098, 0.00002), 
                  seq(0.001, 0.0098, 0.0002), 
                  seq(0.01, 0.098, 0.002), 
                  seq(0.10, 0.99, 0.01))

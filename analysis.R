@@ -53,6 +53,13 @@ ggplot(data=plotdf, aes(x=tr, y=ppv, group=interaction(method, df),
 dev.off()
 
 
+df = alldf %>% filter(df == "all")
+df = df %>% select(one_of("tpr", "ppv", "detection_prevalance"))
+df = df[1:225, ]
+rownames(df) = format(round(as.numeric(rownames(df)), 5)*100000, digits=5)
+df = df*100
+cat(print(xtable::xtable(df)), file="R_code/hosea-project/figures/calibration.tex")
+
 
 # calibration (AUC)
 aucs = data.frame(matrix(0, 1, 3))
@@ -172,6 +179,21 @@ for(tdf in names(unweighted$metrics$calibration)){
     }
   }
 }
+
+lm((plotdf$propcase[4:49]) ~ (plotdf$mid[4:49]))
+exp(1.495)
+
+filename = paste0("R_code/hosea-project/figures/calibration_curves/2M_", tmethod, "_", 
+                  tdf,  "_zoom", ".pdf")
+plotdf = alldf %>% filter(df == tdf & method == tmethod)
+g = ggplot(data=plotdf, aes(x=mid, y=propcase)) + theme(aspect.ratio=1) + 
+  geom_point()  +
+  ggtitle(paste0("Df: ", tdf, ", method: ", tmethod)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed") +
+  geom_abline(slope=6649108/2000000, intercept=0, linetype="dotted") +
+  ylab("Observed") + xlab("Predicted")
+g = g + xlim(0., 0.03) + ylim(0., 0.03)
+ggsave(filename, g, width=5, height=5)
 
 # \begin{table}[ht]
 # \centering
