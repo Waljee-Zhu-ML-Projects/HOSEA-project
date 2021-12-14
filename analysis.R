@@ -55,8 +55,8 @@ dev.off()
 
 df = alldf %>% filter(df == "all")
 df = df %>% select(one_of("tpr", "ppv", "detection_prevalance"))
-df = df[1:225, ]
-rownames(df) = format(round(as.numeric(rownames(df)), 6)*1000000, digits=6)
+df = df[46:225, ]
+rownames(df) = format(round(as.numeric(rownames(df)), 5)*100000, digits=5)
 df = df*100
 cat(print(xtable::xtable(df)), file="R_code/hosea-project/figures/all_calibration.tex")
 
