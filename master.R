@@ -10,7 +10,8 @@ master$case <- !is.na(sample$datedx)
 
 # calculate a prediction window in days
 master$start <- sample$IndexDate - (4*365 + 364)
-master$end <- sample$IndexDate - 364
+master$end <- sample$IndexDate - (2*365 + 364)
 
 # save the table
-saveRDS(master,file='R_data/master.rds')
+# saveRDS(master,file='R_data/master.rds')
+saveRDS(master,file='R_data/y45/master.rds')

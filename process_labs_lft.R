@@ -106,7 +106,7 @@ table_summary <- bind_cols(table_alkphos,
 print('bind tables')
 
 # save result
-saveRDS(table_summary,file='R_data/labs_lft_summary.rds')
+saveRDS(table_summary,file='R_data/y45/labs_lft_summary.rds')
 print('save result')
 
 

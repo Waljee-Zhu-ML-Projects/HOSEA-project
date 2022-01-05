@@ -269,7 +269,7 @@ table_summary <- bind_cols(table_baso,
 print('bind tables')
 
 # save result
-saveRDS(table_summary,file='R_data/labs_cbc_summary.rds')
+saveRDS(table_summary,file='R_data/y45/labs_cbc_summary.rds')
 print('save result')
 
 

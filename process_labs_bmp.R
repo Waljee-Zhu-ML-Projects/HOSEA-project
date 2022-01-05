@@ -164,7 +164,7 @@ table_summary <- bind_cols(table_bun,
 print('bind tables')
 
 # save result
-saveRDS(table_summary,file='R_data/labs_bmp_summary.rds')
+saveRDS(table_summary,file='R_data/y45/labs_bmp_summary.rds')
 print('save result')
 
 

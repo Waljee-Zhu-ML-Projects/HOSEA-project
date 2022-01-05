@@ -46,7 +46,7 @@ table_FOBT <- table_group %>%
 print('summarize FOBT')
 
 # save result
-saveRDS(table_FOBT,file='R_data/labs_fobt_summary.rds')
+saveRDS(table_FOBT,file='R_data/y45/labs_fobt_summary.rds')
 print('save result')
 
 

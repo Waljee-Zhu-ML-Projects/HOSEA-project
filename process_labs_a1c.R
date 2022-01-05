@@ -54,7 +54,7 @@ table_A1c <- table_group %>%
 print('summarize variable A1c')
 
 # save result
-saveRDS(table_A1c,file='R_data/labs_a1c_summary.rds')
+saveRDS(table_A1c,file='R_data/y45/labs_a1c_summary.rds')
 print('save result')
 
 

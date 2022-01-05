@@ -33,7 +33,7 @@ event_tables <- c('colonoscopy',
 # removed EGD and other procedures
 
 # update charlson with new coding
-charlson_complete_raw = readRDS(file='R_data/charlson_complete.rds')
+charlson_complete_raw = readRDS(file='R_data/y45/charlson_complete.rds')
 # rename columns to match original column names
 names(charlson_complete_raw) = c(
   "ID",       "case",     "start",    "end",      "CHF",      
@@ -56,7 +56,7 @@ complete_data$n_visits = charlson_complete_raw$n_visits
 # join summary tables (33 columns)
 for(tab in event_tables){
   print(paste0('For table ',tab,':'))
-  table <- readRDS(paste0('R_data/',tab,'_summary.rds'))
+  table <- readRDS(paste0('R_data/y45/',tab,'_summary.rds'))
   complete_data <- left_join(complete_data,table,by="ID")
   print('read in and join')
   timestamp()
@@ -65,7 +65,7 @@ for(tab in event_tables){
 
 # medication table (43 columns)
 print('For table: allmeds')
-table <- readRDS('R_data/allmeds_summary.rds')
+table <- readRDS('R_data/y45/allmeds_summary.rds')
 complete_data <- left_join(complete_data,table,by="ID")
 print('read in and join')
 timestamp()
@@ -82,7 +82,7 @@ value_tables <- c('labs_a1c',
 # join summary tables (242 columns)
 for(tab in value_tables){
   print(paste0('For table ',tab,':'))
-  table <- readRDS(paste0('R_data/',tab,'_summary.rds'))
+  table <- readRDS(paste0('R_data/y45/',tab,'_summary.rds'))
   complete_data <- left_join(complete_data,table,by="ID")
   print('read in and join')
   timestamp()
@@ -102,5 +102,5 @@ print('impute 0s for missing event data')
 
 # save complete data (242 columns)
 saveRDS(complete_data,
-        file='R_data/complete_data_raw.rds')
+        file='R_data/y45/complete_data_raw.rds')
 print('save complete table')

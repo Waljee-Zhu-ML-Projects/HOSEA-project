@@ -54,7 +54,7 @@ table_CRP <- table_group %>%
 print('summarize variable CRP')
 
 # save result
-saveRDS(table_CRP,file='R_data/labs_crp_summary.rds')
+saveRDS(table_CRP,file='R_data/y45/labs_crp_summary.rds')
 print('save result')
 
 
