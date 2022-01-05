@@ -5,30 +5,21 @@ source('R_code/hosea-project/utils.R')
 source('R_code/hosea-project/utils_missingcharl.R')
 
 # load master table
-charlson_complete <- readRDS('R_data/master.rds')
+charlson_complete <- readRDS('R_data/y45/master.rds')
 
 for(charl_name in charl_names){
   print(paste0('For disease ',charl_name,':'))
   # load indicator and join
-  temp <- readRDS(paste0('R_data/charlson_',charl_name,'.rds'))
+  temp <- readRDS(paste0('R_data/y45/charlson_',charl_name,'.rds'))
   print('Load data')
   charlson_complete <- left_join(charlson_complete,temp,by='ID')
   print('Join')
-  # replace
-  # charlson_complete[[charl_name]] <- fill_by_zero(charlson_complete[[charl_name]])
-  # print('Fill zeros')
 }
 
-# load n_visits for controls and cases
-n_visits <- readRDS('R_data/n_visits.rds')
-n_visits_case <- readRDS('R_data/n_visits_case.rds')
 
-# bind, join tables and impute NA <- 0
-charlson_complete <- left_join(charlson_complete,bind_rows(n_visits,n_visits_case),by='ID')
-# charlson_complete$n_visits <- fill_by_zero(charlson_complete$n_visits)
 
 # save table
-saveRDS(charlson_complete,file='R_data/charlson_complete.rds')
+saveRDS(charlson_complete,file='R_data/y45/charlson_complete.rds')
 
 # imputation with 'geometric' model 
 charlson_impute <- charlson_complete

@@ -46,7 +46,7 @@ table_colonoscopy <- table_group %>%
 print('summarize colonoscopy')
 
 # save result
-saveRDS(table_colonoscopy,file='R_data/colonoscopy_summary.rds')
+saveRDS(table_colonoscopy,file='R_data/y45/colonoscopy_summary.rds')
 print('save result')
 
 

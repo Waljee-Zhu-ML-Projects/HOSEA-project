@@ -5,7 +5,7 @@
 source('R_code/hosea-project/utils_missingcharl.R')
 
 # loop over disease names
-for(charl_name in charl_names[c(2,3,4,7,8,10,11,12,16)]){
+for(charl_name in charl_names){
   print(paste0('For disease ',charl_name,':'))
   timestamp()
   
@@ -24,17 +24,24 @@ for(charl_name in charl_names[c(2,3,4,7,8,10,11,12,16)]){
     alldxs_chunk <- mutate(alldxs_chunk,charl9=check_code_icd9(icd9code))
     if(cc == 'cx'){
       alldxs_chunk <- mutate(alldxs_chunk,charl10=check_code_icd10(icd10code))
-    }
-    else{
+    }else{
       alldxs_chunk <- mutate(alldxs_chunk,charl10=0)
     }
     print('Checked codes')
     # summarize
-    charl_chunk[[cc]] <- summarize(group_by(alldxs_chunk,ID),charl=max(charl9 + charl10))
+    df <- summarize(group_by(alldxs_chunk,ID),charl=max(charl9 + charl10),
+                                   Dxdate=Dxdate)
+    # restrict to prediction window
+    df = left_join(df, master, by="ID")
+    df = filter(df, (Dxdate>=start)&(Dxdate<=end))
+    df = df %>% group_by(ID) %>% summarize(charl=max(charl))
+    
+  
+    charl_chunk[[cc]] = df
     print('Summarized chunk')
     
     # remove and gc
-    rm(alldxs_chunk)
+    rm(alldxs_chunk, df)
     gc()
   }
   
@@ -47,7 +54,7 @@ for(charl_name in charl_names[c(2,3,4,7,8,10,11,12,16)]){
   print('Combine over chunks')
   
   # save as an rds file
-  saveRDS(charl,file=paste0('R_data/charlson_',charl_name,'.rds'))
+  saveRDS(charl,file=paste0('R_data/y45/charlson_',charl_name,'.rds'))
   print('Saved')
 }
 

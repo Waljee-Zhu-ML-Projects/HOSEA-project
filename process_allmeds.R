@@ -175,7 +175,7 @@ print('join tables')
 
 # save result
 #saveRDS(summary_allmeds,file='R_data/subsample/sub_allmeds_summary.rds')
-saveRDS(summary_allmeds,file='R_data/allmeds_summary.rds')
+saveRDS(summary_allmeds,file='R_data/y45/allmeds_summary.rds')
 print('save result')
 
 # check results against subsample

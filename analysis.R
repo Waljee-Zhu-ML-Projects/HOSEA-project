@@ -2,9 +2,9 @@ setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 library(dplyr)
 library(ggplot2)
 
-n = "all"
+n = "1e+05"
 results = list()
-resample = readRDS(paste0("R_data/results/models/resample_n", n, ".rds"))
+resample = readRDS(paste0("R_data/results/models45/resample_n", n, ".rds"))
 unweighted = readRDS(paste0("R_data/results/models/unweighted_n", n, ".rds"))
 
 
@@ -14,11 +14,11 @@ all = lapply(resample$metrics$classification, function(df){
   return(df)
 })
 for(nm in names(all)){
-  df = unweighted$metrics$classification[[nm]]
-  df$method = "unweighted"
+  # df = unweighted$metrics$classification[[nm]]
+  # df$method = "unweighted"
   all[[nm]]$tr = as.numeric(rownames(all[[nm]]))
-  df$tr = as.numeric(rownames(df))
-  all[[nm]] = rbind(all[[nm]], df)
+  # df$tr = as.numeric(rownames(df))
+  # all[[nm]] = rbind(all[[nm]], df)
 }
 alldf = data.frame()
 for(nm in names(all)){
@@ -77,7 +77,7 @@ for(df in names(unweighted$metrics$calibration)){
 aucs = aucs[-1, ]
 aucs$auc = as.numeric(aucs$auc)
 
-pdf("R_code/hosea-project/figures/all_aucs.pdf", 8, 5)
+pdf("R_code/hosea-project/figures/25_all_aucs.pdf", 8, 5)
 ggplot(data=aucs, aes(x=df, y=auc, fill=method)) + 
   geom_bar(position="dodge", stat="identity") +
   theme(axis.text.x=element_text(angle=45, hjust=1)) + 
@@ -110,7 +110,7 @@ rocs = rocs[-1, ]
 tdf = "all"
 tmethod = "resample"
 auroc = aucs[aucs$df==tdf & aucs$method==tmethod, "auc"]
-filepath = paste0("R_code/hosea-project/figures/all_roc_", tmethod, "_", tdf, ".pdf")
+filepath = paste0("R_code/hosea-project/figures/45_all_roc_", tmethod, "_", tdf, ".pdf")
 plotdf = rocs %>% filter(df == tdf & method == tmethod)
 colnames(plotdf) = c("fpr", "tpr", "Threshold", "df", "method")
 g = ggplot(data=plotdf, aes(x=fpr, y=tpr, color=Threshold)) + geom_line() +
@@ -120,7 +120,7 @@ g = ggplot(data=plotdf, aes(x=fpr, y=tpr, color=Threshold)) + geom_line() +
 # dev.off()
 ggsave(filepath, g, width=8, height=7)
 
-for(tdf in names(unweighted$metrics$calibration)){
+for(tdf in names(resample$metrics$calibration)){
   for(tmethod in c("resample", "unweighted")){
     auroc = aucs[aucs$df==tdf & aucs$method==tmethod, "auc"]
     # pdf(paste0("R_code/hosea-project/figures/roc/", tmethod, "_", tdf, ".pdf"), 6, 5)
@@ -129,7 +129,7 @@ for(tdf in names(unweighted$metrics$calibration)){
       scale_color_gradientn(colors=rainbow(20)) + theme(aspect.ratio=1) +
       ggtitle(paste0("Df: ", tdf, ", method: ", tmethod, ", AUROC=", round(auroc, 4)))
     # dev.off()
-    ggsave(paste0("R_code/hosea-project/figures/roc/all_", tmethod, "_", tdf, ".pdf"), g,
+    ggsave(paste0("R_code/hosea-project/figures/roc/45_all_", tmethod, "_", tdf, ".pdf"), g,
            width=6, height=5)
   }
 }
@@ -141,11 +141,11 @@ all = lapply(resample$metrics$calibration_curves, function(df){
   return(df)
 })
 for(nm in names(all)){
-  df = unweighted$metrics$calibration_curves[[nm]]
-  df$method = "unweighted"
+  # df = unweighted$metrics$calibration_curves[[nm]]
+  # df$method = "unweighted"
   all[[nm]]$tr = as.numeric(rownames(all[[nm]]))
-  df$tr = as.numeric(rownames(df))
-  all[[nm]] = rbind(all[[nm]], df)
+  # df$tr = as.numeric(rownames(df))
+  # all[[nm]] = rbind(all[[nm]], df)
 }
 alldf = data.frame()
 for(nm in names(all)){
@@ -157,12 +157,12 @@ for(nm in names(all)){
 
 tdf = "all"
 tmethod = "resample"
-log = T
+log = F
 
 for(tdf in names(unweighted$metrics$calibration)){
   for(tmethod in c("resample", "unweighted")){
     for(log in c(T, F)){
-      filename = paste0("R_code/hosea-project/figures/calibration_curves/all_", tmethod, "_", 
+      filename = paste0("R_code/hosea-project/figures/calibration_curves/25_all_", tmethod, "_", 
                  tdf,  ifelse(log, "_log", ""), ".pdf")
       plotdf = alldf %>% filter(df == tdf & method == tmethod)
       g = ggplot(data=plotdf, aes(x=mid, y=propcase)) + theme(aspect.ratio=1) + 
@@ -180,31 +180,30 @@ for(tdf in names(unweighted$metrics$calibration)){
   }
 }
 
+# Calibration metrics
+df = resample$metrics$calibration_curves$all
+pred = df$mid
+obs = df$propcase
+n = df$N
+n1 = df$Ncase
 
-# \begin{table}[ht]
-# \centering
-# \begin{tabular}{rrrr}
-# \hline
-# & N & Ncases & propcases \\ 
-# \hline
-# all & 502849.00 & 2849.00 & 0.01 \\ 
-# cc & 1571.00 & 12.00 & 0.01 \\ 
-# all\_0\_5 & 83640.00 & 286.00 & 0.00 \\ 
-# all\_5\_10 & 133193.00 & 369.00 & 0.00 \\ 
-# all\_10\_30 & 163373.00 & 1122.00 & 0.01 \\ 
-# all\_30\_100 & 121072.00 & 1060.00 & 0.01 \\ 
-# lab\_vars\_0\_6 & 89372.00 & 304.00 & 0.00 \\ 
-# lab\_vars\_6\_14 & 165220.00 & 593.00 & 0.00 \\ 
-# lab\_vars\_14\_33 & 120373.00 & 843.00 & 0.01 \\ 
-# lab\_vars\_33\_100 & 88946.00 & 444.00 & 0.00 \\ 
-# lab\_vars\_100\_101 & 38938.00 & 665.00 & 0.02 \\ 
-# charlson\_vars\_0\_1 & 495273.00 & 2537.00 & 0.01 \\ 
-# charlson\_vars\_1\_101 & 7576.00 & 312.00 & 0.04 \\ 
-# demo\_vars\_0\_1 & 416583.00 & 2244.00 & 0.01 \\ 
-# demo\_vars\_1\_101 & 86266.00 & 605.00 & 0.01 \\ 
-# other\_vars\_0\_101 & 502849.00 & 2849.00 & 0.01 \\ 
-# smoke\_vars\_0\_50 & 284455.00 & 2044.00 & 0.01 \\ 
-# smoke\_vars\_50\_101 & 218394.00 & 805.00 & 0.00 \\ 
-# \hline
-# \end{tabular}
-# \end{table}
+cor.test(pred[1:50], obs[1:50], method="spearman")
+cor.test(pred[1:50], obs[1:50], method="pearson")
+
+o1 = n1
+o0 = n-n1
+e1 = pred*n
+e0 = n-e1
+
+H51 = sum(((o1-e1)^2/e1 + (o0-e0)^2/e0))
+df51 = 49
+p51 = pchisq(H51, df51, lower.tail=F)
+H50 = sum(((o1-e1)^2/e1 + (o0-e0)^2/e0)[1:50])
+df50 = 48
+p50 = pchisq(H50, df50, lower.tail=F)
+
+# variable importance
+imp = xgboost::xgb.importance(model=resample$xgb_fit)
+which.max(imp$Feature == "smoke_current")
+which.max(imp$Feature == "smoke_former")
+which.max(imp$Feature == "HIV")

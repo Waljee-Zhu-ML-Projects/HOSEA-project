@@ -11,3 +11,4 @@
 *.thm
 .DS_Store
 .Rproj.user
+/hosea-package

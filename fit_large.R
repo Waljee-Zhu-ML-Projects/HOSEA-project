@@ -12,6 +12,9 @@ complete_data = readRDS('R_data/complete_data_raw.rds')
 complete_data$n_visits = NULL 
 cc_test <- readRDS('R_data/cc_complete_data.rds')
 
+n0all = (complete_data$CaseControl==0)%>%sum
+n1all = (complete_data$CaseControl==1)%>%sum
+
 # replciability
 set.seed(0)
 n_quantiles = 10000
@@ -23,6 +26,7 @@ log = function(df) cat(paste("Full data set: ", nrow(df), "observations,",
 
 # subsampling of controls
 n_controls = 2e6
+set.seed(0)
 sub_complete_data = subsample_controls(complete_data, n_controls)
 log(sub_complete_data)
 rm(complete_data)
@@ -39,10 +43,10 @@ log(train)
 log(test)
 
 # prepare stuff
-ns = c(1e6)
+ns = c(1e5)
 # ns = c(1e4, 2e4, 5e4, 1e5, 2e5, 5e5)
 methods = c(
-  "resample",
+  "resample"
   # "unweighted",
   # "weighted",
   # "weighted_sqrt"
@@ -102,6 +106,7 @@ for(n in ns){
       "weighted_sqrt" = sqrt(n0/n1),
       "weighted_sq" = (n0/n1)^2
     )
+    param_xg$scale_pos_weight = n0all/n1all
     xgb_fit = xgb.train(param_xg,
                         dwatchlist$train,
                         nrounds=5000,
@@ -130,7 +135,7 @@ for(n in ns){
                    classification=threshold_metrics,
                    calibration_curves=calibration_curves)
     )
-    filepath = paste0("R_data/results/models/", method, "_n", n, ".rds")
+    filepath = paste0("R_data/results/models45/", method, "_n", n, ".rds")
     saveRDS(out, filepath)
   }
 }
