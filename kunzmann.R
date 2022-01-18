@@ -6,6 +6,7 @@ source('R_code/hosea-project/utils_xgb.R')
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/classification_metrics.R')
 source('R_code/hosea-project/evaluation_split.R')
+source('R_code/hosea-project/screening_guidelines.R')
 
 # import data
 complete_data = readRDS('R_data/complete_data_raw.rds')
@@ -20,12 +21,17 @@ set.seed(0)
 complete_data = train_test_split(df=complete_data, weights=c(3, 1))[[2]]
 
 # subset to complete cases
+complete_data$White = !(complete_data$Asian | complete_data$Black | 
+                          complete_data$HawaiianPacific | complete_data$IndianAlaskan)
+complete_data$smoke_ever = complete_data$smoke_current | complete_data$smoke_former
+
 complete_cases = !(
   is.na(complete_data$Gender) |
     is.na(complete_data$ageatindex) |
     is.na(complete_data$smoke_former) |
     is.na(complete_data$smoke_current) |
     is.na(complete_data$bmi) |
+    is.na(complete_data$White) |
     is.na(complete_data$GerdAtIndex) |
     is.na(complete_data$h2r_max) |
     is.na(complete_data$ppi_max)
@@ -38,7 +44,8 @@ log(test_complete)
 # the following keeps only the required info for kunzmann or hunt
 
 # variables
-df = test_complete[, c("ID", "CaseControl", "smoke_current", "smoke_former", "Gender", "GerdAtIndex")]
+df = test_complete[, c("ID", "CaseControl", "smoke_current", "smoke_former", "Gender", 
+                       "GerdAtIndex", "White", "smoke_ever", "bmi", "ageatindex")]
 df$k_age_bin = 
   relevel(cut(test_complete$ageatindex, breaks=c(0, 50, 55, 60, 65, 100)), ref="(50,55]")
 df$k_bmi_bin = cut(test_complete$bmi, breaks=c(0, 25, 30, 35, 100))
@@ -54,7 +61,8 @@ df$k_ec = pmax(
   test_complete$GerdAtIndex
 ) > 0
 
-
+test_complete$White = NULL
+test_complete$smoke_ever = NULL
 # Kunzmann score
 kunzmann_score = function(df){
   score = 0
@@ -84,6 +92,22 @@ hunt_score = function(df){
   return(score/100000)
 }
 hscores = hunt_score(df)
+# screening guidelines
+screening = function(df){
+  screenings = dplyr::mutate(df, 
+                             ACG2016     = Gender & GerdAtIndex & ( (ageatindex>=50) + (White) + (bmi>30) + (smoke_ever) > 1),
+                             ACG2022     = GerdAtIndex & ( (Gender) & (ageatindex>=50) + (White) + (bmi>30) + (smoke_ever) > 2),
+                             ACP2012     = Gender & GerdAtIndex & (ageatindex>=50) & ( (bmi>30) + (smoke_ever) > 0),
+                             AGA2011     = ( (GerdAtIndex) & (Gender) & (ageatindex>=50) + (White) + (bmi>30) > 1),
+                             AGA_CPU2022 = ( (GerdAtIndex) & (Gender) & (ageatindex>=50) + (White) + (bmi>30) + (smoke_ever) > 2),
+                             ASGE2019    = GerdAtIndex & ( (Gender) & (ageatindex>=50) + (bmi>30) + (smoke_ever) > 0),
+                             BSG2013     = GerdAtIndex & ( (Gender) & (ageatindex>=50) + (White) + (bmi>30) > 2),
+                             ESGE2017    = GerdAtIndex & ( (Gender) & (ageatindex>=50) + (White) + (bmi>30) > 1)
+  )
+  return(screenings)
+}
+scores = screening(df)
+guidelines = tail(colnames(scores), 8)
 
 # AUCs
 y = df$CaseControl
@@ -113,11 +137,34 @@ cdf = rbind(cdf, curves)
 curves = data.frame(h_roc$curve[, 1:2], "HUNT")
 colnames(curves) = c("fpr", "recall", "method")
 cdf = rbind(cdf, curves)
+cdf$label = ""
+
+# guideline points
+guide_roc = data.frame(t(sapply(guidelines,
+                   function(g) PRROC::roc.curve(
+                     scores %>% select(g) %>% subset(y==1) %>% pull(g), 
+                     scores %>% select(g) %>% subset(y==0) %>% pull(g),
+                     curve=TRUE)$curve[2, 1:2]
+)))
+colnames(guide_roc) = c("fpr", "recall")
+guide_roc$method = "guideline"
+guide_roc$label = rownames(guide_roc)
+
+xs = seq(0.1, 0.6, length.out=8)
+ys = seq(0.0, 0.4, length.out=8)
+
+guide_roc$xlab = xs[order(guide_roc$fpr)]
+guide_roc$ylab = ys[order(guide_roc$fpr)]
 
 library(ggplot2)
+library(ggrepel)
 filepath = paste0("R_code/hosea-project/figures/xgb_kunzmann_hunt_roc.pdf")
 g = ggplot(data=cdf, aes(x=fpr, y=recall, color=method)) + geom_line() +
   theme(aspect.ratio=1) +
   xlab("1 - Specificity") + ylab("Sensitivity") + 
-  geom_abline(intercept=0, slope=1, linetype="dotted")
+  geom_abline(intercept=0, slope=1, linetype="dotted") +
+  geom_point(data=guide_roc)
+g  +
+  geom_segment(data=guide_roc, aes(x=fpr, xend=xlab, y=recall, yend=ylab)) + 
+  geom_label(data=guide_roc, aes(label=label, x=xlab, y=ylab), size=3)
 ggsave(filepath, g, width=8, height=7)
