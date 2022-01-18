@@ -92,6 +92,9 @@ hunt_score = function(df){
   return(score/100000)
 }
 hscores = hunt_score(df)
+
+CalibrationCurves::val.prob.ci.2(hscores, y, smooth="rcs")
+
 # screening guidelines
 screening = function(df){
   screenings = dplyr::mutate(df, 
@@ -164,7 +167,7 @@ g = ggplot(data=cdf, aes(x=fpr, y=recall, color=method)) + geom_line() +
   xlab("1 - Specificity") + ylab("Sensitivity") + 
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   geom_point(data=guide_roc)
-g  +
+g = g +
   geom_segment(data=guide_roc, aes(x=fpr, xend=xlab, y=recall, yend=ylab)) + 
   geom_label(data=guide_roc, aes(label=label, x=xlab, y=ylab), size=3)
 ggsave(filepath, g, width=8, height=7)
