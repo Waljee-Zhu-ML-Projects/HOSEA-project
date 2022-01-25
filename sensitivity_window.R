@@ -1,8 +1,8 @@
 setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 library(dplyr)
+library(xgboost)
 library(magrittr)
 library(ggplot2)
-library(ggrepel)
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
 
@@ -10,8 +10,8 @@ source('R_code/hosea-project/utils_subsample.R')
 # paths and parameters
 dir_path = "R_data/processed_records/"
 dir_results = "R_data/sensitivity_window/"
-dir_figures = "R_code/hosea-project/sensitivity_window/"
-model_path = "R_data/results/models/resample_nall.rds"
+dir_figures = "R_code/hosea-project/figures/sensitivity_window/"
+model_path = "R_data/results/models/finalMP_resample_nall.rds"
 method = "resample"
 
 # =========================================================
@@ -99,7 +99,8 @@ g = ggplot(data=curves %>% filter(window %in% names(rocs)[1:4]),
   theme(aspect.ratio=1) +
   xlab("1 - Specificity") + ylab("Sensitivity") + 
   geom_abline(intercept=0, slope=1, linetype="dotted") +
-  labs(color="Window")
+  labs(color="Window") +
+  ggtitle("Sensitivity analysis: [5-x] prediction window")
 ggsave(filepath, g, width=9, height=7)
 
 # x-1 curves
@@ -110,7 +111,8 @@ g = ggplot(data=curves %>% filter(window %in% names(rocs)[4:7]),
   theme(aspect.ratio=1) +
   xlab("1 - Specificity") + ylab("Sensitivity") + 
   geom_abline(intercept=0, slope=1, linetype="dotted")+
-  labs(color="Window")
+  labs(color="Window") +
+  ggtitle("Sensitivity analysis: [x-1] prediction window")
 ggsave(filepath, g, width=9, height=7)
 
 
