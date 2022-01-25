@@ -169,7 +169,6 @@ guide_roc$xlab = c(.1, .2, .3, .4, .5, .6, .8, .9)
 guide_roc$ylab = c(.15, .2, .25, .3, .35, .4, .85, .9)
 
 library(ggplot2)
-library(ggrepel)
 filepath = paste0("R_code/hosea-project/figures/xgb_kunzmann_hunt_screening_roc.pdf")
 g = ggplot(data=cdf, aes(x=fpr, y=recall, color=method)) + geom_line() +
   theme(aspect.ratio=1) +
