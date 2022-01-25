@@ -80,6 +80,9 @@ kunzmann_score = function(df){
 }
 kscores = kunzmann_score(df)
 
+kpred = as.numeric(kscores >= 8)
+table(kpred, y)
+
 hunt_score = function(df){
   score = 3.6
   score = score * ifelse(df$Gender, 1.9, 1.)
@@ -93,24 +96,31 @@ hunt_score = function(df){
 }
 hscores = hunt_score(df)
 
-CalibrationCurves::val.prob.ci.2(hscores, y, smooth="rcs")
 
 # screening guidelines
-screening = function(df){
-  screenings = dplyr::mutate(df, 
-                             ACG2016     = Gender & GerdAtIndex & ( (ageatindex>=50) + (White) + (bmi>30) + (smoke_ever) > 1),
-                             ACG2022     = GerdAtIndex & ( (Gender) & (ageatindex>=50) + (White) + (bmi>30) + (smoke_ever) > 2),
-                             ACP2012     = Gender & GerdAtIndex & (ageatindex>=50) & ( (bmi>30) + (smoke_ever) > 0),
-                             AGA2011     = ( (GerdAtIndex) & (Gender) & (ageatindex>=50) + (White) + (bmi>30) > 1),
-                             AGA_CPU2022 = ( (GerdAtIndex) & (Gender) & (ageatindex>=50) + (White) + (bmi>30) + (smoke_ever) > 2),
-                             ASGE2019    = GerdAtIndex & ( (Gender) & (ageatindex>=50) + (bmi>30) + (smoke_ever) > 0),
-                             BSG2013     = GerdAtIndex & ( (Gender) & (ageatindex>=50) + (White) + (bmi>30) > 2),
-                             ESGE2017    = GerdAtIndex & ( (Gender) & (ageatindex>=50) + (White) + (bmi>30) > 1)
-  )
-  return(screenings)
-}
-scores = screening(df)
+scores = df %>% mutate( 
+   ACG2016     = Gender & GerdAtIndex & ( ((ageatindex>=50) + (White) + (bmi>30) + (smoke_ever) ) > 1),
+   ACG2022     = GerdAtIndex & ( (Gender + (ageatindex>=50) + (White) + (bmi>30) + (smoke_ever) ) > 2),
+   ACP2012     = Gender & GerdAtIndex & (ageatindex>=50) & ( ((bmi>30) + (smoke_ever) ) > 0),
+   AGA2011     = ( GerdAtIndex + Gender + (ageatindex>=50) + (White) + (bmi>30) ) > 1,
+   AGA_CPU2022 = ( GerdAtIndex + Gender + (ageatindex>=50) + (White) + (bmi>30) + (smoke_ever) ) > 2,
+   ASGE2019    = GerdAtIndex & ( (Gender + (ageatindex>=50) + (bmi>30) + (smoke_ever) ) > 0),
+   BSG2013     = GerdAtIndex & ( (Gender + (ageatindex>=50) + (White) + (bmi>30) ) > 2),
+   ESGE2017    = GerdAtIndex & ( (Gender + (ageatindex>=50) + (White) + (bmi>30) ) > 1)
+)
+scores %>% select(CaseControl, guidelines) %>% group_by(CaseControl) %>% summarise_all(sum)
 guidelines = tail(colnames(scores), 8)
+
+Hmisc::describe(df %>% select(-c(ID, bmi, ageatindex)))
+
+n_risk_factors = df %>% 
+  mutate(n_risk_factors=Gender+GerdAtIndex+(ageatindex>=50) + (White) + (bmi>30) + (smoke_ever)) %>%
+  group_by(CaseControl, n_risk_factors) %>%
+  summarize(n=n())
+
+scores %>% select(guidelines) %>% colSums()
+
+rbind(n_risk_factors, p_risk_factors)
 
 # AUCs
 y = df$CaseControl
@@ -153,15 +163,13 @@ colnames(guide_roc) = c("fpr", "recall")
 guide_roc$method = "guideline"
 guide_roc$label = rownames(guide_roc)
 
-xs = seq(0.1, 0.6, length.out=8)
-ys = seq(0.0, 0.4, length.out=8)
+guide_roc %<>% arrange(fpr)
 
-guide_roc$xlab = xs[order(guide_roc$fpr)]
-guide_roc$ylab = ys[order(guide_roc$fpr)]
+guide_roc$xlab = c(.1, .2, .3, .4, .5, .6, .8, .9)
+guide_roc$ylab = c(.15, .2, .25, .3, .35, .4, .85, .9)
 
 library(ggplot2)
-library(ggrepel)
-filepath = paste0("R_code/hosea-project/figures/xgb_kunzmann_hunt_roc.pdf")
+filepath = paste0("R_code/hosea-project/figures/xgb_kunzmann_hunt_screening_roc.pdf")
 g = ggplot(data=cdf, aes(x=fpr, y=recall, color=method)) + geom_line() +
   theme(aspect.ratio=1) +
   xlab("1 - Specificity") + ylab("Sensitivity") + 
