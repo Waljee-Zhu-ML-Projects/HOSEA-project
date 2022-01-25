@@ -1,0 +1,116 @@
+setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(ggrepel)
+source('R_code/hosea-project/compute_quantiles.R')
+source('R_code/hosea-project/utils_subsample.R')
+
+# =========================================================
+# paths and parameters
+dir_path = "R_data/processed_records/"
+dir_results = "R_data/sensitivity_window/"
+dir_figures = "R_code/hosea-project/sensitivity_window/"
+model_path = "R_data/results/models/resample_nall.rds"
+method = "resample"
+
+# =========================================================
+# read in model
+results = readRDS(model_path)
+xgb_fit = results$xgb_fit
+quantiles = results$quantiles
+test_ids = results$test_ids
+rm(results); gc()
+
+# # patch for development
+# set.seed(0)
+# n_quantiles = 10000
+# out = train_test_split(df=df, weights=c(3, 1))
+# train = out[[1]]
+# test = out[[2]]
+# set.seed(0)
+# out = train_test_split(df=train, weights=c(2, 1))
+# train_n = out[[1]]
+# valid_n = out[[2]]
+# train_ = switch(method,
+#                 "downsample" = subsample_controls(train_n, n1),
+#                 "resample" = balanced_resample(train_n),
+#                 "unweighted" = train_n,
+#                 "weighted" = balanced_resample(train_n),
+#                 "weighted_sqrt" = balanced_resample(train_n),
+#                 "weighted_sq" = balanced_resample(train_n)
+# )
+# quantiles = compute_quantiles(train_n, n_quantiles)
+# test_ids = test$ID
+# rm(out, train, test, train_n, valid_n, train_); gc()
+
+# =========================================================
+# get results for all windows
+y0s = c(5, 5, 5, 5, 4, 3, 2)
+y1s = c(4, 3, 2, 1, 1, 1, 1)
+rocs = list()
+
+for(i in seq(7)){
+  start = -y0s[i]; end = -y1s[i]
+  window = paste0("[", y0s[i], "-", y1s[i], "]")
+  file_path = paste0(dir_path, start, "-", end, ".rds")
+  # read in data
+  df = readRDS(file_path)
+  # subset to test set
+  df %<>% filter(ID %in% test_ids)
+  # imputation
+  set.seed(0)
+  df = impute_srs(df, quantiles)
+  # ensure correct column ordering for xgb model
+  df %<>% select(c(ID, CaseControl, xgb_fit$feature_names))
+  y = df$CaseControl
+  # convert to xgb format
+  df = xgb.DMatrix(as.matrix(df[-c(1,2)]),
+                        label=df$CaseControl)
+  # get predicted risk and ROC curve
+  proba = predict(xgb_fit, newdata=df)
+  fg = proba[y==1]; bg = proba[y==0]
+  roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
+  roc$curve = roc$curve[seq(1, nrow(roc$curve), by=1000), ]
+  rocs[[window]] = roc
+}
+
+# =========================================================
+# post processing
+aucs = sapply(rocs, function(roc) roc$auc)
+curves = lapply(seq_along(rocs), function(i){
+  curve = data.frame(rocs[[i]]$curve)
+  colnames(curve) = c("fpr", "recall", "threshold")
+  nm = names(rocs)[i]
+  curve$window = nm
+  curve$label = paste0(nm, " (AUC=", round(aucs[nm], 3), ")")
+  curve
+})
+curves %<>% bind_rows()
+
+# =========================================================
+# plot ROC curves
+
+# 5-x curves
+filepath = paste0(dir_figures, "roc_curves_5-x.pdf")
+g = ggplot(data=curves %>% filter(window %in% names(rocs)[1:4]), 
+           aes(x=fpr, y=recall, color=label)) + 
+  geom_line() +
+  theme(aspect.ratio=1) +
+  xlab("1 - Specificity") + ylab("Sensitivity") + 
+  geom_abline(intercept=0, slope=1, linetype="dotted") +
+  labs(color="Window")
+ggsave(filepath, g, width=9, height=7)
+
+# x-1 curves
+filepath = paste0(dir_figures, "roc_curves_x-1.pdf")
+g = ggplot(data=curves %>% filter(window %in% names(rocs)[4:7]), 
+           aes(x=fpr, y=recall, color=label)) + 
+  geom_line() +
+  theme(aspect.ratio=1) +
+  xlab("1 - Specificity") + ylab("Sensitivity") + 
+  geom_abline(intercept=0, slope=1, linetype="dotted")+
+  labs(color="Window")
+ggsave(filepath, g, width=9, height=7)
+
+

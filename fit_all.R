@@ -8,7 +8,7 @@ source('R_code/hosea-project/classification_metrics.R')
 source('R_code/hosea-project/evaluation_split.R')
 
 # import data
-complete_data = readRDS('R_data/complete_data_raw.rds')
+complete_data = readRDS('R_data/processed_records/-5--1.rds')
 complete_data$n_visits = NULL
 cc_test <- readRDS('R_data/cc_complete_data.rds')
 
@@ -39,8 +39,7 @@ log(test)
 
 # prepare stuff
 methods = c(
-  "resample",
-  "unweighted"
+  "resample"
   # "weighted",
   # "weighted_sqrt"
 )
@@ -49,7 +48,8 @@ param_xg = list(
   subsample = 0.2,
   eta = .05,
   objective = 'binary:logistic',
-  eval_metric = 'auc'
+  eval_metric = 'auc',
+  nthread=-1
 )
 
 # loop
@@ -67,6 +67,7 @@ for(method in methods){
   cat("===================================================================", fill=T)
   cat(paste0("===== method = ", method, ", n = ", n), fill=T)
   cat("===================================================================", fill=T)
+  timestamp()
   # produce training set
   train_ = switch(method,
                  "downsample" = subsample_controls(train_n, n1),
@@ -109,36 +110,39 @@ for(method in methods){
                       verbose=1,print_every_n=100,
                       early_stopping_rounds=100)
   # prepare testing sets
-  test_sets = evaluation_split(test, test_)
-  test_sets_groups = split_by_vargoups(test, test_)
-  test_sets = append(test_sets, test_sets_groups)
-  rm(test_sets_groups); gc()
-  test_set_summaries = t(rbind(
-    N=sapply(test_sets, nrow),
-    Ncases=sapply(test_sets, function(df) sum(getinfo(df, "label"))),
-    propcases=sapply(test_sets, function(df) mean(getinfo(df, "label")))
-  ))
-  # evaluate
-  calibration_metrics = lapply(test_sets, function(df) calibration(xgb_fit, df))
-  thresholds = c(seq(0.00001, 0.000098, 0.000002), 
-                 seq(0.0001, 0.00098, 0.00002), 
-                 seq(0.001, 0.0098, 0.0002), 
-                 seq(0.01, 0.098, 0.002), 
-                 seq(0.10, 0.99, 0.01))
-  threshold_metrics = lapply(test_sets, function(df) 
-    classification_metrics(xgb_fit, df, thresholds))
-  calibration_curves = lapply(test_sets, function(df) calibration_curve(xgb_fit, df))
+  # test_sets = evaluation_split(test, test_)
+  # test_sets_groups = split_by_vargoups(test, test_)
+  # test_sets = append(test_sets, test_sets_groups)
+  # rm(test_sets_groups); gc()
+  # test_set_summaries = t(rbind(
+  #   N=sapply(test_sets, nrow),
+  #   Ncases=sapply(test_sets, function(df) sum(getinfo(df, "label"))),
+  #   propcases=sapply(test_sets, function(df) mean(getinfo(df, "label")))
+  # ))
+  # # evaluate
+  # calibration_metrics = lapply(test_sets, function(df) calibration(xgb_fit, df))
+  # thresholds = c(seq(0.00001, 0.000098, 0.000002), 
+  #                seq(0.0001, 0.00098, 0.00002), 
+  #                seq(0.001, 0.0098, 0.0002), 
+  #                seq(0.01, 0.098, 0.002), 
+  #                seq(0.10, 0.99, 0.01))
+  # threshold_metrics = lapply(test_sets, function(df) 
+  #   classification_metrics(xgb_fit, df, thresholds))
+  # calibration_curves = lapply(test_sets, function(df) calibration_curve(xgb_fit, df))
   # save
   out = list(
     xgb_fit=xgb_fit,
-    metrics=list(calibration=calibration_metrics, 
-                 classification=threshold_metrics,
-                 calibration_curves=calibration_curves),
-    test_sets=test_set_summaries
+    quantiles=quantiles,
+    test_ids=test_$ID
+    # metrics=list(calibration=calibration_metrics, 
+    #              classification=threshold_metrics,
+    #              calibration_curves=calibration_curves),
+    # test_sets=test_set_summaries
   )
-  filepath = paste0("R_data/results/models/", method, "_n", n, ".rds")
+  filepath = paste0("R_data/results/models/finalMP_", method, "_n", n, ".rds")
   saveRDS(out, filepath)
 }
+
 
 
 out=readRDS(filepath)
