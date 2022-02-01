@@ -6,14 +6,17 @@ source('R_code/hosea-project/utils_xgb.R')
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/classification_metrics.R')
 source('R_code/hosea-project/evaluation_split.R')
-
+library(HOSEA)
 # import data
-complete_data = readRDS('R_data/processed_records/-5--1.rds')
-complete_data$n_visits = NULL
+complete_data = readRDS('R_data/processed_records/5-1.rds')
+complete_data = patch_outcome(complete_data, which="EAC")
+complete_data = patch_outcome(complete_data, which="EGJAC")
+complete_data$ANY = complete_data$CaseControl
+outcomes = complete_data %>% select(c(ID, ANY, EAC, EGJAC))
+complete_data %<>% select(-c(ANY, EAC, EGJAC))
+# complete_data$n_visits = NULL
 cc_test <- readRDS('R_data/cc_complete_data.rds')
 
-n0all = (complete_data$CaseControl==0)%>%sum
-n1all = (complete_data$CaseControl==1)%>%sum
 
 # replciability
 set.seed(0)
@@ -25,6 +28,12 @@ log = function(df) cat(paste("Full data set: ", nrow(df), "observations,",
                              (df$CaseControl==0)%>%sum, "controls"), fill=T)
 
 
+# select outcome
+outcome = "EGJAC"
+complete_data$CaseControl = outcomes$EGJAC
+
+n0all = (complete_data$CaseControl==0)%>%sum
+n1all = (complete_data$CaseControl==1)%>%sum
 # train-test split
 # n_controls = 2e6
 # complete_data = subsample_controls(complete_data, n_controls)
@@ -57,6 +66,7 @@ n = "all"
 set.seed(0)
 out = train_test_split(df=train, weights=c(2, 1))
 rm(train);gc()
+rm(out);gc()
 train_n = out[[1]]
 valid_n = out[[2]]
 log(train_n)
@@ -139,7 +149,7 @@ for(method in methods){
     #              calibration_curves=calibration_curves),
     # test_sets=test_set_summaries
   )
-  filepath = paste0("R_data/results/models/finalMP_", method, "_n", n, ".rds")
+  filepath = paste0("R_data/results/models/finalMP_", method, "_n", n, "_d_EGJAC.rds")
   saveRDS(out, filepath)
 }
 

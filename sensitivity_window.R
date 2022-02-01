@@ -11,8 +11,7 @@ source('R_code/hosea-project/utils_subsample.R')
 dir_path = "R_data/processed_records/"
 dir_results = "R_data/sensitivity_window/"
 dir_figures = "R_code/hosea-project/figures/sensitivity_window/"
-model_path = "R_data/results/models/finalMP_resample_nall.rds"
-method = "resample"
+model_path = "R_data/results/models/finalMP_resample_nall_d.rds"
 
 # =========================================================
 # read in model
@@ -22,36 +21,14 @@ quantiles = results$quantiles
 test_ids = results$test_ids
 rm(results); gc()
 
-# # patch for development
-# set.seed(0)
-# n_quantiles = 10000
-# out = train_test_split(df=df, weights=c(3, 1))
-# train = out[[1]]
-# test = out[[2]]
-# set.seed(0)
-# out = train_test_split(df=train, weights=c(2, 1))
-# train_n = out[[1]]
-# valid_n = out[[2]]
-# train_ = switch(method,
-#                 "downsample" = subsample_controls(train_n, n1),
-#                 "resample" = balanced_resample(train_n),
-#                 "unweighted" = train_n,
-#                 "weighted" = balanced_resample(train_n),
-#                 "weighted_sqrt" = balanced_resample(train_n),
-#                 "weighted_sq" = balanced_resample(train_n)
-# )
-# quantiles = compute_quantiles(train_n, n_quantiles)
-# test_ids = test$ID
-# rm(out, train, test, train_n, valid_n, train_); gc()
-
 # =========================================================
 # get results for all windows
-y0s = c(5, 5, 5, 5, 4, 3, 2)
-y1s = c(4, 3, 2, 1, 1, 1, 1)
+y0s = c(5, 5, 5, 5, 4, 3, 2, 4)
+y1s = c(4, 3, 2, 1, 1, 1, 1, 2)
 rocs = list()
 
-for(i in seq(7)){
-  start = -y0s[i]; end = -y1s[i]
+for(i in c(2, 8, 6)){
+  start = y0s[i]; end = y1s[i]
   window = paste0("[", y0s[i], "-", y1s[i], "]")
   file_path = paste0(dir_path, start, "-", end, ".rds")
   # read in data
@@ -113,6 +90,20 @@ g = ggplot(data=curves %>% filter(window %in% names(rocs)[4:7]),
   geom_abline(intercept=0, slope=1, linetype="dotted")+
   labs(color="Window") +
   ggtitle("Sensitivity analysis: [x-1] prediction window")
+ggsave(filepath, g, width=9, height=7)
+
+
+
+# x-1 curves
+filepath = paste0(dir_figures, "roc_curves_2.pdf")
+g = ggplot(data=curves %>% filter(window %in% names(rocs)[1:3]), #[c(2, 8, 6)]), 
+           aes(x=fpr, y=recall, color=label)) + 
+  geom_line() +
+  theme(aspect.ratio=1) +
+  xlab("1 - Specificity") + ylab("Sensitivity") + 
+  geom_abline(intercept=0, slope=1, linetype="dotted")+
+  labs(color="Window") +
+  ggtitle("Sensitivity analysis: prediction window of length 2")
 ggsave(filepath, g, width=9, height=7)
 
 
