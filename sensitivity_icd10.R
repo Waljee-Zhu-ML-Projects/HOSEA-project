@@ -30,12 +30,12 @@ master = df %>% transmute(
   end=IndexDate + end * 365 + 1
 )
 maxenddate = 17229
-freq = master %>% group_by(end) %>% summarize(count=n())
-g = ggplot(freq, aes(x=end, y=count)) + 
+freq = master %>% group_by(end, case) %>% summarize(count=n())
+g = ggplot(freq, aes(x=end, y=count, color=case)) + 
   geom_bar(stat="identity") +
   scale_y_continuous(trans="log10") + 
-  geom_vline(xintercept=c(0, -365*3) + maxenddate, 
-             color="red", linetype="dashed")
+  geom_vline(xintercept=365*seq(-10, 3) + maxenddate, 
+             color="black", linetype="dashed")
 ggsave(g, file=paste0(dir_figures, "histogram.pdf"),
        width=9, height=5)
 
