@@ -7,6 +7,7 @@ library(ggridges)
 library(HOSEA)
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
+source('R_code/hosea-project/utils_kunzmann_hunt.R')
 
 # =========================================================
 # paths and parameters
@@ -30,11 +31,10 @@ models = lapply(model_names, function(file){
 # =========================================================
 # read in data
 df = readRDS(data_path)
-# subset to test set
-df %<>% filter(ID %in% test_ids)
-# ensure correct column ordering for xgb model
-df %<>% select(c(ID, CaseControl, xgb_fit$feature_names))
 
+# subset to complete cases for HUNT/Kunzmann
+complete_cases = get_complete_cases(df)
+df %<>% filter(ID %in% complete_cases)
 
 # =========================================================
 # get outcomes (NB see also HOSEA::patch_outcome())
@@ -59,8 +59,23 @@ df %<>% left_join(outcomes, by="ID")
 rocs = list()
 for(outcome in outcome_names){
   rocs[[outcome]] = list()
+  probas = list()
   # move outcome into CaseControl
   df %<>% mutate(CaseControl:=!!sym(outcome))
+  dff = df %>% filter(ID %in% models[[1]]$test_ids)
+  # HUNT
+  proba = hunt_score(dff)
+  y = dff$CaseControl
+  fg = proba[y==1]; bg = proba[y==0]
+  roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
+  rocs[[outcome]][["HUNT"]] = roc
+  # Kunzmann
+  proba = kunzmann_score(dff)
+  y = dff$CaseControl
+  fg = proba[y==1]; bg = proba[y==0]
+  roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
+  rocs[[outcome]][["Kunzmann"]] = roc
+  # XGBoost
   for(name in names(models)){
     dff = df %>% filter(ID %in% models[[name]]$test_ids)
     set.seed(0)
@@ -71,6 +86,7 @@ for(outcome in outcome_names){
                      label=dff$CaseControl)
     # get predicted risk and ROC curve
     proba = predict(models[[name]]$xgb_fit, newdata=dff)
+    probas[[name]] = proba
     fg = proba[y==1]; bg = proba[y==0]
     roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
     roc$curve = roc$curve[seq(1, nrow(roc$curve), by=1000), ]
@@ -86,7 +102,7 @@ xtable::xtable(aucs, digits=3)
 # columns = outcome, rows = models
 curves = list()
 for(outcome in outcome_names){
-  for(name in names(models)){
+  for(name in names(rocs[[outcome]])){
     curve = data.frame(rocs[[outcome]][[name]]$curve)
     colnames(curve) = c("fpr", "recall", "threshold")
     curve$outcome = outcome
@@ -99,12 +115,15 @@ curves %<>% bind_rows()
 
 # =========================================================
 # plot
-filepath = paste0(dir_figures, "roc_curves_outcome_model.pdf")
-g = ggplot(data=curves, 
-           aes(x=fpr, y=recall, color=outcome, linetype=model)) + 
-  geom_line() +
-  theme(aspect.ratio=1) +
-  xlab("1 - Specificity") + ylab("Sensitivity") + 
-  geom_abline(intercept=0, slope=1, linetype="dotted") +
-  ggtitle("Sensitivity analysis: Cancer type")
-ggsave(filepath, g, width=9, height=7)
+for(outcome in outcome_names){
+  filepath = paste0(dir_figures, paste0("roc_curves_", outcome, "_model.pdf"))
+  tmp = curves %>% filter(outcome==!!outcome)
+  g = ggplot(data=tmp, 
+             aes(x=fpr, y=recall, color=model)) + 
+    geom_line() +
+    theme(aspect.ratio=1) +
+    xlab("1 - Specificity") + ylab("Sensitivity") + 
+    geom_abline(intercept=0, slope=1, linetype="dotted") +
+    ggtitle(paste0("Sensitivity analysis: Cancer type ", outcome))
+  ggsave(filepath, g, width=9, height=7)
+}
