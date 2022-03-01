@@ -3,25 +3,26 @@ library(dplyr)
 library(xgboost)
 library(magrittr)
 library(ggplot2)
-library(ggridges)
+library(pdp)
 library(HOSEA)
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
-source('R_code/hosea-project/utils_kunzmann_hunt.R')
+source('R_code/hosea-project/classification_metrics.R')
 
 # =========================================================
 # paths and parameters
-data_path = "R_data/processed_records/5-1.rds"
-outcome_path = "unzipped_data/cancertype.rds"
-dir_figures = "R_code/hosea-project/figures/sensitivity_cancertype/"
+dir_path = "R_data/processed_records/"
 dir_model = "R_data/results/models/"
+dir_figures = "R_code/hosea-project/figures/"
+dir_results = "R_data/results/analyses/"
+outcome_path = "R_data/processed_records/outcome.rds"
 
 # =========================================================
 # read in models
 model_names = c(
-  ANY="finalMP_resample_nall_d.rds",
-  EAC="finalMP_resample_nall_d_EAC.rds",
-  EGJAC="finalMP_resample_nall_d_EGJAC.rds"
+  ANY="1M_ANY.rds",
+  EAC="1M_EAC.rds",
+  EGJAC="1M_EGJAC.rds"
 )
 models = lapply(model_names, function(file){
   results = readRDS(paste0(dir_model, file))
@@ -30,51 +31,31 @@ models = lapply(model_names, function(file){
 
 # =========================================================
 # read in data
-df = readRDS(data_path)
-
-# subset to complete cases for HUNT/Kunzmann
-complete_cases = get_complete_cases(df)
-df %<>% filter(ID %in% complete_cases)
+file_path = paste0(dir_path, "5-1.rds")
+df = readRDS(file_path)
+master = df$master
+df = df$df
+repeated = table(master$ID)
+repeated = names(repeated)[repeated>1]
+df %<>% filter(!((ID %in% repeated) & (CaseControl==0)))
 
 # =========================================================
 # get outcomes (NB see also HOSEA::patch_outcome())
-outcomes_raw = readRDS(outcome_path)
-ids = df %>% select(ID)
-outcomes = ids %>% left_join(outcomes_raw %>% select(ID, CancerType), by="ID")
-outcomes %<>% mutate(CancerType=ifelse(is.na(CancerType), "None", CancerType))
-outcomes %<>% mutate(
-  ANY=ifelse(CancerType=="None", 0, 1),
-  EAC=ifelse(CancerType=="EAC", 1, 0),
-  EGJAC=ifelse(CancerType=="EGJAC", 1, 0)
-)
-# check
-outcomes %>% select(-c(ID, CancerType)) %>% colSums()
-outcome_names = c("ANY", "EAC", "EGJAC")
+outcomes = readRDS(outcome_path)
+outcomes %<>% select(-stagegroupclinical)
 # merge into df
 df %<>% left_join(outcomes, by="ID")
+outcome_names = c("ANY", "EAC", "EGJAC")
 
 # =========================================================
 # get ROC curves
-
+probas = list()
 rocs = list()
 for(outcome in outcome_names){
   rocs[[outcome]] = list()
-  probas = list()
+  probas[[outcome]] = list()
   # move outcome into CaseControl
   df %<>% mutate(CaseControl:=!!sym(outcome))
-  dff = df %>% filter(ID %in% models[[1]]$test_ids)
-  # HUNT
-  proba = hunt_score(dff)
-  y = dff$CaseControl
-  fg = proba[y==1]; bg = proba[y==0]
-  roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
-  rocs[[outcome]][["HUNT"]] = roc
-  # Kunzmann
-  proba = kunzmann_score(dff)
-  y = dff$CaseControl
-  fg = proba[y==1]; bg = proba[y==0]
-  roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
-  rocs[[outcome]][["Kunzmann"]] = roc
   # XGBoost
   for(name in names(models)){
     dff = df %>% filter(ID %in% models[[name]]$test_ids)
@@ -82,11 +63,11 @@ for(outcome in outcome_names){
     dff %<>% impute_srs(models[[name]]$quantiles)
     dff %<>% select(c(ID, CaseControl, models[[name]]$xgb_fit$feature_names))
     y = dff$CaseControl
-    dff = xgb.DMatrix(as.matrix(dff[-c(1,2)]),
+    dff = xgb.DMatrix(as.matrix(dff%>% select(xgb_fit$feature_names)),
                      label=dff$CaseControl)
     # get predicted risk and ROC curve
     proba = predict(models[[name]]$xgb_fit, newdata=dff)
-    probas[[name]] = proba
+    probas[[outcome]][[name]] = data.frame(proba=proba, y=y)
     fg = proba[y==1]; bg = proba[y==0]
     roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
     roc$curve = roc$curve[seq(1, nrow(roc$curve), by=1000), ]
@@ -116,7 +97,7 @@ curves %<>% bind_rows()
 # =========================================================
 # plot
 for(outcome in outcome_names){
-  filepath = paste0(dir_figures, paste0("roc_curves_", outcome, "_model.pdf"))
+  filepath = paste0(dir_figures, paste0("roc_", outcome, ".pdf"))
   tmp = curves %>% filter(outcome==!!outcome)
   g = ggplot(data=tmp, 
              aes(x=fpr, y=recall, color=model)) + 
@@ -127,3 +108,42 @@ for(outcome in outcome_names){
     ggtitle(paste0("Sensitivity analysis: Cancer type ", outcome))
   ggsave(filepath, g, width=9, height=7)
 }
+
+# =========================================================
+# plot risk distribution
+for(outcome in outcome_names){
+  filepath = paste0(dir_figures, paste0("risk_test", outcome, ".pdf"))
+  tmpprobas = lapply(names(probas[[outcome]]), function(nm) {
+    tmpdf = probas[[outcome]][[nm]]
+    tmpdf$model = nm
+    tmpdf
+  })
+  tmp = tmpprobas %>% bind_rows()
+  tmp %<>% filter(y==1)
+  g = ggplot(data=tmp, aes(x=proba*100000, colour=model, fill=model)) + 
+    geom_density(alpha=0.2) + xlab("Predicted risk (/100,000)") +
+    ylab("Density") + scale_x_continuous(trans="log10") + 
+    ggtitle(paste0("Risk distribution: Test ", outcome))
+  ggsave(filepath, g, width=9, height=7)
+}
+
+
+for(trainnm in outcome_names){
+  filepath = paste0(dir_figures, paste0("risk_train", trainnm, ".pdf"))
+  tmpprobas = lapply(outcome_names, function(nm) {
+    tmpdf = probas[[nm]][[trainnm]]
+    tmpdf$outcome = nm
+    tmpdf
+  })
+  tmp = tmpprobas %>% bind_rows()
+  tmp %<>% filter(y==1)
+  g = ggplot(data=tmp, aes(x=proba*100000, colour=outcome, fill=outcome)) + 
+    geom_density(alpha=0.2) + xlab("Predicted risk (/100,000)") +
+    ylab("Density") + scale_x_continuous(trans="log10") + 
+    ggtitle(paste0("Risk distribution: Train ", trainnm))
+  ggsave(filepath, g, width=9, height=7)
+}
+
+
+
+

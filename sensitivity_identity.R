@@ -5,12 +5,14 @@ library(magrittr)
 library(ggplot2)
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
+source('R_code/hosea-project/classification_metrics.R')
 
 # =========================================================
 # paths and parameters
 dir_path = "R_data/processed_records/"
-dir_figures = "R_code/hosea-project/figures/sensitivity_identity/"
-model_path = "R_data/results/models/finalMP_resample_nall_d.rds"
+dir_figures = "R_code/hosea-project/figures/"
+dir_results = "R_data/results/analyses/"
+model_path = "R_data/results/models/final_model_all.rds"
 
 # =========================================================
 # read in model
@@ -24,11 +26,19 @@ rm(results); gc()
 # read in data
 file_path = paste0(dir_path, "5-1.rds")
 df = readRDS(file_path)
+master = df$master
+df = df$df
+repeated = table(master$ID)
+repeated = names(repeated)[repeated>1]
+df %<>% filter(!((ID %in% repeated) & (CaseControl==0)))
 # subset to test set
 df %<>% filter(ID %in% test_ids)
 # imputation
 set.seed(0)
 df = impute_srs(df, quantiles)
+
+xgb_df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
+                     label=df$CaseControl)
 
 # =========================================================
 # function to get ROC from a df
@@ -37,7 +47,7 @@ get_roc = function(df){
   df %<>% select(c(ID, CaseControl, xgb_fit$feature_names))
   y = df$CaseControl
   # convert to xgb format
-  df = xgb.DMatrix(as.matrix(df[-c(1,2)]),
+  df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
                    label=df$CaseControl)
   # get predicted risk and ROC curve
   proba = predict(xgb_fit, newdata=df)
@@ -93,21 +103,21 @@ curves %<>% bind_rows()
 
 # =========================================================
 # Gender
-filepath = paste0(dir_figures, "roc_curves_Gender.pdf")
+filepath = paste0(dir_figures, "roc_Gender.pdf")
 g = ggplot(data=curves %>% filter(window %in% c("All", "Male", "Female")), 
            aes(x=fpr, y=recall, color=label)) + 
   geom_line() +
   theme(aspect.ratio=1) +
   xlab("1 - Specificity") + ylab("Sensitivity") + 
   geom_abline(intercept=0, slope=1, linetype="dotted") +
-  labs(color="Window") +
+  labs(color="Gender") +
   ggtitle("Sensitivity analysis: Gender")
-ggsave(filepath, g, width=9, height=7)
+ggsave(filepath, g, width=7, height=5)
 
 
 # =========================================================
 # Gender
-filepath = paste0(dir_figures, "roc_curves_Race.pdf")
+filepath = paste0(dir_figures, "roc_Race.pdf")
 g = ggplot(data=curves %>% filter(window %in% 
               c("White", "Black", "HawaiianPacific", "IndianAlaskan", 
                 "Asian", "All", "NonWhite")), 
@@ -116,6 +126,6 @@ g = ggplot(data=curves %>% filter(window %in%
   theme(aspect.ratio=1) +
   xlab("1 - Specificity") + ylab("Sensitivity") + 
   geom_abline(intercept=0, slope=1, linetype="dotted") +
-  labs(color="Window") +
+  labs(color="Race") +
   ggtitle("Sensitivity analysis: Race")
-ggsave(filepath, g, width=9, height=7)
+ggsave(filepath, g, width=7, height=5)

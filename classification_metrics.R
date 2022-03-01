@@ -8,7 +8,13 @@ calibration_curve = function(xgb_fit, df, nbins=50){
   y = xgboost::getinfo(df, "label")
   bins = c(0., quantile(proba, seq(0., 1., length.out=nbins+1))+1e-6)
   L = bins[-length(bins)]; U = bins[-1]
-  bindf = cbind(L=L, U=U, mid=0.5*(L+U))
+  
+  # compute mean proba in bin
+  which_bin = cut(proba, bins)
+  dff = cbind(proba, which_bin); colnames(dff) = c("prob", "bin")
+  mid = dff %>% data.frame() %>% group_by(bin) %>% summarise(mean=mean(prob))
+  
+  bindf = cbind(L=L, U=U, mid=mid$mean)
   out = t(apply(bindf, 1, function(row){
     ids = (proba>=row["L"]) & (proba<row["U"])
     N = sum(ids)
@@ -18,6 +24,7 @@ calibration_curve = function(xgb_fit, df, nbins=50){
   }))
   return(data.frame(out))
 }
+
 
 classification_metrics = function(xgb_fit, df, threshold=0.5){
   threshold = c(threshold)
