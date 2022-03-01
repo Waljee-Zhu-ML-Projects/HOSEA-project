@@ -1,0 +1,151 @@
+setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
+library(dplyr)
+library(xgboost)
+library(magrittr)
+library(ggplot2)
+source('R_code/hosea-project/compute_quantiles.R')
+source('R_code/hosea-project/utils_subsample.R')
+source('R_code/hosea-project/classification_metrics.R')
+
+# =========================================================
+# paths and parameters
+dir_path = "R_data/processed_records/"
+dir_figures = "R_code/hosea-project/figures/"
+dir_results = "R_data/results/analyses/"
+model_path = "R_data/results/models/final_model_all.rds"
+
+# =========================================================
+# read in model
+results = readRDS(model_path)
+xgb_fit = results$xgb_fit
+quantiles = results$quantiles
+test_ids = results$test_ids
+rm(results); gc()
+
+# =========================================================
+# read in data
+file_path = paste0(dir_path, "5-1.rds")
+df = readRDS(file_path)
+master = df$master
+df = df$df
+repeated = table(master$ID)
+repeated = names(repeated)[repeated>1]
+df %<>% filter(!((ID %in% repeated) & (CaseControl==0)))
+# subset to test set
+df %<>% filter(ID %in% test_ids)
+# imputation
+set.seed(0)
+df = impute_srs(df, quantiles)
+
+xgb_df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
+                     label=df$CaseControl)
+
+
+# =========================================================
+# function to get ROC from a df
+get_roc = function(df){
+  # ensure correct column ordering for xgb model
+  df %<>% select(c(ID, CaseControl, xgb_fit$feature_names))
+  y = df$CaseControl
+  # convert to xgb format
+  df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
+                   label=df$CaseControl)
+  # get predicted risk and ROC curve
+  proba = predict(xgb_fit, newdata=df)
+  fg = proba[y==1]; bg = proba[y==0]
+  roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
+  roc$curve = roc$curve[seq(1, nrow(roc$curve), 
+                            by=ceiling(nrow(df)/1000)), ]
+  roc$curve %<>% data.frame()
+  colnames(roc$curve) = c("fpr", "recall", "tr")
+  return(roc)
+}
+
+roc = get_roc(df)
+
+
+# =========================================================
+# ROC curve
+roc$curve$tr = roc$curve$tr*100000
+g = ggplot(data=roc$curve, 
+           aes(x=fpr, y=recall, color=tr)) + 
+  geom_line() +
+  theme(aspect.ratio=1) +
+  xlab("1 - Specificity") + ylab("Sensitivity") + 
+  geom_abline(intercept=0, slope=1, linetype="dotted") +
+  labs(color="Threshold\n(/100,000)") + 
+  scale_color_gradientn(trans="log", colors=rainbow(6), breaks=c(1, 10, 100, 1000, 10000)) + 
+  ggtitle(paste0("ROC curve (AUC=", round(roc$au, 3), ")"))
+filepath = paste0(dir_figures, "roc.pdf")
+ggsave(filepath, g, width=7, height=6)
+
+# =========================================================
+# calibration plot
+calib_10  = calibration_curve(xgb_fit, xgb_df, nbins=10)
+calib_50  = calibration_curve(xgb_fit, xgb_df, nbins=50)
+
+
+calib_df = calib_50
+log = T
+calib_df = calib_df*100000
+
+g = ggplot(data=calib_df, aes(x=mid, y=propcase)) + theme(aspect.ratio=1) + 
+  geom_point()  +
+  geom_abline(slope=1, intercept=0, linetype="dashed") +
+  ylab("Observed (/100,000)") + xlab("Predicted (/100,000)")+ 
+  ggtitle(paste0("Calibration", ifelse(log, " (log-log)", "")))
+if(log){
+  g = g + scale_x_log10(limits=c(1, 15000)) + scale_y_log10(limits=c(1, 15000))
+}else{
+  g = g + xlim(0., 1100) + ylim(0., 1100)
+}
+filename = paste0(dir_figures, "calibration50",  ifelse(log, "_log", "_zoom"), ".pdf")
+ggsave(filename, g, width=5, height=5)
+
+
+
+# HL
+calib_df = calib_50
+nbins = nrow(calib_df) - 1
+pred = calib_df$mid
+obs = calib_df$propcase
+n = calib_df$N
+n1 = calib_df$Ncase
+
+o1 = n1
+o0 = n-n1
+e1 = pred*n
+e0 = n-e1
+
+H51 = sum(((o1-e1)^2/e1 + (o0-e0)^2/e0))
+df51 = nbins - 1
+p51 = pchisq(H51, df51, lower.tail=F)
+print(paste0("H=", H51, ", df=", df51, ", p=", p51))
+nskip = 10
+H50 = sum(((o1-e1)^2/e1 + (o0-e0)^2/e0)[1:(nbins+1-nskip)])
+df50 = nbins - nskip - 1
+p50 = pchisq(H50, df50, lower.tail=F)
+print(paste0("H=", H50, ", df=", df50, ", p=", p50))
+
+
+# =========================================================
+# Threshold table
+thresholds = sort(unique(c(
+  seq(10, 50, 10), seq(50, 200, 5),
+  seq(200, 300, 10), seq(300, 500, 25),
+  seq(500, 1000, 1000)
+))) /100000
+tr_df = classification_metrics(xgb_fit, xgb_df, thresholds)
+tr_df = tr_df %>% select(one_of("tpr", "ppv", "detection_prevalance"))
+# tr_df = tr_df[46:225, ]
+rownames(tr_df) = format(round(as.numeric(rownames(tr_df)), 5)*100000, digits=5)
+tr_df = tr_df*100
+cat(print(xtable::xtable(tr_df)), 
+    file=paste0(dir_figures, "all_calibration.tex"))
+write.csv(tr_df, paste0(dir_figures, "all_calibration.csv"))
+
+# variable importance
+imp = xgboost::xgb.importance(model=resample$xgb_fit)
+which.max(imp$Feature == "smoke_current")
+which.max(imp$Feature == "smoke_former")
+which.max(imp$Feature == "HIV")

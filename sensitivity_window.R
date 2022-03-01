@@ -5,13 +5,14 @@ library(magrittr)
 library(ggplot2)
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
+source('R_code/hosea-project/classification_metrics.R')
 
 # =========================================================
 # paths and parameters
 dir_path = "R_data/processed_records/"
-dir_results = "R_data/sensitivity_window/"
-dir_figures = "R_code/hosea-project/figures/sensitivity_window/"
-model_path = "R_data/results/models/finalMP_resample_nall_d.rds"
+dir_figures = "R_code/hosea-project/figures/"
+dir_results = "R_data/results/analyses/"
+model_path = "R_data/results/models/final_model_all.rds"
 
 # =========================================================
 # read in model
@@ -27,12 +28,12 @@ y0s = c(5, 5, 5, 5, 4, 3, 2, 4)
 y1s = c(4, 3, 2, 1, 1, 1, 1, 2)
 rocs = list()
 
-for(i in c(2, 8, 6)){
+for(i in seq(8)){
   start = y0s[i]; end = y1s[i]
   window = paste0("[", y0s[i], "-", y1s[i], "]")
   file_path = paste0(dir_path, start, "-", end, ".rds")
   # read in data
-  df = readRDS(file_path)
+  df = readRDS(file_path)$df
   # subset to test set
   df %<>% filter(ID %in% test_ids)
   # imputation
@@ -42,7 +43,7 @@ for(i in c(2, 8, 6)){
   df %<>% select(c(ID, CaseControl, xgb_fit$feature_names))
   y = df$CaseControl
   # convert to xgb format
-  df = xgb.DMatrix(as.matrix(df[-c(1,2)]),
+  df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
                         label=df$CaseControl)
   # get predicted risk and ROC curve
   proba = predict(xgb_fit, newdata=df)
