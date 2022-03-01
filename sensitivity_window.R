@@ -34,6 +34,9 @@ for(i in seq(8)){
   file_path = paste0(dir_path, start, "-", end, ".rds")
   # read in data
   df = readRDS(file_path)$df
+  repeated = table(df$ID)
+  repeated = names(repeated)[repeated>1]
+  df %<>% filter(!((ID %in% repeated) & (CaseControl==0)))
   # subset to test set
   df %<>% filter(ID %in% test_ids)
   # imputation
@@ -70,7 +73,7 @@ curves %<>% bind_rows()
 # plot ROC curves
 
 # 5-x curves
-filepath = paste0(dir_figures, "roc_curves_5-x.pdf")
+filepath = paste0(dir_figures, "roc_window_5-x.pdf")
 g = ggplot(data=curves %>% filter(window %in% names(rocs)[1:4]), 
            aes(x=fpr, y=recall, color=label)) + 
   geom_line() +
@@ -82,15 +85,15 @@ g = ggplot(data=curves %>% filter(window %in% names(rocs)[1:4]),
 ggsave(filepath, g, width=9, height=7)
 
 # x-1 curves
-filepath = paste0(dir_figures, "roc_curves_x-1.pdf")
-g = ggplot(data=curves %>% filter(window %in% names(rocs)[4:7]), 
+filepath = paste0(dir_figures, "roc_window_2.pdf")
+g = ggplot(data=curves %>% filter(window %in% names(rocs)[c(2, 8, 6)]), 
            aes(x=fpr, y=recall, color=label)) + 
   geom_line() +
   theme(aspect.ratio=1) +
   xlab("1 - Specificity") + ylab("Sensitivity") + 
   geom_abline(intercept=0, slope=1, linetype="dotted")+
   labs(color="Window") +
-  ggtitle("Sensitivity analysis: [x-1] prediction window")
+  ggtitle("Sensitivity analysis: [x to x-2] prediction window")
 ggsave(filepath, g, width=9, height=7)
 
 
