@@ -10,10 +10,10 @@ source('R_code/hosea-project/classification_metrics.R')
 
 # =========================================================
 # paths and parameters
-dir_path = "R_data/processed_records/"
-dir_figures = "R_code/hosea-project/figures/"
+dir_path = "R_data/processed_records_old/"
+dir_figures = "R_code/hosea-project/figures_old/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models/final_model_all.rds"
+model_path = "R_data/results/models_old/finalMP_resample_nall_d.rds"
 
 # =========================================================
 # read in model
@@ -27,8 +27,8 @@ rm(results); gc()
 # read in data
 file_path = paste0(dir_path, "5-1.rds")
 df = readRDS(file_path)
-master = df$master
-df = df$df
+# master = df$master
+# df = df$df
 repeated = table(master$ID)
 repeated = names(repeated)[repeated>1]
 df %<>% filter(!((ID %in% repeated) & (CaseControl==0)))
@@ -161,3 +161,15 @@ for(var in vars_to_plot){
   cat("...done!\n")
 }
 
+
+
+# =========================================================
+# Missing values
+missing_prop = df %>% is.na() %>% colMeans()
+missing_prop = data.frame(name=names(missing_prop), missing_prop=missing_prop*100)
+missing_prop %<>% left_join(features, on="name")
+
+g = ggplot(missing_prop, aes(x=missing_prop)) + 
+  geom_histogram(breaks=(0:10)/0.1) + 
+  xlab("% missing") + ylab("Frequency")
+ggsave(paste(dir_figures, "missing_prop.pdf"), g, height=5, width=5)
