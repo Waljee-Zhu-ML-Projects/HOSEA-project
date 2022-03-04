@@ -136,9 +136,6 @@ train = df %>% select(xgb_fit$feature_names)
 set.seed(0) # sample some rows, otherwise waaaay too long
 train = train[sample.int(nrow(train), 10000), ]
 
-cats = train %>% summarize(across(everything(), n_distinct))
-cats = colnames(cats)[cats == 2]
-
 for(var in vars_to_plot){
   deciles = quantile(df[[var]], (1:9)/10)
   deciles = data.frame(x=deciles, xend=deciles, y=0, yend=10)
@@ -166,10 +163,24 @@ for(var in vars_to_plot){
 # =========================================================
 # Missing values
 missing_prop = df %>% is.na() %>% colMeans()
-missing_prop = data.frame(name=names(missing_prop), missing_prop=missing_prop*100)
-missing_prop %<>% left_join(features, on="name")
+missing_prop = data.frame(missing_prop=missing_prop*100)
 
 g = ggplot(missing_prop, aes(x=missing_prop)) + 
   geom_histogram(breaks=(0:10)/0.1) + 
-  xlab("% missing") + ylab("Frequency")
-ggsave(paste(dir_figures, "missing_prop.pdf"), g, height=5, width=5)
+  xlab("% missing by feature") + ylab("Frequency")
+ggsave(paste0(dir_figures, "missing_prop_feature.png"), g, height=4, width=5)
+
+
+missing_prop = df %>% is.na() %>% rowMeans()
+missing_prop = data.frame(missing_prop=missing_prop*100)
+
+g = ggplot(missing_prop, aes(x=missing_prop)) + 
+  geom_histogram(breaks=c(0, 100/238, (1:30)/0.3)) + 
+  xlab("% missing by patient") + ylab("Frequency")
+ggsave(paste0(dir_figures, "missing_prop_patient.png"), g, height=4, width=5)
+
+missing_prop_0 = df %>% filter(CaseControl==0) %>% is.na() %>% 
+  data.frame() %>% summarize_all(mean)
+missing_prop_1 = df %>% filter(CaseControl==1) %>% is.na() %>% 
+  data.frame() %>% summarize_all(mean)
+round(rbind(missing_prop_y, missing_prop_1) %>% t() * 100, 0)
