@@ -35,14 +35,15 @@ file_path = paste0(dir_path, "5-1.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
-repeated = table(master$ID)
-repeated = names(repeated)[repeated>1]
-df %<>% filter(!((ID %in% repeated) & (CaseControl==0)))
 
 # =========================================================
-# get outcomes (NB see also HOSEA::patch_outcome())
-outcomes = readRDS(outcome_path)
-outcomes %<>% select(-stagegroupclinical)
+# get outcomes
+outcomes = master %>% select(ID, CancerType)
+outcomes %<>% mutate(
+  ANY=ifelse(CancerType=="", 0, 1),
+  EAC=ifelse(CancerType=="EAC", 1, 0),
+  EGJAC=ifelse(CancerType=="EGJAC", 1, 0)
+)
 # merge into df
 df %<>% left_join(outcomes, by="ID")
 outcome_names = c("ANY", "EAC", "EGJAC")

@@ -12,7 +12,7 @@ source('R_code/hosea-project/classification_metrics.R')
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models/final_model_all.rds"
+model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
 
 # =========================================================
 # read in model
@@ -28,9 +28,6 @@ file_path = paste0(dir_path, "5-1.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
-repeated = table(master$ID)
-repeated = names(repeated)[repeated>1]
-df %<>% filter(!((ID %in% repeated) & (CaseControl==0)))
 # subset to test set
 df %<>% filter(ID %in% test_ids)
 # imputation
@@ -110,9 +107,9 @@ g = ggplot(data=curves %>% filter(window %in% c("All", "Male", "Female")),
   theme(aspect.ratio=1) +
   xlab("1 - Specificity") + ylab("Sensitivity") + 
   geom_abline(intercept=0, slope=1, linetype="dotted") +
-  labs(color="Gender") +
-  ggtitle("Sensitivity analysis: Gender")
-ggsave(filepath, g, width=7, height=5)
+  labs(color="Sex") +
+  ggtitle("Sensitivity analysis: Sex")
+ggsave(filepath, g, width=6, height=4)
 
 
 # =========================================================
@@ -128,4 +125,4 @@ g = ggplot(data=curves %>% filter(window %in%
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   labs(color="Race") +
   ggtitle("Sensitivity analysis: Race")
-ggsave(filepath, g, width=7, height=5)
+ggsave(filepath, g, width=6, height=4)

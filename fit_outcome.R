@@ -12,23 +12,16 @@ library(HOSEA)
 complete_data = readRDS('R_data/processed_records/5-1.rds')
 master = complete_data$master
 dff = complete_data$df
-outcomes = readRDS("R_data/processed_records/outcome.rds")
+# get outcomes
+outcomes = master %>% select(ID, CaseControl, CancerType)
+outcomes %<>% mutate(
+  ANY=CaseControl,
+  EAC=as.integer(CancerType=="EAC"),
+  EGJAC=as.integer(CancerType=="EGJAC")
+)
+
 dff$n_visits = NULL # in case this slipped in somehow
 cc_test = readRDS('R_data/cc_complete_data.rds') # legacy, dropped below
-
-# fix repeated entries
-repeated = table(master$ID)
-repeated = names(repeated)[repeated>1]
-dff %<>% filter( # drop any repeated Control
-  !(
-    (ID %in% repeated) & (CaseControl==0)
-  )
-)
-outcomes %<>% filter( # drop any repeated Control
-  !(
-    (ID %in% repeated) & (ANY==0)
-  )
-)
 
 # parameters
 set.seed(0)

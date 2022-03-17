@@ -12,7 +12,7 @@ source('R_code/hosea-project/classification_metrics.R')
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models/final_model_all.rds"
+model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
 
 # =========================================================
 # read in model
@@ -28,9 +28,6 @@ file_path = paste0(dir_path, "5-1.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
-repeated = table(master$ID)
-repeated = names(repeated)[repeated>1]
-df %<>% filter(!((ID %in% repeated) & (CaseControl==0)))
 # subset to test set
 df %<>% filter(ID %in% test_ids)
 
@@ -135,19 +132,19 @@ scores = df %>% mutate(
    BSG2013     = GerdAtIndex & ( (Gender + (ageatindex>=50) + (White) + (bmi>30) ) > 2),
    ESGE2017    = GerdAtIndex & ( (Gender + (ageatindex>=50) + (White) + (bmi>30) ) > 1)
 )
-scores %>% select(CaseControl, guidelines) %>% group_by(CaseControl) %>% summarise_all(sum)
 guidelines = tail(colnames(scores), 8)
-
-Hmisc::describe(df %>% select(-c(ID, bmi, ageatindex)))
-
-n_risk_factors = df %>% 
-  mutate(n_risk_factors=Gender+GerdAtIndex+(ageatindex>=50) + (White) + (bmi>30) + (smoke_ever)) %>%
-  group_by(CaseControl, n_risk_factors) %>%
-  summarize(n=n())
-
-scores %>% select(guidelines) %>% colSums()
-
-rbind(n_risk_factors, p_risk_factors)
+# scores %>% select(CaseControl, guidelines) %>% group_by(CaseControl) %>% summarise_all(sum)
+# 
+# Hmisc::describe(df %>% select(-c(ID, bmi, ageatindex)))
+# 
+# n_risk_factors = df %>% 
+#   mutate(n_risk_factors=Gender+GerdAtIndex+(ageatindex>=50) + (White) + (bmi>30) + (smoke_ever)) %>%
+#   group_by(CaseControl, n_risk_factors) %>%
+#   summarize(n=n())
+# 
+# scores %>% select(guidelines) %>% colSums()
+# 
+# rbind(n_risk_factors, p_risk_factors)
 
 # AUCs
 y = df$CaseControl
@@ -160,10 +157,9 @@ proba = hscores
 fg = proba[y==1]; bg = proba[y==0]
 h_roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
 
-xgb_fit = readRDS("R_data/results/models/resample_nall.rds")$xgb_fit
-newdata = xgb.DMatrix(as.matrix(test_complete[-c(1,2)]),
-                      label=test_complete$CaseControl)
-proba = predict(xgb_fit, newdata=newdata)
+xgb_df = xgb.DMatrix(as.matrix(test_complete %>% select(xgb_fit$feature_names)),
+                     label=test_complete$CaseControl)
+proba = predict(xgb_fit, newdata=xgb_df)
 fg = proba[y==1]; bg = proba[y==0]
 x_roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
 
@@ -192,11 +188,11 @@ guide_roc$label = rownames(guide_roc)
 
 guide_roc %<>% arrange(fpr)
 
-guide_roc$xlab = c(.1, .2, .3, .4, .5, .6, .8, .9)
+guide_roc$xlab = c(.2, .27, .34, .41, .48, .55, .8, .9)
 guide_roc$ylab = c(.15, .2, .25, .3, .35, .4, .85, .9)
 
 library(ggplot2)
-filepath = paste0("R_code/hosea-project/figures/xgb_kunzmann_hunt_screening_roc.pdf")
+filepath = paste0("R_code/hosea-project/figures/comparison.pdf")
 g = ggplot(data=cdf, aes(x=fpr, y=recall, color=method)) + geom_line() +
   theme(aspect.ratio=1) +
   xlab("1 - Specificity") + ylab("Sensitivity") + 
@@ -205,4 +201,4 @@ g = ggplot(data=cdf, aes(x=fpr, y=recall, color=method)) + geom_line() +
 g = g +
   geom_segment(data=guide_roc, aes(x=fpr, xend=xlab, y=recall, yend=ylab)) + 
   geom_label(data=guide_roc, aes(label=label, x=xlab, y=ylab), size=3)
-ggsave(filepath, g, width=8, height=7)
+ggsave(filepath, g, width=6, height=5)

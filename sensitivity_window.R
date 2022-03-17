@@ -12,7 +12,7 @@ source('R_code/hosea-project/classification_metrics.R')
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models/final_model_all.rds"
+model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
 
 # =========================================================
 # read in model
@@ -30,13 +30,11 @@ rocs = list()
 
 for(i in seq(8)){
   start = y0s[i]; end = y1s[i]
+  cat(paste(i, start, end, "\n"))
   window = paste0("[", y0s[i], "-", y1s[i], "]")
   file_path = paste0(dir_path, start, "-", end, ".rds")
   # read in data
   df = readRDS(file_path)$df
-  repeated = table(df$ID)
-  repeated = names(repeated)[repeated>1]
-  df %<>% filter(!((ID %in% repeated) & (CaseControl==0)))
   # subset to test set
   df %<>% filter(ID %in% test_ids)
   # imputation
@@ -82,7 +80,7 @@ g = ggplot(data=curves %>% filter(window %in% names(rocs)[1:4]),
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   labs(color="Window") +
   ggtitle("Sensitivity analysis: [5-x] prediction window")
-ggsave(filepath, g, width=9, height=7)
+ggsave(filepath, g, width=6, height=5)
 
 # x-1 curves
 filepath = paste0(dir_figures, "roc_window_2.pdf")
@@ -94,20 +92,7 @@ g = ggplot(data=curves %>% filter(window %in% names(rocs)[c(2, 8, 6)]),
   geom_abline(intercept=0, slope=1, linetype="dotted")+
   labs(color="Window") +
   ggtitle("Sensitivity analysis: [x to x-2] prediction window")
-ggsave(filepath, g, width=9, height=7)
+ggsave(filepath, g, width=6, height=5)
 
-
-
-# x-1 curves
-filepath = paste0(dir_figures, "roc_curves_2.pdf")
-g = ggplot(data=curves %>% filter(window %in% names(rocs)[1:3]), #[c(2, 8, 6)]), 
-           aes(x=fpr, y=recall, color=label)) + 
-  geom_line() +
-  theme(aspect.ratio=1) +
-  xlab("1 - Specificity") + ylab("Sensitivity") + 
-  geom_abline(intercept=0, slope=1, linetype="dotted")+
-  labs(color="Window") +
-  ggtitle("Sensitivity analysis: prediction window of length 2")
-ggsave(filepath, g, width=9, height=7)
 
 
