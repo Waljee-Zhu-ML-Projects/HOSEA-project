@@ -7,8 +7,8 @@ library(HOSEA)
 # ==============================================================================
 # paths and parameters
 dir_path = "R_data/processed_records/"
-dir_figures = "R_code/hosea-project/figures/sensitivity_icd10/"
-model_path = "R_data/results/models/finalMP_resample_nall_d.rds"
+dir_figures = "R_code/hosea-project/figures/"
+model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
 
 # ==============================================================================
 # read in model
@@ -20,7 +20,7 @@ rm(results); gc()
 
 # ==============================================================================
 # histogram Nb end vs enddate
-dir="unzipped_data/"
+dir = "unzipped_data/"
 df = load_sas(paste0(dir, "sample.sas7bdat"), "sample")
 start = -5; end = -1
 master = df %>% transmute(
@@ -37,7 +37,7 @@ g = ggplot(freq, aes(x=end, y=count, color=case)) +
   geom_vline(xintercept=365*seq(-10, 3) + maxenddate, 
              color="black", linetype="dashed")
 ggsave(g, file=paste0(dir_figures, "histogram.pdf"),
-       width=9, height=5)
+       width=6, height=4)
 
 # ==============================================================================
 # get ROCs
@@ -50,7 +50,7 @@ get_roc = function(df){
   df %<>% select(c(ID, CaseControl, xgb_fit$feature_names))
   y = df$CaseControl
   # convert to xgb format
-  df = xgb.DMatrix(as.matrix(df[-c(1,2)]),
+  df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
                    label=df$CaseControl)
   # get predicted risk and ROC curve
   proba = predict(xgb_fit, newdata=df)

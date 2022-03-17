@@ -9,12 +9,12 @@ source('R_code/hosea-project/utils_subsample.R')
 
 # =========================================================
 # paths and parameters
-dir_path = "R_data/processed_records_old/"
-data_path = paste0(dir_path, "-5--1.rds")
-dir_results = "R_data/hosea-project/results/sensitivity_missing/"
-dir_figures = "R_code/hosea-project/figures/sensitivity_missing/"
-model_path = "R_data/results/models/finalMP_resample_nall.rds"
-n_imputations = 100
+dir_path = "R_data/processed_records/"
+data_path = paste0(dir_path, "5-1.rds")
+dir_results = "R_data/hosea-project/results/"
+dir_figures = "R_code/hosea-project/figures/"
+model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
+n_imputations = 210
 
 # =========================================================
 # read in model
@@ -28,6 +28,8 @@ rm(results); gc()
 # get prediction and summarize
 # read in data
 df = readRDS(data_path)
+master = df$master
+df = df$df
 # subset to test set
 df %<>% filter(ID %in% test_ids)
 # ensure correct column ordering for xgb model
@@ -39,15 +41,17 @@ preds = sapply(seq(n_imputations), function(i){
   set.seed(i)
   xgb_df = impute_srs(df, quantiles)
   # convert to xgb format
-  xgb_df = xgb.DMatrix(as.matrix(xgb_df[-c(1,2)]),
+  xgb_df = xgb.DMatrix(xgb_df %>% select(-c(ID, CaseControl)) %>% as.matrix(),
                    label=xgb_df$CaseControl)
-  # get predicted risk and ROC curve
+  # get predicted risk
   proba = predict(xgb_fit, newdata=xgb_df)
   return(proba)
 }, simplify=T)
 
 pred_df = data.frame(preds)
 rownames(pred_df) = df$ID
+saveRDS(pred_df, paste0(dir_path, n_imputations, "imputations.rds"))
+
 summaries = data.frame(
   mean=apply(pred_df, 1, mean),
   sd=apply(pred_df, 1, sd),
@@ -58,6 +62,105 @@ summaries = data.frame(
 summaries$snr = summaries$mean / summaries$sd
 summaries$na_count = df %>% select(-c(ID, CaseControl)) %>% is.na() %>% rowSums()
 saveRDS(summaries, paste0(dir_path, n_imputations, "imputations_summaries.rds"))
+
+
+
+# =========================================================
+# Test ROC per number of imputation
+n_imputations = c(1, 2, 5, 10, 20, 50, 100)
+u = cumsum(n_imputations)
+l = c(1, u[-length(u)]+1)
+
+agg_preds = sapply(seq(n_imputations), function(i){
+  cat(i)
+  # get predicted risk
+  proba = preds[, l[i]:u[i]] %>% data.frame() %>% rowMeans()
+  return(proba)
+}, simplify=T)
+
+agg_preds %<>% data.frame()
+rownames(agg_preds) = df$ID
+
+
+y = df$CaseControl
+
+get_roc = function(proba){
+  print(length(proba))
+  fg = proba[y==1]; bg = proba[y==0]
+  roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
+  roc$curve = roc$curve[seq(1, nrow(roc$curve), 
+                            by=ceiling(length(y)/1000)), ]
+  return(roc)
+}
+
+rocs = apply(agg_preds, 2, get_roc)
+names(rocs) = n_imputations
+
+# post processing
+aucs = sapply(rocs, function(roc) roc$auc)
+curves = lapply(seq_along(rocs), function(i){
+  curve = data.frame(rocs[[i]]$curve)
+  colnames(curve) = c("fpr", "recall", "threshold")
+  nm = names(rocs)[i]
+  curve$window = nm
+  curve$label = paste0(sprintf("%03s",nm), " (AUC=", round(aucs[nm], 3), ")")
+  curve
+})
+curves %<>% bind_rows()
+
+# plot
+filepath = paste0(dir_figures, "roc_n_imputations.pdf")
+g = ggplot(data=curves, 
+           aes(x=fpr, y=recall, color=label)) + 
+  geom_line() +
+  theme(aspect.ratio=1) +
+  xlab("1 - Specificity") + ylab("Sensitivity") + 
+  geom_abline(intercept=0, slope=1, linetype="dotted") +
+  labs(color="Nb. imputations") +
+  ggtitle("Sensitivity analysis: Multiple imputations") + 
+  scale_fill_hue(breaks=n_imputations)
+ggsave(filepath, g, width=6, height=5)
+
+# =========================================================
+# same but aggregated every 10
+n_imputations = rep(10, 21)
+u = cumsum(n_imputations)
+l = c(1, u[-length(u)]+1)
+
+agg_preds = sapply(seq(n_imputations), function(i){
+  cat(i)
+  # get predicted risk
+  proba = preds[, l[i]:u[i]] %>% data.frame() %>% rowMeans()
+  return(proba)
+}, simplify=T)
+
+agg_preds %<>% data.frame()
+rownames(agg_preds) = df$ID
+
+# Number of flips
+trs = c(100, 150, 200, 250, 300)/100000
+
+n_pred_df = sapply(trs, function(tr){
+  pred = agg_preds > tr
+  n_pred = pred %>% rowMeans()
+  return(n_pred)
+}) %>% data.frame()
+
+colnames(n_pred_df) = trs*100000
+
+n_pred_df %<>% tidyr::pivot_longer(everything())
+
+filepath = paste0(dir_figures, "prediction_switch_21x10.pdf")
+g = ggplot(n_pred_df, aes(x=value, fill=name)) + 
+  geom_histogram(breaks=(0:21)/21, position="dodge", alpha=1.0) + 
+  ggtitle("Sensitivity analysis: 10 imputations") +
+  scale_y_continuous(trans="log10") +
+  labs(fill="Threshold\n(/100,000)") +
+  xlab("Proportion of predicted case")
+ggsave(filepath, g, width=6, height=4)
+
+
+
 
 # =========================================================
 # analyse

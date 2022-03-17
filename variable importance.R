@@ -10,10 +10,10 @@ source('R_code/hosea-project/classification_metrics.R')
 
 # =========================================================
 # paths and parameters
-dir_path = "R_data/processed_records_old/"
-dir_figures = "R_code/hosea-project/figures_old/"
+dir_path = "R_data/processed_records/"
+dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models_old/finalMP_resample_nall_d.rds"
+model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
 
 # =========================================================
 # read in model
@@ -27,11 +27,8 @@ rm(results); gc()
 # read in data
 file_path = paste0(dir_path, "5-1.rds")
 df = readRDS(file_path)
-# master = df$master
-# df = df$df
-repeated = table(master$ID)
-repeated = names(repeated)[repeated>1]
-df %<>% filter(!((ID %in% repeated) & (CaseControl==0)))
+master = df$master
+df = df$df
 # subset to test set
 df %<>% filter(ID %in% test_ids)
 # imputation
@@ -125,12 +122,11 @@ for(cat in features$category %>% unique()){
 
 vars_to_plot = unique(c(
   features %>% 
-    filter(category %in% c("Demegraphic", "Comorbidities")) %>% 
+    filter(category %in% c("Demographic", "Comorbidities", "Medication")) %>% 
     use_series(name),
   vi_raw %>% arrange(desc(Gain)) %>%
-    use_series(Feature)%>% head(10)
+    use_series(Feature)%>% head(20)
 ))
-
 
 train = df %>% select(xgb_fit$feature_names)
 set.seed(0) # sample some rows, otherwise waaaay too long
@@ -153,6 +149,7 @@ for(var in vars_to_plot){
     ggtitle(paste0("PDP: ", var, " (VI=", round(vi_var, 3), ")")) +
     geom_segment(data=deciles, aes(x=x, y=y, xend=xend, yend=yend), 
                  inherit.aes=F)
+  g
   filepath = paste0(dir_figures, "pdp/", var, ".pdf")
   ggsave(filepath, g, width=3, height=4)
   cat("...done!\n")

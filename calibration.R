@@ -12,7 +12,7 @@ source('R_code/hosea-project/classification_metrics.R')
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models/final_model_all.rds"
+model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
 
 # =========================================================
 # read in model
@@ -28,9 +28,6 @@ file_path = paste0(dir_path, "5-1.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
-repeated = table(master$ID)
-repeated = names(repeated)[repeated>1]
-df %<>% filter(!((ID %in% repeated) & (CaseControl==0)))
 # subset to test set
 df %<>% filter(ID %in% test_ids)
 # imputation
@@ -77,7 +74,7 @@ g = ggplot(data=roc$curve,
   scale_color_gradientn(trans="log", colors=rainbow(6), breaks=c(1, 10, 100, 1000, 10000)) + 
   ggtitle(paste0("ROC curve (AUC=", round(roc$au, 3), ")"))
 filepath = paste0(dir_figures, "roc.pdf")
-ggsave(filepath, g, width=7, height=6)
+ggsave(filepath, g, width=5, height=4)
 
 # =========================================================
 # calibration plot
@@ -86,9 +83,9 @@ calib_50  = calibration_curve(xgb_fit, xgb_df, nbins=50)
 
 
 calib_df = calib_50
-log = T
 calib_df = calib_df*100000
 
+log = F
 g = ggplot(data=calib_df, aes(x=mid, y=propcase)) + theme(aspect.ratio=1) + 
   geom_point()  +
   geom_abline(slope=1, intercept=0, linetype="dashed") +
@@ -97,10 +94,10 @@ g = ggplot(data=calib_df, aes(x=mid, y=propcase)) + theme(aspect.ratio=1) +
 if(log){
   g = g + scale_x_log10(limits=c(1, 15000)) + scale_y_log10(limits=c(1, 15000))
 }else{
-  g = g + xlim(0., 1100) + ylim(0., 1100)
+  g = g + xlim(0, 500) + ylim(0, 500)
 }
 filename = paste0(dir_figures, "calibration50",  ifelse(log, "_log", "_zoom"), ".pdf")
-ggsave(filename, g, width=5, height=5)
+ggsave(filename, g, width=4, height=4)
 
 
 
@@ -121,7 +118,7 @@ H51 = sum(((o1-e1)^2/e1 + (o0-e0)^2/e0))
 df51 = nbins - 1
 p51 = pchisq(H51, df51, lower.tail=F)
 print(paste0("H=", H51, ", df=", df51, ", p=", p51))
-nskip = 10
+nskip = 20
 H50 = sum(((o1-e1)^2/e1 + (o0-e0)^2/e0)[1:(nbins+1-nskip)])
 df50 = nbins - nskip - 1
 p50 = pchisq(H50, df50, lower.tail=F)
@@ -133,7 +130,7 @@ print(paste0("H=", H50, ", df=", df50, ", p=", p50))
 thresholds = sort(unique(c(
   seq(10, 50, 10), seq(50, 200, 5),
   seq(200, 300, 10), seq(300, 500, 25),
-  seq(500, 1000, 1000)
+  seq(500, 2000, 100)
 ))) /100000
 tr_df = classification_metrics(xgb_fit, xgb_df, thresholds)
 tr_df = tr_df %>% select(one_of("tpr", "ppv", "detection_prevalance"))
@@ -144,8 +141,3 @@ cat(print(xtable::xtable(tr_df)),
     file=paste0(dir_figures, "all_calibration.tex"))
 write.csv(tr_df, paste0(dir_figures, "all_calibration.csv"))
 
-# variable importance
-imp = xgboost::xgb.importance(model=resample$xgb_fit)
-which.max(imp$Feature == "smoke_current")
-which.max(imp$Feature == "smoke_former")
-which.max(imp$Feature == "HIV")
