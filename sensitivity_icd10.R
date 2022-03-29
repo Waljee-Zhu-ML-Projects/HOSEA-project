@@ -70,7 +70,7 @@ for(i in seq(2)){
   window = paste0("ANY [", y0s[i], "-", y1s[i], "]")
   file_path = paste0(dir_path, start, "-", end, ".rds")
   # read in data
-  df = readRDS(file_path)
+  df = readRDS(file_path)$df
   # subset to test set
   df %<>% filter(ID %in% test_ids)
   # imputation
@@ -88,10 +88,10 @@ meta_icd10 = meta_icd10 %>%
   filter(window_months>0)
 df_icd10 %<>% filter(ID %in% meta_icd10$ID)
 
-maxs = c(0.5, 1, 1.5, 2)
-mins = c(0, 0.5, 1, 1.5)
+maxs = c(2,3)
+mins = c(1,2)
 
-for(i in seq(4)){
+for(i in seq(2)){
   ma = maxs[i]; mi = mins[i]
   window = paste0("ICD10 [", ma, "-", mi, "]")
   which = (meta_icd10$window_months>mi) & (meta_icd10$window_months<=ma)
@@ -118,9 +118,7 @@ curves = lapply(seq_along(rocs), function(i){
 curves %<>% bind_rows()
 
 # plot ROC curves
-
-# 5-x curves
-filepath = paste0(dir_figures, "roc_curves.pdf")
+filepath = paste0(dir_figures, "roc_icd10.pdf")
 g = ggplot(data=curves %>% filter(window %in% names(rocs)), 
            aes(x=fpr, y=recall, color=label)) + 
   geom_line() +
@@ -129,4 +127,4 @@ g = ggplot(data=curves %>% filter(window %in% names(rocs)),
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   labs(color="Window") +
   ggtitle("Sensitivity analysis: ICD10 and window")
-ggsave(filepath, g, width=9, height=7)
+ggsave(filepath, g, width=6, height=5)
