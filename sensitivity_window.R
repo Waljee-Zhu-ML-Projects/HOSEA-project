@@ -70,19 +70,20 @@ curves %<>% bind_rows()
 # =========================================================
 # plot ROC curves
 
-# 5-x curves
-filepath = paste0(dir_figures, "roc_window_5-x.pdf")
-g = ggplot(data=curves %>% filter(window %in% names(rocs)[1:4]), 
-           aes(x=fpr, y=recall, color=label)) + 
-  geom_line() +
-  theme(aspect.ratio=1) +
-  xlab("1 - Specificity") + ylab("Sensitivity") + 
-  geom_abline(intercept=0, slope=1, linetype="dotted") +
-  labs(color="Window") +
-  ggtitle("Sensitivity analysis: [5-x] prediction window")
-ggsave(filepath, g, width=6, height=5)
+# # 5-x curves
+# filepath = paste0(dir_figures, "roc_window_5-x.pdf")
+# g = ggplot(data=curves %>% filter(window %in% names(rocs)[1:4]), 
+#            aes(x=fpr, y=recall, color=label)) + 
+#   geom_line() +
+#   theme(aspect.ratio=1) +
+#   xlab("1 - Specificity") + ylab("Sensitivity") + 
+#   geom_abline(intercept=0, slope=1, linetype="dotted") +
+#   labs(color="Window") +
+#   ggtitle("Sensitivity analysis: [5-x] prediction window")
+# ggsave(filepath, g, width=6, height=5)
 
-# x-1 curves
+# this one is better to show time to prediction
+# 2 curves
 filepath = paste0(dir_figures, "roc_window_2.pdf")
 g = ggplot(data=curves %>% filter(window %in% names(rocs)[c(2, 8, 6)]), 
            aes(x=fpr, y=recall, color=label)) + 
@@ -94,5 +95,15 @@ g = ggplot(data=curves %>% filter(window %in% names(rocs)[c(2, 8, 6)]),
   ggtitle("Sensitivity analysis: [x to x-2] prediction window")
 ggsave(filepath, g, width=6, height=5)
 
-
+# x-1 curves
+filepath = paste0(dir_figures, "roc_window_x-1.pdf")
+g = ggplot(data=curves %>% filter(window %in% names(rocs)[4:7]), 
+           aes(x=fpr, y=recall, color=label)) + 
+  geom_line() +
+  theme(aspect.ratio=1) +
+  xlab("1 - Specificity") + ylab("Sensitivity") + 
+  geom_abline(intercept=0, slope=1, linetype="dotted") +
+  labs(color="Window") +
+  ggtitle("Sensitivity analysis: [x-1] prediction window")
+ggsave(filepath, g, width=6, height=5)
 
