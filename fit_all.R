@@ -7,10 +7,22 @@ source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/classification_metrics.R')
 source('R_code/hosea-project/evaluation_split.R')
 library(HOSEA)
+library(dplyr)
+library(magrittr)
 # import data
 complete_data = readRDS('R_data/processed_records/5-1.rds')
 master = complete_data$master
 complete_data = complete_data$df
+
+
+# drop some variables
+complete_data %<>% select(-c(
+  "colonoscopy_n", "colonoscopy_maxdiff",
+  "labs_fobt_n", "labs_fobt_maxdiff",
+  "hgb_mean", "hgb_min", "hgb_max", "hgb_mindiff", "hgb_maxdiff", "hgb_tv",
+  "rbc_mean", "rbc_min", "rbc_max", "rbc_mindiff", "rbc_maxdiff", "rbc_tv",
+  "chol_mean", "chol_min", "chol_max", "chol_mindiff", "chol_maxdiff", "chol_tv",
+))
 
 
 # replciability
@@ -25,8 +37,8 @@ log = function(df) cat(paste("Full data set: ", nrow(df), "observations,",
 n0all = (complete_data$CaseControl==0)%>%sum
 n1all = (complete_data$CaseControl==1)%>%sum
 # train-test split
-# n_controls = 2e6
-# complete_data = subsample_controls(complete_data, n_controls)
+n_controls = 7e6
+complete_data = subsample_controls(complete_data, n_controls)
 set.seed(0)
 out = train_test_split(df=complete_data, weights=c(3, 1))
 train = out[[1]]
@@ -45,7 +57,7 @@ methods = c(
 )
 param_xg = list(
   max_depth = 5,
-  subsample = 0.1,
+  subsample = 0.2,
   eta = .05,
   objective = 'binary:logistic',
   eval_metric = 'auc',
@@ -53,7 +65,7 @@ param_xg = list(
 )
 
 # loop
-n = "all"
+n = "7M"
 set.seed(0)
 out = train_test_split(df=train, weights=c(2, 1))
 rm(train);gc()
@@ -88,6 +100,7 @@ dwatchlist$test = NULL
 gc()
 # fit
 set.seed(0)
+n0all = n_controls
 param_xg$scale_pos_weight = switch(
   method,
   "downsample" = 1.,
@@ -111,5 +124,5 @@ out = list(
   quantiles=quantiles,
   test_ids=test_$ID
 )
-filepath = paste0("R_data/results/models/XGB_nALL_typeANY.rds")
+filepath = paste0("R_data/results/models/XGB_n", n, "_typeANY.rds")
 saveRDS(out, filepath)
