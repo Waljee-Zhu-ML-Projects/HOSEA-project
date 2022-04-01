@@ -12,7 +12,8 @@ source('R_code/hosea-project/classification_metrics.R')
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
+# model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
+model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
 
 # =========================================================
 # read in model
@@ -78,14 +79,15 @@ ggsave(filepath, g, width=5, height=4)
 
 # =========================================================
 # calibration plot
-calib_10  = calibration_curve(xgb_fit, xgb_df, nbins=10)
+
 calib_50  = calibration_curve(xgb_fit, xgb_df, nbins=50)
 
 
 calib_df = calib_50
 calib_df = calib_df*100000
-
+# calib_df$mid = calib_df$mid / 419
 log = F
+
 g = ggplot(data=calib_df, aes(x=mid, y=propcase)) + theme(aspect.ratio=1) + 
   geom_point()  +
   geom_abline(slope=1, intercept=0, linetype="dashed") +
@@ -96,6 +98,7 @@ if(log){
 }else{
   g = g + xlim(0, 500) + ylim(0, 500)
 }
+g
 filename = paste0(dir_figures, "calibration50",  ifelse(log, "_log", "_zoom"), ".pdf")
 ggsave(filename, g, width=4, height=4)
 

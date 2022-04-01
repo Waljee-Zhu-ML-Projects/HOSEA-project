@@ -13,7 +13,7 @@ source('R_code/hosea-project/classification_metrics.R')
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
+model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
 
 # =========================================================
 # read in model
@@ -48,26 +48,30 @@ features$group = c(
   rep("Race", 4), 'agentorange', rep("Smoke", 2), 
   'GerdAtIndex', 'CHF', 'CTD', 'DEM', 'DIAB_C', 'HIV', 'MLD', 'MSLD', 
   'PARA', 'RD', 'cd', 'copd', 'diab_nc', 'mi', 'pud', 'pvd', 
-  rep("colonoscopy", 2), rep("labs_fobt", 2), 
+  # rep("colonoscopy", 2), rep("labs_fobt", 2), 
   rep("h2r", 5), rep("ppi", 5), 
   rep("A1c", 6), rep("bun", 6),  rep("calc", 6),  
   rep("chlor", 6),  rep("co2", 6),  rep("creat", 6), 
   rep("gluc", 6), rep("k", 6),  rep("na", 6), 
   rep("baso", 6),  rep("eos", 6),  rep("hct", 6), 
-  rep("hgb", 6),  rep("lymph", 6),  rep("mch", 6), 
+   rep("lymph", 6),  rep("mch", 6), 
+  # rep("hgb", 6),  rep("lymph", 6),  rep("mch", 6), 
   rep("mchc", 6),  rep("mcv", 6),  rep("mono", 6), 
   rep("mpv", 6),  rep("neut", 6),  rep("platelet", 6), 
-  rep("rbc", 6),  rep("rbw", 6),  rep("wbc", 6),  rep("CRP", 6), 
+  rep("rbw", 6),  rep("wbc", 6),  rep("CRP", 6), 
+  # rep("rbc", 6),  rep("rbw", 6),  rep("wbc", 6),  rep("CRP", 6), 
   rep("alkphos", 6),  rep("alt", 6),  rep("ast", 6), 
-  rep("totprot", 6),  rep("chol", 6),  rep("hdl", 6), 
+  rep("totprot", 6),  rep("hdl", 6), 
+  # rep("totprot", 6),  rep("chol", 6),  rep("hdl", 6), 
   rep("ldl", 6),  rep("trig", 6)
 )
 features$category = c( 
   rep("Demographic", 11),
   rep("Comorbidities", 16), 
-  rep("Clinical", 4), 
+  # rep("Clinical", 4), 
   rep("Medication", 10),
-  rep("Lab", 198)
+  rep("Lab", 180)
+  # rep("Lab", 198)
 )
 
 # =========================================================
@@ -149,6 +153,7 @@ for(var in vars_to_plot){
     ggtitle(paste0("PDP: ", var, " (VI=", round(vi_var, 3), ")")) +
     geom_segment(data=deciles, aes(x=x, y=y, xend=xend, yend=yend), 
                  inherit.aes=F)
+  if(length(unique(df[[var]]))>100) g = g + xlim(quantile(df[[var]], c(0.05, 0.95)))
   g
   filepath = paste0(dir_figures, "pdp/", var, ".pdf")
   ggsave(filepath, g, width=3, height=4)
