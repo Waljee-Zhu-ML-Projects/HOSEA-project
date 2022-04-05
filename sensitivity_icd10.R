@@ -3,12 +3,16 @@ library(dplyr)
 library(magrittr)
 library(ggplot2)
 library(HOSEA)
+library(xgboost)
+source('R_code/hosea-project/compute_quantiles.R')
+source('R_code/hosea-project/utils_subsample.R')
+source('R_code/hosea-project/classification_metrics.R')
 
 # ==============================================================================
 # paths and parameters
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
-model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
+model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
 
 # ==============================================================================
 # read in model
@@ -93,7 +97,7 @@ mins = c(1,2)
 
 for(i in seq(2)){
   ma = maxs[i]; mi = mins[i]
-  window = paste0("ICD10 [", ma, "-", mi, "]")
+  window = paste0("ICD10 [", ma, "-1]")
   which = (meta_icd10$window_months>mi) & (meta_icd10$window_months<=ma)
   df = df_icd10 %>% filter(which)
   # subset to test set

@@ -35,7 +35,7 @@ log = function(df) cat(paste("Full data set: ", nrow(df), "observations,",
                              df$CaseControl%>%sum, "cases", 
                              (df$CaseControl==0)%>%sum, "controls"), fill=T)
 
-outcome_list = c("ANY", "EAC", "EGJAC")
+outcome_list = c("EGJAC") # c("ANY", "EAC", "EGJAC")
 
 for(outcome in outcome_list){
   # select outcome
@@ -62,7 +62,7 @@ for(outcome in outcome_list){
   param_xg = list(
     max_depth = 5,
     subsample = 0.1,
-    eta = .05,
+    eta = .5,
     objective = 'binary:logistic',
     eval_metric = 'auc',
     nthread=-1

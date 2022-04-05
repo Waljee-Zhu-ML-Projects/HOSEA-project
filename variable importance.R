@@ -136,7 +136,7 @@ train = df %>% select(xgb_fit$feature_names)
 set.seed(0) # sample some rows, otherwise waaaay too long
 train = train[sample.int(nrow(train), 10000), ]
 
-for(var in vars_to_plot){
+for(var in xgb_fit$feature_names){
   deciles = quantile(df[[var]], (1:9)/10)
   deciles = data.frame(x=deciles, xend=deciles, y=0, yend=10)
   cat(paste0("Feature: ", var, "...\n"))
@@ -148,7 +148,7 @@ for(var in vars_to_plot){
                      plot=F, progress="text")
   out$yhat = out$yhat * 100000
   g = ggplot(out, aes(x=get(var), y=yhat)) + 
-    geom_line() + ylim(0, 0.003*100000)+ 
+    geom_line() + ylim(0, max(out$yhat))+ 
     ylab("Predicted risk (/100,000)") + xlab(var) +
     ggtitle(paste0("PDP: ", var, " (VI=", round(vi_var, 3), ")")) +
     geom_segment(data=deciles, aes(x=x, y=y, xend=xend, yend=yend), 

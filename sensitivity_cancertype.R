@@ -64,7 +64,7 @@ for(outcome in outcome_names){
     dff %<>% impute_srs(models[[name]]$quantiles)
     dff %<>% select(c(ID, CaseControl, models[[name]]$xgb_fit$feature_names))
     y = dff$CaseControl
-    dff = xgb.DMatrix(as.matrix(dff%>% select(xgb_fit$feature_names)),
+    dff = xgb.DMatrix(as.matrix(dff%>% select(models[[name]]$xgb_fit$feature_names)),
                      label=dff$CaseControl)
     # get predicted risk and ROC curve
     proba = predict(models[[name]]$xgb_fit, newdata=dff)
