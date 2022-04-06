@@ -13,6 +13,7 @@ dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
 model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
+model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
 
 # =========================================================
 # read in model

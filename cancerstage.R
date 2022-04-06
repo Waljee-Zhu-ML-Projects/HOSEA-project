@@ -3,6 +3,7 @@ library(dplyr)
 library(xgboost)
 library(magrittr)
 library(ggplot2)
+library(tidyr)
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
 source('R_code/hosea-project/classification_metrics.R')
@@ -13,6 +14,7 @@ dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
 model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
+model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
 
 # =========================================================
 # read in model
@@ -38,6 +40,11 @@ df = impute_srs(df, quantiles)
 # =========================================================
 # add correct staging
 sample_df = readRDS("./unzipped_data/sample.rds")
+
+# patch cases
+cases_df = readRDS("./unzipped_data/cases/sample.rds")
+sample_df %<>% filter(CaseControl==0)
+sample_df %<>% bind_rows(cases_df)
 
 staging = read.csv("./R_data/staging.csv") %>% tibble::tibble()
 
@@ -159,6 +166,7 @@ aurocs = sapply(names(subsets), function(name){
 xtable::xtable(t(aurocs), digits=3)
 
 
-
+# EAC EGJAC 
+# 8430  2965 
 
 
