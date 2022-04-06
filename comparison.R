@@ -13,6 +13,7 @@ dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
 model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
+model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
 
 # =========================================================
 # read in model
@@ -31,10 +32,29 @@ df = df$df
 # subset to test set
 df %<>% filter(ID %in% test_ids)
 
-xgb_df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
-                     label=df$CaseControl)
+# =========================================================
+# subset to outcomes
 
-dff = df # store for development 
+sample_df = readRDS("./unzipped_data/sample.rds")
+
+# patch cases
+cases_df = readRDS("./unzipped_data/cases/sample.rds")
+sample_df %<>% filter(CaseControl==0)
+sample_df %<>% bind_rows(cases_df)
+
+sample_df %<>% select(ID, CancerType)
+sample_df %<>% mutate(
+  ANY=ifelse(CancerType=="", 0, 1),
+  EAC=ifelse(CancerType=="EAC", 1, 0),
+  EGJAC=ifelse(CancerType=="EGJAC", 1,0)
+)
+
+df %<>% left_join(sample_df, by="ID")
+
+outcome = "EGJAC"
+
+df %<>% mutate(CaseControl=!!sym(outcome))
+
 # =========================================================
 # find complete cases for other methods
 
@@ -192,12 +212,13 @@ guide_roc$xlab = c(.2, .27, .34, .41, .48, .55, .8, .9)
 guide_roc$ylab = c(.15, .2, .25, .3, .35, .4, .85, .9)
 
 library(ggplot2)
-filepath = paste0("R_code/hosea-project/figures/comparison.pdf")
+filepath = paste0("R_code/hosea-project/figures/comparison_", outcome, ".pdf")
 g = ggplot(data=cdf, aes(x=fpr, y=recall, color=method)) + geom_line() +
   theme(aspect.ratio=1) +
   xlab("1 - Specificity") + ylab("Sensitivity") + 
   geom_abline(intercept=0, slope=1, linetype="dotted") +
-  geom_point(data=guide_roc)
+  geom_point(data=guide_roc) + 
+  ggtitle(paste0("Cancer type: ", outcome))
 g = g +
   geom_segment(data=guide_roc, aes(x=fpr, xend=xlab, y=recall, yend=ylab)) + 
   geom_label(data=guide_roc, aes(label=label, x=xlab, y=ylab), size=3)
