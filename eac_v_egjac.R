@@ -117,6 +117,8 @@ test_df[, c("t_stat", "pvalue")]
 tab = test_df[1:40, 1:3]
 xtable::xtable(tab, digits=3)
 
+xtable::xtable(test_df[test_df$pvalue < 0.9, 1:3], digits=3)
+
 # =========================================================
 # SHAP values
 
