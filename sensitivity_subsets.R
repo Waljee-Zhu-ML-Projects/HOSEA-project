@@ -22,6 +22,7 @@ xgb_fit = results$xgb_fit
 quantiles = results$quantiles
 test_ids = results$test_ids
 rm(results); gc()
+rm(xgb_fit)
 
 # =========================================================
 # read in data
@@ -65,10 +66,12 @@ subsets = list(
 get_roc = function(df, xgb_fit){
   y = df$CaseControl
   # convert to xgb format
-  df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
+  dff = df %>% select(xgb_fit$feature_names)
+  xgb_df = xgb.DMatrix(as.matrix(dff),
                    label=y)
   # get predicted risk and ROC curve
-  proba = predict(xgb_fit, newdata=df)
+  proba = predict(xgb_fit, newdata=xgb_df)
+  print(head(proba))
   fg = proba[y==1]; bg = proba[y==0]
   roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
   roc$curve = roc$curve[seq(1, nrow(roc$curve), 
@@ -78,7 +81,9 @@ get_roc = function(df, xgb_fit){
 
 rocs = lapply(names(subsets), function(mname){
   filepath = paste0("R_data/results/models/XGB_n1M_typeANY_", mname, ".rds")
-  xgb_fit = readRDS(model_path)$xgb_fit
+  print(filepath)
+  xgb_fit = readRDS(filepath)$xgb_fit
+  print(paste(xgb_fit$best_score, xgb_fit$best_ntreelimit))
   roc = get_roc(df, xgb_fit)
   print(paste(mname, xgb_fit$nfeatures, roc$auc))
   return(roc)
@@ -88,7 +93,14 @@ names(rocs) = names(subsets)
 
 # =========================================================
 # post processing
-aucs = sapply(rocs, function(roc) roc$auc)
+test_aucs = sapply(rocs, function(roc) roc$auc)
+valid_auc = sapply(names(subsets), function(mname){
+  filepath = paste0("R_data/results/models/XGB_n1M_typeANY_", mname, ".rds")
+  xgb_fit = readRDS(filepath)$xgb_fit
+  return(xgb_fit$best_score)
+})
+tab = rbind(valid_auc, test_aucs) %>% t()
+xtable::xtable(tab, digits=3)
 curves = lapply(seq_along(rocs), function(i){
   curve = data.frame(rocs[[i]]$curve)
   colnames(curve) = c("fpr", "recall", "threshold")
