@@ -115,9 +115,13 @@ subsets = list(
 for(i in seq(length(subsets))){
   mname = names(subsets)[i]
   subset = subsets[[i]]
-  dwatchlist = xgb_prep(train=train_ %>% select(-subset),
-                        test=test_ %>% select(-subset),
-                        valid=valid_ %>% select(-subset))
+  cat(mname, fill=T)
+  train_s = train_ %>% select(-subset)
+  test_s = test_ %>% select(-subset)
+  valid_s = valid_ %>% select(-subset)
+  dwatchlist = xgb_prep(train=train_s,
+                        test=test_s,
+                        valid=valid_s)
   dwatchlist$test = NULL
   
   # fit
@@ -140,15 +144,17 @@ for(i in seq(length(subsets))){
                       verbose=1,print_every_n=10,
                       early_stopping_rounds=100)
   timestamp()
-  cat(xgb_fit$nfeatures)
+  cat("nfeatures: ")
+  cat(xgb_fit$nfeatures, fill=T)
   # save
   out = list(
     xgb_fit=xgb_fit,
     quantiles=quantiles,
     test_ids=test_$ID
   )
-  filepath = paste0("R_data/results/models/XGB_n", n, "_typeANY_", mname, ".rds")
+  filepath = paste0("R_data/results/models/test/XGB_n", n, "_typeANY_", mname, ".rds")
   saveRDS(out, filepath)
+  rm(xgb_fit, out, dwatchlist, train_s, test_s, valid_s)
 }
 
 
