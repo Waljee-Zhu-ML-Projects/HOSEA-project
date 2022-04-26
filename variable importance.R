@@ -186,3 +186,58 @@ missing_prop_0 = df %>% filter(CaseControl==0) %>% is.na() %>%
 missing_prop_1 = df %>% filter(CaseControl==1) %>% is.na() %>% 
   data.frame() %>% summarize_all(mean)
 round(rbind(missing_prop_y, missing_prop_1) %>% t() * 100, 0)
+
+# =========================================================
+# SHAP values
+
+dff = bind_rows(
+  df %>% filter(CaseControl==1),
+  df %>% filter(CaseControl==0) %>% sample_n(5000)
+)
+xgb_dff = xgb.DMatrix(as.matrix(dff %>% select(xgb_fit$feature_names)),
+                      label=dff$CaseControl)
+proba = predict(xgb_fit, newdata=xgb_dff, predcontrib=TRUE, approxcontrib=F)
+
+#by group
+groups = lapply(unique(features$group), 
+                function(gr) unique(features$name[features$group==gr]))
+names(groups) = unique(features$group)
+shap_groups = lapply(names(groups), function(gr){
+  pr = proba[, groups[[gr]]]
+  if(!is.vector(pr)) pr %<>% rowSums()
+  pr
+})
+names(shap_groups) = names(groups)
+shap_groups = bind_cols(shap_groups)
+shap_group_agg = abs(shap_groups) %>% colMeans()
+df_shap = data.frame(sort(shap_group_agg, decreasing=F))
+colnames(df_shap) = c("SHAP")
+df_shap$feature = factor(rownames(df_shap), levels=rownames(df_shap))
+
+g = ggplot(df_shap, aes(x=SHAP, y=feature)) + geom_bar(stat="identity") +
+  xlab("mean|SHAP|") + ylab("") 
+filepath = paste0(dir_figures, "shap_groups.pdf")
+ggsave(filepath, g, width=6, height=10)
+
+
+
+#by cat
+groups = lapply(unique(features$category), 
+                function(gr) unique(features$name[features$category==gr]))
+names(groups) = unique(features$category)
+shap_groups = lapply(names(groups), function(gr){
+  pr = proba[, groups[[gr]]]
+  if(!is.vector(pr)) pr %<>% rowSums()
+  pr
+})
+names(shap_groups) = names(groups)
+shap_groups = bind_cols(shap_groups)
+shap_group_agg = abs(shap_groups) %>% colMeans()
+df_shap = data.frame(sort(shap_group_agg, decreasing=F))
+colnames(df_shap) = c("SHAP")
+df_shap$feature = factor(rownames(df_shap), levels=rownames(df_shap))
+
+g = ggplot(df_shap, aes(x=SHAP, y=feature)) + geom_bar(stat="identity") +
+  xlab("mean|SHAP|") + ylab("") 
+filepath = paste0(dir_figures, "shap_category.pdf")
+ggsave(filepath, g, width=6, height=5)

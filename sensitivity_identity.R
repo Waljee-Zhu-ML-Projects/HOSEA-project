@@ -12,7 +12,7 @@ source('R_code/hosea-project/classification_metrics.R')
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
+model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
 
 # =========================================================
 # read in model
@@ -126,3 +126,16 @@ g = ggplot(data=curves %>% filter(window %in%
   labs(color="Race") +
   ggtitle("Sensitivity analysis: Race")
 ggsave(filepath, g, width=6, height=4)
+
+
+# ===
+# tmp for comparison
+df %<>% left_join(master, by="ID")
+with(df, table(CaseControl, CancerType, Gender))
+
+
+df$age_bin = cut(df$ageatindex, c(20, 30, 40, 50, 55, 60, 65, 70, 75, 80, 90))
+counts = with(df, table(CaseControl, age_bin))
+cc = counts %>% colSums() 
+cond_prob = counts / matrix(cc, nrow=2, byrow=T, ncol=10)
+round(cond_prob * 100000, 0)
