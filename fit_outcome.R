@@ -9,19 +9,16 @@ source('R_code/hosea-project/evaluation_split.R')
 library(HOSEA)
 
 # import data
-complete_data = readRDS('R_data/processed_records/5-1.rds')
+complete_data = readRDS('R_data/processed_records/5-1_test_merged.rds')
 master = complete_data$master
 dff = complete_data$df
 # get outcomes
-outcomes = master %>% select(ID, CaseControl, CancerType)
+outcomes = master %>% select(id, casecontrol, cancertype)
 outcomes %<>% mutate(
-  ANY=CaseControl,
-  EAC=as.integer(CancerType=="EAC"),
-  EGJAC=as.integer(CancerType=="EGJAC")
+  ANY=casecontrol,
+  EAC=as.integer(cancertype=="EAC"),
+  EGJAC=as.integer(cancertype=="EGJAC")
 )
-
-dff$n_visits = NULL # in case this slipped in somehow
-cc_test = readRDS('R_data/cc_complete_data.rds') # legacy, dropped below
 
 # parameters
 set.seed(0)
@@ -32,21 +29,21 @@ nname = "1M"
 
 # logging
 log = function(df) cat(paste("Full data set: ", nrow(df), "observations,", 
-                             df$CaseControl%>%sum, "cases", 
-                             (df$CaseControl==0)%>%sum, "controls"), fill=T)
+                             df$casecontrol%>%sum, "cases", 
+                             (df$casecontrol==0)%>%sum, "controls"), fill=T)
 
-outcome_list = c("EGJAC") # c("ANY", "EAC", "EGJAC")
+outcome_list = c("ANY", "EAC", "EGJAC")
 
 for(outcome in outcome_list){
   # select outcome
-  outcomes_ = outcomes%>%select(ID, !!outcome)
+  outcomes_ = outcomes%>%select(id, !!outcome)
   df = dff %>% 
-    left_join(outcomes_, by="ID") %>%
-    select(-CaseControl) %>% 
-    rename(CaseControl=!!outcome)
+    left_join(outcomes_, by="id") %>%
+    select(-casecontrol) %>% 
+    rename(casecontrol=!!outcome)
     
-  n0all = (df$CaseControl==0)%>%sum
-  n1all = (df$CaseControl==1)%>%sum
+  n0all = (df$casecontrol==0)%>%sum
+  n1all = (df$casecontrol==1)%>%sum
   # train-test split
   df = subsample_controls(df, n)
   set.seed(0)
@@ -77,8 +74,8 @@ for(outcome in outcome_list){
   rm(out);gc()
   log(train_n)
   log(valid_n)
-  n0 = (train_n$CaseControl==0)%>%sum
-  n1 = (train_n$CaseControl==1)%>%sum
+  n0 = (train_n$casecontrol==0)%>%sum
+  n1 = (train_n$casecontrol==1)%>%sum
   timestamp()
   # produce training set
   train_ = switch(method,
@@ -91,6 +88,7 @@ for(outcome in outcome_list){
   )
   log(train_)
   # imputation
+  missing_prop = train_n %>% mutate(across(everything(), is.na)) %>% colMeans()
   quantiles = compute_quantiles(train_n, n_quantiles)
   rm(train_n);gc()
   set.seed(0)
@@ -100,10 +98,8 @@ for(outcome in outcome_list){
   log(train_);log(valid_);log(test_)
   dwatchlist = xgb_prep(train=train_,
                         test=test_,
-                        valid=valid_,
-                        cc=cc_test)
+                        valid=valid_)
   dwatchlist$test = NULL
-  dwatchlist$cc = NULL
   gc()
   # fit
   param_xg$scale_pos_weight = switch(
@@ -119,7 +115,7 @@ for(outcome in outcome_list){
   timestamp()
   xgb_fit = xgb.train(param_xg,
                       dwatchlist$train,
-                      nrounds=20000,
+                      nrounds=2000,
                       dwatchlist,
                       verbose=1,print_every_n=100,
                       early_stopping_rounds=100)
@@ -128,9 +124,10 @@ for(outcome in outcome_list){
   out = list(
     xgb_fit=xgb_fit,
     quantiles=quantiles,
-    test_ids=test_$ID
+    test_ids=test_$id,
+    missing_prop=missing_prop
   )
-  filepath = paste0("R_data/results/models/", nname, "_", outcome, ".rds")
+  filepath = paste0("R_data/results/models/XGB_", nname, "_", outcome, ".rds")
   saveRDS(out, filepath)
 
 }
