@@ -3,14 +3,14 @@
 
 xgb_prep <- function(train,test,valid,dname,cc=NULL,weight=NULL){
   # xgb formatting for each set
-  dtrain <- xgb.DMatrix(as.matrix(train%>%select(-c(ID,CaseControl))),
-                           label=train$CaseControl)
-  dvalid <- xgb.DMatrix(as.matrix(valid%>%select(-c(ID,CaseControl))),
-                           label=valid$CaseControl)
-  dtest <- xgb.DMatrix(as.matrix(test%>%select(-c(ID,CaseControl))),
-                          label=test$CaseControl)
-  if(!missing(cc)) dcc = xgb.DMatrix(as.matrix(cc%>%select(-c(ID,CaseControl))),
-                                    label=cc$CaseControl)
+  dtrain <- xgb.DMatrix(as.matrix(train%>%select(-c(id,casecontrol))),
+                           label=train$casecontrol)
+  dvalid <- xgb.DMatrix(as.matrix(valid%>%select(-c(id,casecontrol))),
+                           label=valid$casecontrol)
+  dtest <- xgb.DMatrix(as.matrix(test%>%select(-c(id,casecontrol))),
+                          label=test$casecontrol)
+  if(!missing(cc)) dcc = xgb.DMatrix(as.matrix(cc%>%select(-c(id,casecontrol))),
+                                    label=cc$casecontrol)
   if(!missing(weight)) setinfo(dtrain, "weight", weight)
   # combine as a watchlist
   dwatchlist <- list(train=dtrain,test=dtest,valid=dvalid)
@@ -22,14 +22,14 @@ xgb_prep <- function(train,test,valid,dname,cc=NULL,weight=NULL){
 # same formatiing but drop columns
 xgb_prep_drop <- function(train,test,valid,dname,cc=NULL,drop){
   # xgb formatting for each set
-  dtrain <- xgb.DMatrix(as.matrix(train[[dname]] %>% select(-one_of(c("ID","CaseControl",drop)))),
-                        label=train[[dname]]$CaseControl)
-  dvalid <- xgb.DMatrix(as.matrix(valid[[dname]] %>% select(-one_of(c("ID","CaseControl",drop)))),
-                        label=valid[[dname]]$CaseControl)
-  dtest <- xgb.DMatrix(as.matrix(test[[dname]] %>% select(-one_of(c("ID","CaseControl",drop)))),
-                       label=test[[dname]]$CaseControl)
-  if(!missing(cc)) dcc = xgb.DMatrix(as.matrix(cc %>% select(-one_of(c("ID","CaseControl",drop)))),
-                                     label=cc$CaseControl)
+  dtrain <- xgb.DMatrix(as.matrix(train[[dname]] %>% select(-one_of(c("id","casecontrol",drop)))),
+                        label=train[[dname]]$casecontrol)
+  dvalid <- xgb.DMatrix(as.matrix(valid[[dname]] %>% select(-one_of(c("id","casecontrol",drop)))),
+                        label=valid[[dname]]$casecontrol)
+  dtest <- xgb.DMatrix(as.matrix(test[[dname]] %>% select(-one_of(c("id","casecontrol",drop)))),
+                       label=test[[dname]]$casecontrol)
+  if(!missing(cc)) dcc = xgb.DMatrix(as.matrix(cc %>% select(-one_of(c("id","casecontrol",drop)))),
+                                     label=cc$casecontrol)
   # combine as a watchlist
   dwatchlist <- list(train=dtrain,test=dtest,valid=dvalid)
   if(!missing(cc)) dwatchlist = list(train=dtrain,test=dtest,cc=dcc,valid=dvalid)
@@ -41,13 +41,13 @@ xgb_prep_drop <- function(train,test,valid,dname,cc=NULL,drop){
 xgb_prep_sub <- function(train,test,valid,dname,cc=NULL,subset){
   # xgb formatting for each set
   dtrain <- xgb.DMatrix(as.matrix(train[[dname]][subset]),
-                        label=train[[dname]]$CaseControl)
+                        label=train[[dname]]$casecontrol)
   dvalid <- xgb.DMatrix(as.matrix(valid[[dname]][subset]),
-                        label=valid[[dname]]$CaseControl)
+                        label=valid[[dname]]$casecontrol)
   dtest <- xgb.DMatrix(as.matrix(test[[dname]][subset]),
-                       label=test[[dname]]$CaseControl)
+                       label=test[[dname]]$casecontrol)
   if(!missing(cc)) dcc = xgb.DMatrix(as.matrix(cc[subset]),
-                                     label=cc$CaseControl)
+                                     label=cc$casecontrol)
   # combine as a watchlist
   dwatchlist <- list(train=dtrain,test=dtest,valid=dvalid)
   if(!missing(cc)) dwatchlist = list(train=dtrain,test=dtest,cc=dcc,valid=dvalid)
@@ -111,13 +111,13 @@ xgb_auc_external <- function(xgb_model,
                     new_data){
   # convert to xgb object
   dnew <- xgb.DMatrix(as.matrix(new_data[-c(1,2)]),
-                        label=new_data$CaseControl)
+                        label=new_data$casecontrol)
   # predict outsome
   ptest <- predict(xgb_model,newdata=dnew,
                     ntreelimit=xgb_model$best_ntreelimit,
                     outputmargin=FALSE)
   # AUCs
-  auc_test <- ci.auc(response=new_data$CaseControl,
+  auc_test <- ci.auc(response=new_data$casecontrol,
                      predictor=ptest,
                      conf.level=.95,
                      method='delong')

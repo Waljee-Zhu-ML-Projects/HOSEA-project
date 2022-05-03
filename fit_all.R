@@ -10,7 +10,7 @@ library(HOSEA)
 library(dplyr)
 library(magrittr)
 # import data
-complete_data = readRDS('R_data/processed_records/5-1.rds')
+complete_data = readRDS('R_data/processed_records/5-1_test.rds')
 master = complete_data$master
 complete_data = complete_data$df
 
