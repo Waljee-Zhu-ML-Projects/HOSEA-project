@@ -201,7 +201,7 @@ auc_mat = sapply(names(subsets), function(sname){
 xtable::xtable(t(auc_mat), digits=3)
 
 # shap and pdp
-test_df = complete_data %>% sample_n(10000)
+test_df = complete_data %>% sample_n(50000)
 shap_dfs = list()
 pdp_dfs = list()
 
@@ -266,16 +266,11 @@ g=ggplot(shap_df_, aes(x=age.y, y=birthyear.x+age.x, color=birthyear.y)) +
   scale_color_gradientn(colors=rainbow(6))
 ggsave(paste0(dir_figures, "shap_num_age_by.pdf"), width=8, height=4)
 
-library(latticeExtra)
-pdp2d = pdp::partial(xgb_fit, pred.var=c("age", "birthyear"), 
-             train=dff %>% select(xgb_fit$feature_names), 
-             type="classification", prob=T, which.class=1,
-             plot=F, progress="text")
-ggplot(pdp2d, aes(x=age, y=birthyear, fill=yhat*100000)) + 
-  geom_tile() +
-  scale_color_gradientn(colors=rainbow(5)) + coord_fixed() +
-  geom_abline(slope=-1, intercept=c(2005, 2019))
 
-levelplot(yhat*100000~age+birthyear, data=pdp2d)
-abline(-1, c(2005, 2019))
-ggsave(paste0(dir_figures, "pdp_age_by.pdf"), width=8, height=8)
+pdp_df_ = pdp::partial(xgb_fit, pred.var="birthyear", train=dff %>% select(xgb_fit$feature_names), 
+                      type="classification", prob=T, which.class=1,
+                      plot=F, progress="text")
+pdp_df_$yhat = 100000*pdp_df_$yhat
+g = ggplot(pdp_df_, aes(x=birthyear, y=yhat)) + 
+  geom_line() + xlab("birth year") + ylab("PDP (/100,000)")
+ggsave(paste0(dir_figures, "pdp_by.pdf"), width=8, height=4)
