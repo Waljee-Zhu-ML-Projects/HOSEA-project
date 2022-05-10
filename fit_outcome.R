@@ -24,8 +24,8 @@ outcomes %<>% mutate(
 set.seed(0)
 n_quantiles = 10000
 method = "resample"
-n = 1e6
-nname = "1M"
+# n = 1e6
+nname = "all"
 
 # logging
 log = function(df) cat(paste("Full data set: ", nrow(df), "observations,", 
@@ -45,7 +45,7 @@ for(outcome in outcome_list){
   n0all = (df$casecontrol==0)%>%sum
   n1all = (df$casecontrol==1)%>%sum
   # train-test split
-  df = subsample_controls(df, n)
+  # df = subsample_controls(df, n)
   set.seed(0)
   out = train_test_split(df=df, weights=c(3, 1))
   train = out[[1]]
@@ -89,6 +89,7 @@ for(outcome in outcome_list){
   log(train_)
   # imputation
   missing_prop = train_n %>% mutate(across(everything(), is.na)) %>% colMeans()
+  missing_rate = train_n %>% mutate(across(everything(), is.na)) %>% rowSums() %>% table()
   quantiles = compute_quantiles(train_n, n_quantiles)
   rm(train_n);gc()
   set.seed(0)
@@ -125,7 +126,8 @@ for(outcome in outcome_list){
     xgb_fit=xgb_fit,
     quantiles=quantiles,
     test_ids=test_$id,
-    missing_prop=missing_prop
+    missing_prop=missing_prop,
+    missing_rate=missing_rate
   )
   filepath = paste0("R_data/results/models/XGB_", nname, "_", outcome, ".rds")
   saveRDS(out, filepath)
