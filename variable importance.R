@@ -13,7 +13,7 @@ source('R_code/hosea-project/classification_metrics.R')
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
+model_path = "R_data/results/models/XGB_all_ANY.rds"
 
 # =========================================================
 # read in model
@@ -25,32 +25,32 @@ rm(results); gc()
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1.rds")
+file_path = paste0(dir_path, "5-1_test_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
 # subset to test set
-df %<>% filter(ID %in% test_ids)
+df %<>% filter(id %in% test_ids)
 # imputation
 set.seed(0)
 df = impute_srs(df, quantiles)
 
 xgb_df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
-                     label=df$CaseControl)
+                     label=df$casecontrol)
 
 
 # =========================================================
 # group features
 features = data.frame(name=xgb_fit$feature_names)
-print(paste(xgb_fit$feature_names, collapse="', '"))
+print(paste(xgb_fit$feature_names, collapse="   "))
 features$group = c(
-  'ageatindex', 'Gender', 'bmi', 'weight', 
-  rep("Race", 4), 'agentorange', rep("Smoke", 2), 
-  'GerdAtIndex', 'CHF', 'CTD', 'DEM', 'DIAB_C', 'HIV', 'MLD', 'MSLD', 
-  'PARA', 'RD', 'cd', 'copd', 'diab_nc', 'mi', 'pud', 'pvd', 
+  'gender', 'bmi', 'weight', 
+  rep("race", 4), 'agentorange', 'age', rep("smoke", 2), 
+  'gerd', 'chf', 'ctd', 'dem', 'diab_c', 'hiv', 'mld', 'msld', 
+  'para', 'rd', 'cd', 'copd', 'diab_nc', 'mi', 'pud', 'pvd', 
   # rep("colonoscopy", 2), rep("labs_fobt", 2), 
   rep("h2r", 5), rep("ppi", 5), 
-  rep("A1c", 6), rep("bun", 6),  rep("calc", 6),  
+  rep("a1c", 6), rep("bun", 6),  rep("calc", 6),  
   rep("chlor", 6),  rep("co2", 6),  rep("creat", 6), 
   rep("gluc", 6), rep("k", 6),  rep("na", 6), 
   rep("baso", 6),  rep("eos", 6),  rep("hct", 6), 
@@ -58,19 +58,20 @@ features$group = c(
   # rep("hgb", 6),  rep("lymph", 6),  rep("mch", 6), 
   rep("mchc", 6),  rep("mcv", 6),  rep("mono", 6), 
   rep("mpv", 6),  rep("neut", 6),  rep("platelet", 6), 
-  rep("rbw", 6),  rep("wbc", 6),  rep("CRP", 6), 
+  # rep("rbw", 6),  
+  rep("wbc", 6),  rep("crp", 6), 
   # rep("rbc", 6),  rep("rbw", 6),  rep("wbc", 6),  rep("CRP", 6), 
   rep("alkphos", 6),  rep("alt", 6),  rep("ast", 6), 
   rep("totprot", 6),  rep("hdl", 6), 
-  # rep("totprot", 6),  rep("chol", 6),  rep("hdl", 6), 
-  rep("ldl", 6),  rep("trig", 6)
+  # rep("totprot", 6),  rep("chol", 6),  rep("hdl", 6), rep("ldl", 6),  
+  rep("trig", 6)
 )
 features$category = c( 
   rep("Demographic", 11),
   rep("Comorbidities", 16), 
   # rep("Clinical", 4), 
-  rep("Medication", 10),
-  rep("Lab", 180)
+  rep("Medication", 2*5),
+  rep("Lab", 28*6)
   # rep("Lab", 198)
 )
 
@@ -94,7 +95,8 @@ vi_group = vi_group[, c("category", "group", "Gain")]
 vi_cat = vi_cat[, c("category", "Gain")]
 
 write.csv(vi_all, paste0(dir_figures, "vi.csv"))
-write.csv(vi_group, paste0(dir_figures, "vi_group.csv"))
+write.csv(vi_group, paste0(dir_figures, "vi_group.
+                           csv"))
 write.csv(vi_cat, paste0(dir_figures, "vi_cat.csv"))
 
 
@@ -106,7 +108,14 @@ g = ggplot(data=vi_cat, aes(y=reorder(category, Gain), x=Gain)) +
   geom_bar(stat="identity") +
   ggtitle("Variable importance by category") +
   xlim(0, 1) + ylab("Category")
-filename = paste0(dir_figures, "vi_cat.pdf")
+filename = paste0(dir_figures, "pdp_new/vi_cat.pdf")
+ggsave(filename, g, width=5, height=5)
+
+g = ggplot(data=vi_group, aes(y=reorder(group, Gain), x=Gain)) +
+  geom_bar(stat="identity") +
+  ggtitle("Variable importance by group") +
+  ylab("Feature group")
+filename = paste0(dir_figures, "pdp_new/vi_group.pdf")
 ggsave(filename, g, width=5, height=5)
 
 for(cat in features$category %>% unique()){
@@ -115,26 +124,18 @@ for(cat in features$category %>% unique()){
     geom_bar(stat="identity") +
     ggtitle(paste0("Variable importance: ", cat))  +
     xlim(0, 1) + ylab("Group")
-  filename = paste0(dir_figures, "vi_group_", cat, "_.pdf")
+  filename = paste0(dir_figures, "pdp_new/vi_group_", cat, ".pdf")
   ggsave(filename, g, width=5, height=5)
 }
 
 
 
 # =========================================================
-# PDP
-
-vars_to_plot = unique(c(
-  features %>% 
-    filter(category %in% c("Demographic", "Comorbidities", "Medication")) %>% 
-    use_series(name),
-  vi_raw %>% arrange(desc(Gain)) %>%
-    use_series(Feature)%>% head(20)
-))
+# PDPs
 
 train = df %>% select(xgb_fit$feature_names)
 set.seed(0) # sample some rows, otherwise waaaay too long
-train = train[sample.int(nrow(train), 10000), ]
+train %<>% sample_n(10000)
 
 for(var in xgb_fit$feature_names){
   deciles = quantile(df[[var]], (1:9)/10)
@@ -155,8 +156,8 @@ for(var in xgb_fit$feature_names){
                  inherit.aes=F)
   if(length(unique(df[[var]]))>100) g = g + xlim(quantile(df[[var]], c(0.05, 0.95)))
   g
-  filepath = paste0(dir_figures, "pdp/", var, ".pdf")
-  ggsave(filepath, g, width=3, height=4)
+  filepath = paste0(dir_figures, "pdp_new/", var, ".pdf")
+  ggsave(filepath, g, width=5, height=5)
   cat("...done!\n")
 }
 
@@ -191,11 +192,11 @@ round(rbind(missing_prop_y, missing_prop_1) %>% t() * 100, 0)
 # SHAP values
 
 dff = bind_rows(
-  df %>% filter(CaseControl==1),
-  df %>% filter(CaseControl==0) %>% sample_n(5000)
+  df %>% filter(casecontrol==1),
+  df %>% filter(casecontrol==0) %>% sample_n(5000)
 )
 xgb_dff = xgb.DMatrix(as.matrix(dff %>% select(xgb_fit$feature_names)),
-                      label=dff$CaseControl)
+                      label=dff$casecontrol)
 proba = predict(xgb_fit, newdata=xgb_dff, predcontrib=TRUE, approxcontrib=F)
 
 #by group
@@ -216,8 +217,23 @@ df_shap$feature = factor(rownames(df_shap), levels=rownames(df_shap))
 
 g = ggplot(df_shap, aes(x=SHAP, y=feature)) + geom_bar(stat="identity") +
   xlab("mean|SHAP|") + ylab("") 
-filepath = paste0(dir_figures, "shap_groups.pdf")
-ggsave(filepath, g, width=6, height=10)
+filepath = paste0(dir_figures, "shap_new/shap_groups.pdf")
+ggsave(filepath, g, width=5, height=5)
+
+corr_shap_groups = cor(shap_groups)
+corr_shap_groups_long = 
+  corr_shap_groups %>% 
+  data.frame() %>% 
+  mutate(feature=rownames(.)) %>% 
+  tidyr::pivot_longer(rownames(.))
+corr_shap_groups_long %>% 
+  filter(feature!=name) %>% 
+  arrange(desc(value))
+filepath = paste0(dir_figures, "shap_new/shap_corr.pdf")
+pdf(filepath, width=8, height=8)
+corrplot::corrplot(corr_shap_groups)
+dev.off()
+
 
 
 
@@ -239,5 +255,28 @@ df_shap$feature = factor(rownames(df_shap), levels=rownames(df_shap))
 
 g = ggplot(df_shap, aes(x=SHAP, y=feature)) + geom_bar(stat="identity") +
   xlab("mean|SHAP|") + ylab("") 
-filepath = paste0(dir_figures, "shap_category.pdf")
+filepath = paste0(dir_figures, "shap_new/shap_category.pdf")
 ggsave(filepath, g, width=6, height=5)
+
+shap_vals = data.frame(proba)
+for(var in xgb_fit$feature_names){
+  deciles = quantile(df[[var]], (1:9)/10)
+  deciles = data.frame(x=deciles, xend=deciles, y=-0.1, yend=0)
+  cat(paste0("Feature: ", var, "...\n"))
+  cat = features %>% filter(name==!!var) %>% use_series(category)
+  group = features %>% filter(name==!!var) %>% use_series(group)
+  vi_var = vi_raw %>% filter(Feature==!!var) %>% use_series(Gain)
+  plotdf = data.frame(
+    var=dff[[var]],
+    shap=exp(shap_vals[[var]])
+  )
+  g = ggplot(plotdf, aes(x=var, y=shap)) + geom_point(alpha=0.05) +
+    geom_segment(data=deciles, aes(x=x, y=y, xend=xend, yend=yend), 
+                 inherit.aes=F) + ylab("exp(SHAP)") + xlab(var) + 
+    geom_smooth(method=ifelse(length(unique(dff[[var]]))>3, "gam", "lm"))
+  g
+  filepath = paste0(dir_figures, "shap_new/", var, ".pdf")
+  ggsave(filepath, g, width=5, height=5)
+  cat("...done!\n")
+}
+

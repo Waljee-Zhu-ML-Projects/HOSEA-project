@@ -274,3 +274,14 @@ pdp_df_$yhat = 100000*pdp_df_$yhat
 g = ggplot(pdp_df_, aes(x=birthyear, y=yhat)) + 
   geom_line() + xlab("birth year") + ylab("PDP (/100,000)")
 ggsave(paste0(dir_figures, "pdp_by.pdf"), width=8, height=4)
+
+plot_df = with(complete_data, table(casecontrol, 
+                                    cut(age, breaks=c(20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 100)),
+                                    cut(birthyear, seq(1915, 2000, 5))))
+plot_df = plot_df[2, , ]/ (plot_df[1,,]+plot_df[2,,])
+plot_df %<>% data.frame()
+colnames(plot_df) = c("age", "birthyear", "propcases")
+plot_df$birthyear = as.numeric(plot_df$birthyear)*5 + 1915+2.5
+
+ggplot(plot_df, aes(x=birthyear, y=propcases, color=age)) + geom_line()
+  

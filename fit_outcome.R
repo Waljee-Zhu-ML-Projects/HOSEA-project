@@ -32,8 +32,20 @@ log = function(df) cat(paste("Full data set: ", nrow(df), "observations,",
                              df$casecontrol%>%sum, "cases", 
                              (df$casecontrol==0)%>%sum, "controls"), fill=T)
 
-outcome_list = c("ANY", "EAC", "EGJAC")
 
+
+# prepare stuff
+param_xg = list(
+  max_depth = 5,
+  subsample = 0.1,
+  eta = .2,
+  objective = 'binary:logistic',
+  eval_metric = 'auc',
+  nthread=-1
+)
+
+outcome_list = c("ANY", "EAC", "EGJAC")
+outcome_list = c("EAC", "EGJAC")
 for(outcome in outcome_list){
   # select outcome
   outcomes_ = outcomes%>%select(id, !!outcome)
@@ -55,16 +67,6 @@ for(outcome in outcome_list){
   log(train)
   log(test)
   
-  # prepare stuff
-  param_xg = list(
-    max_depth = 5,
-    subsample = 0.1,
-    eta = .5,
-    objective = 'binary:logistic',
-    eval_metric = 'auc',
-    nthread=-1
-  )
-  
   # validation split
   set.seed(0)
   out = train_test_split(df=train, weights=c(2, 1))
@@ -78,14 +80,7 @@ for(outcome in outcome_list){
   n1 = (train_n$casecontrol==1)%>%sum
   timestamp()
   # produce training set
-  train_ = switch(method,
-                 "downsample" = subsample_controls(train_n, n1),
-                 "resample" = balanced_resample(train_n),
-                 "unweighted" = train_n,
-                 "weighted" = balanced_resample(train_n),
-                 "weighted_sqrt" = balanced_resample(train_n),
-                 "weighted_sq" = balanced_resample(train_n)
-  )
+  train_ = balanced_resample(train_n)
   log(train_)
   # imputation
   missing_prop = train_n %>% mutate(across(everything(), is.na)) %>% colMeans()
@@ -100,25 +95,17 @@ for(outcome in outcome_list){
   dwatchlist = xgb_prep(train=train_,
                         test=test_,
                         valid=valid_)
-  dwatchlist$test = NULL
+  # dwatchlist$test = NULL
   gc()
   # fit
-  param_xg$scale_pos_weight = switch(
-    method,
-    "downsample" = 1.,
-    "resample" = (n1all/n0all)*(n0/n0),
-    "unweighted" = (n1all/n0all)*(n0/n1),
-    "weighted" = n0/n1,
-    "weighted_sqrt" = sqrt(n0/n1),
-    "weighted_sq" = (n0/n1)^2
-  )
+  param_xg$scale_pos_weight = (n1all/n0all)*(n0/n0)
   set.seed(0)
   timestamp()
   xgb_fit = xgb.train(param_xg,
                       dwatchlist$train,
                       nrounds=2000,
                       dwatchlist,
-                      verbose=1,print_every_n=100,
+                      verbose=1,print_every_n=10,
                       early_stopping_rounds=100)
   timestamp()
   # save
