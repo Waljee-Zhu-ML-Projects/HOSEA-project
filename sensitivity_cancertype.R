@@ -20,9 +20,9 @@ outcome_path = "R_data/processed_records/outcome.rds"
 # =========================================================
 # read in models
 model_names = c(
-  ANY="1M_ANY.rds",
-  EAC="1M_EAC.rds",
-  EGJAC="1M_EGJAC.rds"
+  ANY="XGB_all_ANY.rds",
+  EAC="XGB_all_EAC.rds",
+  EGJAC="XGB_all_EGJAC.rds"
 )
 models = lapply(model_names, function(file){
   results = readRDS(paste0(dir_model, file))
@@ -31,21 +31,21 @@ models = lapply(model_names, function(file){
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1.rds")
+file_path = paste0(dir_path, "5-1_test_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
 
 # =========================================================
 # get outcomes
-outcomes = master %>% select(ID, CancerType)
+outcomes = master %>% select(id, cancertype)
 outcomes %<>% mutate(
-  ANY=ifelse(CancerType=="", 0, 1),
-  EAC=ifelse(CancerType=="EAC", 1, 0),
-  EGJAC=ifelse(CancerType=="EGJAC", 1, 0)
+  ANY=ifelse(cancertype=="", 0, 1),
+  EAC=ifelse(cancertype=="EAC", 1, 0),
+  EGJAC=ifelse(cancertype=="EGJAC", 1, 0)
 )
 # merge into df
-df %<>% left_join(outcomes, by="ID")
+df %<>% left_join(outcomes, by="id")
 outcome_names = c("ANY", "EAC", "EGJAC")
 
 # =========================================================
@@ -55,17 +55,17 @@ rocs = list()
 for(outcome in outcome_names){
   rocs[[outcome]] = list()
   probas[[outcome]] = list()
-  # move outcome into CaseControl
-  df %<>% mutate(CaseControl:=!!sym(outcome))
+  # move outcome into casecontrol
+  df %<>% mutate(casecontrol:=!!sym(outcome))
   # XGBoost
   for(name in names(models)){
-    dff = df %>% filter(ID %in% models[[name]]$test_ids)
+    dff = df %>% filter(id %in% models[[name]]$test_ids)
     set.seed(0)
     dff %<>% impute_srs(models[[name]]$quantiles)
-    dff %<>% select(c(ID, CaseControl, models[[name]]$xgb_fit$feature_names))
-    y = dff$CaseControl
+    dff %<>% select(c(id, casecontrol, models[[name]]$xgb_fit$feature_names))
+    y = dff$casecontrol
     dff = xgb.DMatrix(as.matrix(dff%>% select(models[[name]]$xgb_fit$feature_names)),
-                     label=dff$CaseControl)
+                     label=dff$casecontrol)
     # get predicted risk and ROC curve
     proba = predict(models[[name]]$xgb_fit, newdata=dff)
     probas[[outcome]][[name]] = data.frame(proba=proba, y=y)

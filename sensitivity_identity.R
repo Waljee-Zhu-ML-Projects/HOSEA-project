@@ -12,7 +12,7 @@ source('R_code/hosea-project/classification_metrics.R')
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
+model_path = "R_data/results/models/XGB_all_ANY.rds"
 
 # =========================================================
 # read in model
@@ -24,28 +24,28 @@ rm(results); gc()
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1.rds")
+file_path = paste0(dir_path, "5-1_test_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
 # subset to test set
-df %<>% filter(ID %in% test_ids)
+df %<>% filter(id %in% test_ids)
 # imputation
 set.seed(0)
 df = impute_srs(df, quantiles)
 
 xgb_df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
-                     label=df$CaseControl)
+                     label=df$casecontrol)
 
 # =========================================================
 # function to get ROC from a df
 get_roc = function(df){
   # ensure correct column ordering for xgb model
-  df %<>% select(c(ID, CaseControl, xgb_fit$feature_names))
-  y = df$CaseControl
+  df %<>% select(c(id, casecontrol, xgb_fit$feature_names))
+  y = df$casecontrol
   # convert to xgb format
   df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
-                   label=df$CaseControl)
+                   label=df$casecontrol)
   # get predicted risk and ROC curve
   proba = predict(xgb_fit, newdata=df)
   fg = proba[y==1]; bg = proba[y==0]
@@ -56,33 +56,33 @@ get_roc = function(df){
 }
 
 rocs = list()
-rocs[["All"]] = get_roc(df)
+rocs[["all"]] = get_roc(df)
 
 # =========================================================
 # gender
-male = df %>% filter(Gender==1)
-rocs[["Male"]] = get_roc(male); gc(male)
-female = df %>% filter(Gender==0)
-rocs[["Female"]] = get_roc(female); gc(female)
-df$Gender %>% mean
+male = df %>% filter(gender==1)
+rocs[["male"]] = get_roc(male); gc(male)
+female = df %>% filter(gender==0)
+rocs[["female"]] = get_roc(female); gc(female)
+df$gender %>% mean
 
 # =========================================================
 # race
-white_id = with(df, 1-pmax(Asian, Black, HawaiianPacific, IndianAlaskan))
-White = df %>% filter(white_id==1)
-rocs[["White"]] = get_roc(White); gc(White)
-Black = df %>% filter(Black==1)
-rocs[["Black"]] = get_roc(Black); gc(Black)
-HawaiianPacific = df %>% filter(HawaiianPacific==1)
-rocs[["HawaiianPacific"]] = get_roc(HawaiianPacific); gc(HawaiianPacific)
-Asian = df %>% filter(Asian==1)
-rocs[["Asian"]] = get_roc(Asian); gc(Asian)
-IndianAlaskan = df %>% filter(IndianAlaskan==1)
-rocs[["IndianAlaskan"]] = get_roc(IndianAlaskan); gc(IndianAlaskan)
-NonWhite = df %>% filter(white_id==0)
-rocs[["NonWhite"]] = get_roc(NonWhite); gc(NonWhite)
+white_id = with(df, 1-pmax(asian, black, hawaiianpacific, indianalaskan))
+white = df %>% filter(white_id==1)
+rocs[["white"]] = get_roc(white); gc(white)
+black = df %>% filter(black==1)
+rocs[["black"]] = get_roc(black); gc(black)
+hawaiianpacific = df %>% filter(hawaiianpacific==1)
+rocs[["hawaiianpacific"]] = get_roc(hawaiianpacific); gc(hawaiianpacific)
+asian = df %>% filter(asian==1)
+rocs[["asian"]] = get_roc(asian); gc(asian)
+indianalaskan = df %>% filter(indianalaskan==1)
+rocs[["indianalaskan"]] = get_roc(indianalaskan); gc(indianalaskan)
+nonwhite = df %>% filter(white_id==0)
+rocs[["nonwhite"]] = get_roc(nonwhite); gc(nonwhite)
 
-df %>% select(c(Asian, Black, HawaiianPacific, IndianAlaskan)) %>% summarise_all(mean)
+df %>% select(c(asian, black, hawaiianpacific, indianalaskan)) %>% summarise_all(mean)
 
 
 # =========================================================
@@ -99,9 +99,9 @@ curves = lapply(seq_along(rocs), function(i){
 curves %<>% bind_rows()
 
 # =========================================================
-# Gender
-filepath = paste0(dir_figures, "roc_Gender.pdf")
-g = ggplot(data=curves %>% filter(window %in% c("All", "Male", "Female")), 
+# gender
+filepath = paste0(dir_figures, "roc_gender.pdf")
+g = ggplot(data=curves %>% filter(window %in% c("all", "male", "female")), 
            aes(x=fpr, y=recall, color=label)) + 
   geom_line() +
   theme(aspect.ratio=1) +
@@ -113,11 +113,11 @@ ggsave(filepath, g, width=6, height=4)
 
 
 # =========================================================
-# Gender
+# gender
 filepath = paste0(dir_figures, "roc_Race.pdf")
 g = ggplot(data=curves %>% filter(window %in% 
-              c("White", "Black", "HawaiianPacific", "IndianAlaskan", 
-                "Asian", "All", "NonWhite")), 
+              c("white", "black", "hawaiianpacific", "indianalaskan", 
+                "asian", "all", "nonwhite")), 
            aes(x=fpr, y=recall, color=label)) + 
   geom_line() +
   theme(aspect.ratio=1) +
@@ -126,16 +126,3 @@ g = ggplot(data=curves %>% filter(window %in%
   labs(color="Race") +
   ggtitle("Sensitivity analysis: Race")
 ggsave(filepath, g, width=6, height=4)
-
-
-# ===
-# tmp for comparison
-df %<>% left_join(master, by="ID")
-with(df, table(CaseControl, CancerType, Gender))
-
-
-df$age_bin = cut(df$ageatindex, c(20, 30, 40, 50, 55, 60, 65, 70, 75, 80, 90))
-counts = with(df, table(CaseControl, age_bin))
-cc = counts %>% colSums() 
-cond_prob = counts / matrix(cc, nrow=2, byrow=T, ncol=10)
-round(cond_prob * 100000, 0)

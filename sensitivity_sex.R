@@ -13,8 +13,8 @@ dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
 model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
-model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
-complete = T
+model_path = "R_data/results/models/XGB_all_ANY.rds"
+complete = F
 
 # =========================================================
 # read in model
@@ -26,36 +26,36 @@ rm(results); gc()
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1.rds")
+file_path = paste0(dir_path, "5-1_test_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
 # subset to test set
-df %<>% filter(ID %in% test_ids)
-master %<>% filter(ID %in% test_ids)
+df %<>% filter(id %in% test_ids)
+master %<>% filter(id %in% test_ids)
 
 # =========================================================
 # subset to EAC only (ie remove EGJAC)
 
-egjac = master$CancerType == "EGJAC"
+egjac = master$cancertype == "EGJAC"
 df %<>% filter(!egjac)
 
 # =========================================================
 # find complete cases for other methods
 
-df$White = !(df$Asian | df$Black | df$HawaiianPacific | df$IndianAlaskan)
+df$white = !(df$asian | df$black | df$hawaiianpacific | df$indianalaskan)
 df$smoke_ever = df$smoke_current | df$smoke_former
 
 complete_cases = !(
-  is.na(df$Gender) |
-    is.na(df$ageatindex) |
+  is.na(df$gender) |
+    is.na(df$age) |
     is.na(df$smoke_former) |
     is.na(df$smoke_current) |
     is.na(df$bmi) |
-    is.na(df$White) | # will be NA iff same for other columns
-    is.na(df$GerdAtIndex) |
-    is.na(df$h2r_max) |
-    is.na(df$ppi_max)
+    is.na(df$white) | # will be NA iff same for other columns
+    is.na(df$gerd) |
+    (is.na(df$h2r_max) &
+    is.na(df$ppi_max))
 )
 
 if(complete){
@@ -65,14 +65,14 @@ if(complete){
   cdf = impute_srs(df, quantiles)
 }
 
-with(cdf, table(CaseControl, Gender))
+with(cdf, table(casecontrol, gender))
 
 # create the representative sample
 
-ids_cases_female = cdf%>%filter(Gender==0,CaseControl==1)%>%pull(ID)
-ids_cases_male = cdf%>%filter(Gender==1,CaseControl==1)%>%pull(ID)
-ids_controls_female = cdf%>%filter(Gender==0,CaseControl==0)%>%pull(ID)
-ids_controls_male = cdf%>%filter(Gender==1,CaseControl==0)%>%pull(ID)
+ids_cases_female = cdf%>%filter(gender==0,casecontrol==1)%>%pull(id)
+ids_cases_male = cdf%>%filter(gender==1,casecontrol==1)%>%pull(id)
+ids_controls_female = cdf%>%filter(gender==0,casecontrol==0)%>%pull(id)
+ids_controls_male = cdf%>%filter(gender==1,casecontrol==0)%>%pull(id)
 
 n_cases_female = length(ids_cases_female)
 n_controls_female = length(ids_controls_female)
@@ -90,29 +90,29 @@ ids = c(
   ids_controls_male
 )
 
-cdf_sample = cdf %>% filter(ID %in% ids)
-with(cdf_sample, table(CaseControl, Gender))
+cdf_sample = cdf %>% filter(id %in% ids)
+with(cdf_sample, table(casecontrol, gender))
 
 # test_complete is in the format for our xgboost model (w/ extra variables)
 # the following keeps only the required info for kunzmann or hunt
 
 # variables
 cdf_sample2 = cdf_sample %>% select(c(
-  "ID", "CaseControl", "smoke_current", "smoke_former", "Gender", 
-  "GerdAtIndex", "White", "smoke_ever", "bmi", "ageatindex")
+  "id", "casecontrol", "smoke_current", "smoke_former", "gender", 
+  "gerd", "white", "smoke_ever", "bmi", "age")
 )
 
 # check
-cdf_sample2 %>% filter(CaseControl==1) %>% select(c(
-  "ID", "CaseControl", "smoke_current", "smoke_former", "Gender", 
-  "GerdAtIndex", "White", "smoke_ever", "bmi", "ageatindex"
+cdf_sample2 %>% filter(casecontrol==1) %>% select(c(
+  "id", "casecontrol", "smoke_current", "smoke_former", "gender", 
+  "gerd", "white", "smoke_ever", "bmi", "age"
 )) %>% is.na() %>% colSums()
 
 # compute various bins
 cdf_sample2$k_age_bin = 
-  relevel(cut(cdf_sample$ageatindex, breaks=c(0, 50, 55, 60, 65, 100)), ref="(50,55]")
+  relevel(cut(cdf_sample$age, breaks=c(0, 50, 55, 60, 65, 100)), ref="(50,55]")
 cdf_sample2$k_bmi_bin = cut(cdf_sample$bmi, breaks=c(0, 25, 30, 35, 100))
-cdf_sample2$h_age_bin = cut(cdf_sample$ageatindex, breaks=c(0, 50, 60, 70, 100))
+cdf_sample2$h_age_bin = cut(cdf_sample$age, breaks=c(0, 50, 60, 70, 100))
 cdf_sample2$h_bmi_bin = cut(cdf_sample$bmi, breaks=c(0, 30, 100))
 cdf_sample2$h_smoke_any = pmax(
   cdf_sample$smoke_former,
@@ -121,11 +121,11 @@ cdf_sample2$h_smoke_any = pmax(
 cdf_sample2$k_ec = pmax(
   cdf_sample$h2r_max>0, 
   cdf_sample$ppi_max>0, 
-  cdf_sample$GerdAtIndex
+  cdf_sample$gerd, na.rm=T
 ) > 0
 
 # drop extra columns just in case
-cdf_sample$White = NULL
+cdf_sample$white = NULL
 cdf_sample$smoke_ever = NULL
 # Kunzmann score
 kunzmann_score = function(df){
@@ -133,7 +133,7 @@ kunzmann_score = function(df){
   score = score + (df$k_age_bin == "(55,60]") * 1.5
   score = score + (df$k_age_bin == "(60,65]") * 2.5
   score = score + (df$k_age_bin == "(65,100]") * 3.5
-  score = score + df$Gender * 4
+  score = score + df$gender * 4
   score = score + (df$k_bmi_bin == "(25,30]") * 1
   score = score + (df$k_bmi_bin == "(30,35]") * 1.5
   score = score + (df$k_bmi_bin == "(35,100]") * 2.5
@@ -146,12 +146,12 @@ kscores = kunzmann_score(cdf_sample2)
 
 hunt_score = function(df){
   score = 3.6
-  score = score * ifelse(df$Gender, 1.9, 1.)
+  score = score * ifelse(df$gender, 1.9, 1.)
   score = score * ifelse(df$h_age_bin == "(50,60]", 2.1, 1.)
   score = score * ifelse(df$h_age_bin == "(60,70]", 3.2, 1.)
   score = score * ifelse(df$h_age_bin == "(70,100]", 3.1, 1.)
   score = score * ifelse(df$h_bmi_bin == "(30,100]", 1.8, 1.)
-  score = score * ifelse(df$GerdAtIndex, 3.7, 1.)
+  score = score * ifelse(df$gerd, 3.7, 1.)
   score = score * ifelse(df$h_smoke_any, 2.1, 1.)
   return(score/100000)
 }
@@ -160,30 +160,30 @@ hscores = hunt_score(cdf_sample2)
 
 # screening guidelines
 scores = cdf_sample2 %>% mutate( 
-  ACG2016     = Gender & GerdAtIndex & ( ((ageatindex>=50) + (White) + (bmi>30) + (smoke_ever) ) > 1),
-  ACG2022     = GerdAtIndex & ( (Gender + (ageatindex>=50) + (White) + (bmi>30) + (smoke_ever) ) > 2),
-  ACP2012     = Gender & GerdAtIndex & (ageatindex>=50) & ( ((bmi>30) + (smoke_ever) ) > 0),
-  AGA2011     = ( GerdAtIndex + Gender + (ageatindex>=50) + (White) + (bmi>30) ) > 1,
-  AGA_CPU2022 = ( GerdAtIndex + Gender + (ageatindex>=50) + (White) + (bmi>30) + (smoke_ever) ) > 2,
-  ASGE2019    = GerdAtIndex & ( (Gender + (ageatindex>=50) + (bmi>30) + (smoke_ever) ) > 0),
-  BSG2013     = GerdAtIndex & ( (Gender + (ageatindex>=50) + (White) + (bmi>30) ) > 2),
-  ESGE2017    = GerdAtIndex & ( (Gender + (ageatindex>=50) + (White) + (bmi>30) ) > 1)
+  ACG2016     = gender & gerd & ( ((age>=50) + (white) + (bmi>30) + (smoke_ever) ) > 1),
+  ACG2022     = gerd & ( (gender + (age>=50) + (white) + (bmi>30) + (smoke_ever) ) > 2),
+  ACP2012     = gender & gerd & (age>=50) & ( ((bmi>30) + (smoke_ever) ) > 0),
+  AGA2011     = ( gerd + gender + (age>=50) + (white) + (bmi>30) ) > 1,
+  AGA_CPU2022 = ( gerd + gender + (age>=50) + (white) + (bmi>30) + (smoke_ever) ) > 2,
+  ASGE2019    = gerd & ( (gender + (age>=50) + (bmi>30) + (smoke_ever) ) > 0),
+  BSG2013     = gerd & ( (gender + (age>=50) + (white) + (bmi>30) ) > 2),
+  ESGE2017    = gerd & ( (gender + (age>=50) + (white) + (bmi>30) ) > 1)
 )
 guidelines = tail(colnames(scores), 8)
 
 # AUCs
-y = cdf_sample$CaseControl
+y = cdf_sample$casecontrol
 
 proba = kscores
 fg = proba[y==1]; bg = proba[y==0]
-k_roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
+k_roc = PRROC::roc.curve(fg[!is.na(fg)], bg[!is.na(bg)] ,curve=TRUE)
 
 proba = hscores
 fg = proba[y==1]; bg = proba[y==0]
-h_roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
+h_roc = PRROC::roc.curve(fg[!is.na(fg)], bg[!is.na(bg)] ,curve=TRUE)
 
 xgb_df = xgb.DMatrix(as.matrix(cdf_sample %>% select(xgb_fit$feature_names)),
-                     label=cdf_sample$CaseControl)
+                     label=cdf_sample$casecontrol)
 proba = predict(xgb_fit, newdata=xgb_df)
 fg = proba[y==1]; bg = proba[y==0]
 x_roc = PRROC::roc.curve(fg, bg ,curve=TRUE)

@@ -13,7 +13,7 @@ dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
 # model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
-model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
+model_path = "R_data/results/models/XGB_all_ANY.rds"
 
 # =========================================================
 # read in model
@@ -25,29 +25,29 @@ rm(results); gc()
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1.rds")
+file_path = paste0(dir_path, "5-1_test_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
 # subset to test set
-df %<>% filter(ID %in% test_ids)
+df %<>% filter(id %in% test_ids)
 # imputation
 set.seed(0)
 df = impute_srs(df, quantiles)
 
 xgb_df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
-                     label=df$CaseControl)
+                     label=df$casecontrol)
 
 
 # =========================================================
 # function to get ROC from a df
 get_roc = function(df){
   # ensure correct column ordering for xgb model
-  df %<>% select(c(ID, CaseControl, xgb_fit$feature_names))
-  y = df$CaseControl
+  df %<>% select(c(id, casecontrol, xgb_fit$feature_names))
+  y = df$casecontrol
   # convert to xgb format
   df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
-                   label=df$CaseControl)
+                   label=df$casecontrol)
   # get predicted risk and ROC curve
   proba = predict(xgb_fit, newdata=df)
   fg = proba[y==1]; bg = proba[y==0]
@@ -96,7 +96,7 @@ g = ggplot(data=calib_df, aes(x=mid, y=propcase)) + theme(aspect.ratio=1) +
 if(log){
   g = g + scale_x_log10(limits=c(1, 15000)) + scale_y_log10(limits=c(1, 15000))
 }else{
-  g = g + xlim(0, 500) + ylim(0, 500)
+  g = g + xlim(0, 300) + ylim(0, 300)
 }
 g
 filename = paste0(dir_figures, "calibration50",  ifelse(log, "_log", "_zoom"), ".pdf")
