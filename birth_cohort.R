@@ -201,7 +201,7 @@ auc_mat = sapply(names(subsets), function(sname){
 xtable::xtable(t(auc_mat), digits=3)
 
 # shap and pdp
-test_df = complete_data %>% sample_n(50000)
+test_df = complete_data %>% sample_n(25000)
 shap_dfs = list()
 pdp_dfs = list()
 
@@ -284,4 +284,89 @@ colnames(plot_df) = c("age", "birthyear", "propcases")
 plot_df$birthyear = as.numeric(plot_df$birthyear)*5 + 1915+2.5
 
 ggplot(plot_df, aes(x=birthyear, y=propcases, color=age)) + geom_line()
-  
+
+
+# ==============================================================================
+# = Calibration
+# ==============================================================================
+dff = df %>% filter(!is.na(age))
+set.seed(0)
+dff = impute_srs(dff, quantiles)
+dff %<>% left_join(master%>%select(id, birthyear), by="id")
+
+dff %<>% mutate(
+  birthcohort = cut(birthyear, seq(1910, 2000, 10),
+                    labels=paste0(
+                      "(",
+                      seq(1910, 1990, 10),",",
+                      seq(1920, 2000, 10), "]"
+                    )),
+  age_bin = cut(age, seq(20, 90, 10))
+)
+
+# birth cohort
+calib_bc = lapply(dff%>%pull(birthcohort)%>%unique(), function(bc) {
+  if(is.na(bc)) return(NULL)
+  dfff = dff %>% filter(birthcohort==bc)
+  xgb_df = xgb.DMatrix(
+    as.matrix(dfff %>% select(xgb_fit$feature_names)), 
+    label=dfff$casecontrol
+  )
+  calib  = calibration_curve(xgb_fit, xgb_df, nbins=50)
+  calib$birthcohort = bc
+  print(calib)
+  return(calib)
+})
+
+calib_bc_merged = calib_bc %>% bind_rows()
+
+log = F
+
+g = ggplot(data=calib_bc_merged, aes(x=mid*100000, y=propcase*100000, color=birthcohort)) + 
+  theme(aspect.ratio=1) + 
+  geom_line(alpha=0.5)  +
+  geom_abline(slope=1, intercept=0, linetype="dashed") +
+  ylab("Observed (/100,000)") + xlab("Predicted (/100,000)")+ 
+  ggtitle(paste0("Calibration by Birth Cohort", ifelse(log, " (log-log)", "")))
+if(log){
+  g = g + scale_x_log10(limits=c(1, 15000)) + scale_y_log10(limits=c(1, 15000))
+}else{
+  g = g + xlim(50, 250) + ylim(50, 250)
+}
+g
+filename = paste0(dir_figures, "calibration_birthcohort",  ifelse(log, "_log", "_zoom"), ".pdf")
+ggsave(filename, g, width=4, height=4)
+
+
+# age
+calib_age = lapply(dff%>%pull(age_bin)%>%unique(), function(bc) {
+  if(is.na(bc)) return(NULL)
+  dfff = dff %>% filter(age_bin==bc)
+  xgb_df = xgb.DMatrix(
+    as.matrix(dfff %>% select(xgb_fit$feature_names)), 
+    label=dfff$casecontrol
+  )
+  calib  = calibration_curve(xgb_fit, xgb_df, nbins=50)
+  calib$age_bin = bc
+  print(calib)
+  return(calib)
+})
+
+calib_age_merged = calib_age %>% bind_rows()
+
+log = T
+
+g = ggplot(data=calib_age_merged, aes(x=mid*100000, y=propcase*100000, color=age_bin)) + 
+  theme(aspect.ratio=1) + 
+  geom_line(alpha=1.0)  +
+  geom_abline(slope=1, intercept=0, linetype="dashed") +
+  ylab("Observed (/100,000)") + xlab("Predicted (/100,000)")+ 
+  ggtitle(paste0("Calibration by Age group", ifelse(log, " (log-log)", "")))
+if(log){
+  g = g + scale_x_log10(limits=c(1, 1000)) + scale_y_log10(limits=c(1, 1000))
+}else{
+  g = g + xlim(0, 250) + ylim(0, 250)
+}
+g
+filename = paste0(dir_figures, "calibration_age",  ifelse(log, "_log", "_zoom"), ".pdf")
+ggsave(filename, g, width=4, height=4)
