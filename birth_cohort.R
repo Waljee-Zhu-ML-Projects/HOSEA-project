@@ -163,6 +163,35 @@ hist(master$birthyear)
 master %<>% mutate(birth35 = birthyear >= 1935)
 complete_data %<>% left_join(master%>%select(id,birthyear,birth35), by="id")
 
+calibration_dfs = lapply(names(models), function(name){
+  q = models[[name]]$quantiles
+  xfit = models[[name]]$xgb_fit
+  set.seed(0)
+  df = impute_srs(complete_data, q)
+  xdf = xgboost::xgb.DMatrix(as.matrix(df %>% select(xfit$feature_names)))
+  cdf = calibration_curve(xfit, xdf, 10)*100000
+})
+names(calibration_dfs) = names(models)
+cdf = bind_rows(calibration_dfs, .id="model")
+
+log=F
+ggplot(cdf, aes(x=mid, y=propcase, color=model)) + 
+  theme(aspect.ratio=1) + 
+  geom_line() +
+  geom_abline(slope=1, intercept=0, linetype="dashed") +
+  ylab("Observed (/100,000)") + xlab("Predicted (/100,000)") + 
+  ggtitle(paste0("Calibration", ifelse(log, " (log-log)", "")))
+
+if(log){
+  g = g + scale_x_log10(limits=c(1, 15000)) + scale_y_log10(limits=c(1, 15000))
+}else{
+  g = g + xlim(0, 300) + ylim(0, 300)
+}
+g
+
+filename = paste0(dir_figures, "calibration50",  ifelse(log, "_log", "_zoom"), ".pdf")
+ggsave(filename, g, width=4, height=4)
+
 # merge into single df
 pred = HOSEA::predict.HOSEA(complete_data, 1, models)
 df = complete_data %>% select(id, casecontrol, age, birthyear)
