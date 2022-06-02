@@ -94,12 +94,31 @@ g = ggplot(data=calib_df, aes(x=mid, y=propcase)) + theme(aspect.ratio=1) +
   ylab("Observed (/100,000)") + xlab("Predicted (/100,000)")+ 
   ggtitle(paste0("Calibration", ifelse(log, " (log-log)", "")))
 if(log){
-  g = g + scale_x_log10(limits=c(1, 15000)) + scale_y_log10(limits=c(1, 15000))
+  g = g + scale_x_log10(limits=c(1, 3000)) + scale_y_log10(limits=c(1, 3000))
 }else{
-  g = g + xlim(0, 300) + ylim(0, 300)
+  g = g + xlim(0, 3000) + ylim(0, 3000)
 }
 g
-filename = paste0(dir_figures, "calibration50",  ifelse(log, "_log", "_zoom"), ".pdf")
+filename = paste0(dir_figures, "calibration50_all",  ifelse(log, "_log", "_zoom"), ".pdf")
+ggsave(filename, g, width=4, height=4)
+
+theme_set(theme_minimal())
+
+log = F
+g = ggplot(data=calib_df) + theme(aspect.ratio=1) + 
+  geom_rect(aes(ymin=0, ymax=propcase, xmin=L, xmax=pmin(U, 3000)))  +
+  geom_point(aes(x=mid, y=propcase, color="red")) +
+  geom_abline(slope=1, intercept=0, linetype="dashed") +
+  ylab("Observed (/100,000)") + xlab("Predicted (/100,000)") + 
+  ggtitle(paste0("Calibration", ifelse(log, " (log-log)", ""))) +
+  theme(legend.position="none")
+if(log){
+  g = g + scale_x_log10(limits=c(1, 100000)) + scale_y_log10(limits=c(1, 100000))
+}else{
+  g = g + xlim(0, 3000) + ylim(0, 3000)
+}
+g
+filename = paste0(dir_figures, "calibration50_bar",  ifelse(log, "_log", "_zoom"), ".pdf")
 ggsave(filename, g, width=4, height=4)
 
 

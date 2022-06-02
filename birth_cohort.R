@@ -168,14 +168,17 @@ calibration_dfs = lapply(names(models), function(name){
   xfit = models[[name]]$xgb_fit
   set.seed(0)
   df = impute_srs(complete_data, q)
-  xdf = xgboost::xgb.DMatrix(as.matrix(df %>% select(xfit$feature_names)))
-  cdf = calibration_curve(xfit, xdf, 10)*100000
+  xdf = xgboost::xgb.DMatrix(
+    as.matrix(df %>% select(xfit$feature_names)),
+    label=df$casecontrol
+    )
+  cdf = calibration_curve(xfit, xdf, 50)*100000
 })
 names(calibration_dfs) = names(models)
 cdf = bind_rows(calibration_dfs, .id="model")
 
-log=F
-ggplot(cdf, aes(x=mid, y=propcase, color=model)) + 
+log = T
+g = ggplot(cdf, aes(x=mid, y=propcase, color=model)) + 
   theme(aspect.ratio=1) + 
   geom_line() +
   geom_abline(slope=1, intercept=0, linetype="dashed") +
@@ -185,15 +188,15 @@ ggplot(cdf, aes(x=mid, y=propcase, color=model)) +
 if(log){
   g = g + scale_x_log10(limits=c(1, 15000)) + scale_y_log10(limits=c(1, 15000))
 }else{
-  g = g + xlim(0, 300) + ylim(0, 300)
+  g = g + xlim(0, 500) + ylim(0, 500)
 }
 g
-
-filename = paste0(dir_figures, "calibration50",  ifelse(log, "_log", "_zoom"), ".pdf")
-ggsave(filename, g, width=4, height=4)
+filename = paste0(dir_figures, "calibration50_birthcohort",  ifelse(log, "_log", "_zoom"), ".pdf")
+ggsave(filename, g, width=5, height=5)
 
 # merge into single df
-pred = HOSEA::predict.HOSEA(complete_data, 1, models)
+library(HOSEA)
+pred = predict.HOSEA(complete_data, 1, models, models)
 df = complete_data %>% select(id, casecontrol, age, birthyear)
 df %<>% left_join(pred, by="id")
 
@@ -341,7 +344,7 @@ calib_bc = lapply(dff%>%pull(birthcohort)%>%unique(), function(bc) {
     as.matrix(dfff %>% select(xgb_fit$feature_names)), 
     label=dfff$casecontrol
   )
-  calib  = calibration_curve(xgb_fit, xgb_df, nbins=50)
+  calib  = calibration_curve(xgb_fit, xgb_df, nbins=10)
   calib$birthcohort = bc
   print(calib)
   return(calib)
@@ -349,8 +352,7 @@ calib_bc = lapply(dff%>%pull(birthcohort)%>%unique(), function(bc) {
 
 calib_bc_merged = calib_bc %>% bind_rows()
 
-log = F
-
+log = T
 g = ggplot(data=calib_bc_merged, aes(x=mid*100000, y=propcase*100000, color=birthcohort)) + 
   theme(aspect.ratio=1) + 
   geom_line(alpha=0.5)  +
@@ -360,11 +362,11 @@ g = ggplot(data=calib_bc_merged, aes(x=mid*100000, y=propcase*100000, color=birt
 if(log){
   g = g + scale_x_log10(limits=c(1, 15000)) + scale_y_log10(limits=c(1, 15000))
 }else{
-  g = g + xlim(50, 250) + ylim(50, 250)
+  g = g + xlim(0, 500) + ylim(0, 500)
 }
 g
 filename = paste0(dir_figures, "calibration_birthcohort",  ifelse(log, "_log", "_zoom"), ".pdf")
-ggsave(filename, g, width=4, height=4)
+ggsave(filename, g, width=5, height=5)
 
 
 # age
@@ -375,7 +377,7 @@ calib_age = lapply(dff%>%pull(age_bin)%>%unique(), function(bc) {
     as.matrix(dfff %>% select(xgb_fit$feature_names)), 
     label=dfff$casecontrol
   )
-  calib  = calibration_curve(xgb_fit, xgb_df, nbins=50)
+  calib  = calibration_curve(xgb_fit, xgb_df, nbins=10)
   calib$age_bin = bc
   print(calib)
   return(calib)
@@ -383,7 +385,7 @@ calib_age = lapply(dff%>%pull(age_bin)%>%unique(), function(bc) {
 
 calib_age_merged = calib_age %>% bind_rows()
 
-log = T
+log = F
 
 g = ggplot(data=calib_age_merged, aes(x=mid*100000, y=propcase*100000, color=age_bin)) + 
   theme(aspect.ratio=1) + 
@@ -394,8 +396,8 @@ g = ggplot(data=calib_age_merged, aes(x=mid*100000, y=propcase*100000, color=age
 if(log){
   g = g + scale_x_log10(limits=c(1, 1000)) + scale_y_log10(limits=c(1, 1000))
 }else{
-  g = g + xlim(0, 250) + ylim(0, 250)
+  g = g + xlim(0, 500) + ylim(0, 500)
 }
 g
 filename = paste0(dir_figures, "calibration_age",  ifelse(log, "_log", "_zoom"), ".pdf")
-ggsave(filename, g, width=4, height=4)
+ggsave(filename, g, width=5, height=5)
