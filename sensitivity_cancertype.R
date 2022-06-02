@@ -48,6 +48,28 @@ outcomes %<>% mutate(
 df %<>% left_join(outcomes, by="id")
 outcome_names = c("ANY", "EAC", "EGJAC")
 
+
+# =========================================================
+# get predictions
+library(HOSEA)
+df %<>% filter(id %in% models[["ANY"]]$test_ids)
+pred = predict.HOSEA(df, 10)
+pred_long = pred %>% tidyr::pivot_longer(c(ANY, EAC, EGJAC))
+
+library(ggplot2) 
+library(ggridges)
+theme_set(theme_minimal())
+
+g = ggplot(pred_long, aes(y=name, x=value*100000)) + 
+  geom_density_ridges() +
+  scale_x_log10() +
+  xlab("Predicted risk (/100,000)") + 
+  ylab("Density")
+
+
+filepath = paste0(dir_figures, paste0("risk_distribution_log.pdf"))
+ggsave(filepath, g, width=9, height=7)
+
 # =========================================================
 # get ROC curves
 probas = list()
