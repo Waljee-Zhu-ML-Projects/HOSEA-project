@@ -56,7 +56,7 @@ df %<>% filter(id %in% models[["ANY"]]$test_ids)
 pred = predict.HOSEA(df, 10)
 pred_long = pred %>% tidyr::pivot_longer(c(ANY, EAC, EGJAC))
 pred_long %<>% left_join(df %>% select(id, casecontrol), by="id")
-pred_long$name2 = paste0(pred_long$name, "_", ifelse(pred_long$casecontrol==1, "case", "control"))
+pred_long$name2 = paste0(pred_long$name, " ", ifelse(pred_long$casecontrol==1, "case", "control"))
 
 library(ggplot2) 
 library(ggridges)
