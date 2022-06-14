@@ -3,6 +3,7 @@ library(dplyr)
 library(xgboost)
 library(magrittr)
 library(ggplot2)
+theme_set(theme_minimal())
 library(tidyr)
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
@@ -13,8 +14,7 @@ source('R_code/hosea-project/classification_metrics.R')
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
-model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
+model_path = "R_data/results/models/XGB_all_ANY.rds"
 
 # =========================================================
 # read in model

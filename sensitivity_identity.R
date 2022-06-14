@@ -3,6 +3,7 @@ library(dplyr)
 library(xgboost)
 library(magrittr)
 library(ggplot2)
+theme_set(theme_minimal())
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
 source('R_code/hosea-project/classification_metrics.R')
@@ -108,7 +109,7 @@ g = ggplot(data=curves %>% filter(window %in% c("all", "male", "female")),
   xlab("1 - Specificity") + ylab("Sensitivity") + 
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   labs(color="Sex") +
-  ggtitle("Sensitivity analysis: Sex")
+  ggtitle("Test ROC stratified by sex")
 ggsave(filepath, g, width=6, height=4)
 
 
@@ -124,5 +125,5 @@ g = ggplot(data=curves %>% filter(window %in%
   xlab("1 - Specificity") + ylab("Sensitivity") + 
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   labs(color="Race") +
-  ggtitle("Sensitivity analysis: Race")
+  ggtitle("Test ROC stratified by race")
 ggsave(filepath, g, width=6, height=4)

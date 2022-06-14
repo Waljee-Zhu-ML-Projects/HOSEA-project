@@ -3,6 +3,8 @@ library(dplyr)
 library(xgboost)
 library(magrittr)
 library(ggplot2)
+library(ggridges)
+theme_set(theme_minimal())
 library(pdp)
 library(HOSEA)
 source('R_code/hosea-project/compute_quantiles.R')
@@ -51,16 +53,11 @@ outcome_names = c("ANY", "EAC", "EGJAC")
 
 # =========================================================
 # get predictions
-library(HOSEA)
 df %<>% filter(id %in% models[["ANY"]]$test_ids)
 pred = predict.HOSEA(df, 10)
 pred_long = pred %>% tidyr::pivot_longer(c(ANY, EAC, EGJAC))
 pred_long %<>% left_join(df %>% select(id, casecontrol), by="id")
 pred_long$name2 = paste0(pred_long$name, " ", ifelse(pred_long$casecontrol==1, "case", "control"))
-
-library(ggplot2) 
-library(ggridges)
-theme_set(theme_minimal())
 
 g = ggplot(pred_long, aes(y=name, x=value*100000)) + 
   geom_density_ridges(quantile_lines = TRUE) +
