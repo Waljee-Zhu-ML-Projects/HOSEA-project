@@ -3,6 +3,7 @@ library(dplyr)
 library(xgboost)
 library(magrittr)
 library(ggplot2)
+theme_set(theme_minimal())
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
 source('R_code/hosea-project/classification_metrics.R')
@@ -202,7 +203,7 @@ guide_roc$label = rownames(guide_roc)
 
 guide_roc %<>% arrange(fpr)
 
-guide_roc$xlab = c(.2, .27, .34, .41, .48, .55, .8, .9)
+guide_roc$xlab = c(.3, .37, .44, .51, .58, .65, .8, .9)
 guide_roc$ylab = c(.15, .2, .25, .3, .35, .4, .85, .9)
 
 filepath = paste0("R_code/hosea-project/figures/comparison_", outcome, ".pdf")

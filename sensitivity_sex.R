@@ -3,6 +3,7 @@ library(dplyr)
 library(xgboost)
 library(magrittr)
 library(ggplot2)
+theme_set(theme_minimal())
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
 source('R_code/hosea-project/classification_metrics.R')
@@ -14,7 +15,7 @@ dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
 model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
 model_path = "R_data/results/models/XGB_all_ANY.rds"
-complete = F
+complete = T
 
 # =========================================================
 # read in model
@@ -216,7 +217,12 @@ guide_roc$label = rownames(guide_roc)
 
 guide_roc %<>% arrange(fpr)
 
-guide_roc$xlab = c(.2, .27, .34, .41, .48, .55, .8, .9)
+
+guide_roc$xlab = c(.3, .37, .44, .51, .58, .65, .7, .8)
+guide_roc$ylab = c(.15, .2, .25, .3, .35, .4, .6, .8)
+
+
+guide_roc$xlab = c(.3, .37, .44, .51, .58, .65, .8, .9)
 guide_roc$ylab = c(.15, .2, .25, .3, .35, .4, .85, .9)
 
 filepath = paste0("R_code/hosea-project/figures/comparison_sex_", 
@@ -227,7 +233,7 @@ g = ggplot(data=cdf, aes(x=fpr, y=recall, color=method)) + geom_line() +
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   geom_point(data=guide_roc) + 
   ggtitle(paste0("Representative sample (sex): ", ifelse(complete, "complete", "imputed")))
-# g = g +
-#   geom_segment(data=guide_roc, aes(x=fpr, xend=xlab, y=recall, yend=ylab)) + 
-#   geom_label(data=guide_roc, aes(label=label, x=xlab, y=ylab), size=3)
-ggsave(filepath, g, width=8, height=6)
+g = g +
+  geom_segment(data=guide_roc, aes(x=fpr, xend=xlab, y=recall, yend=ylab)) +
+  geom_label(data=guide_roc, aes(label=label, x=xlab, y=ylab), size=3)
+ggsave(filepath, g, width=6, height=5)

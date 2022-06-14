@@ -3,6 +3,7 @@ library(dplyr)
 library(xgboost)
 library(magrittr)
 library(ggplot2)
+theme_set(theme_minimal())
 library(pdp)
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
@@ -48,22 +49,18 @@ features$group = c(
   rep("race", 4), 'agentorange', 'age', rep("smoke", 2), 
   'gerd', 'chf', 'ctd', 'dem', 'diab_c', 'hiv', 'mld', 'msld', 
   'para', 'rd', 'cd', 'copd', 'diab_nc', 'mi', 'pud', 'pvd', 
-  # rep("colonoscopy", 2), rep("labs_fobt", 2), 
   rep("h2r", 5), rep("ppi", 5), 
   rep("a1c", 6), rep("bun", 6),  rep("calc", 6),  
   rep("chlor", 6),  rep("co2", 6),  rep("creat", 6), 
   rep("gluc", 6), rep("k", 6),  rep("na", 6), 
   rep("baso", 6),  rep("eos", 6),  rep("hct", 6), 
-   rep("lymph", 6),  rep("mch", 6), 
-  # rep("hgb", 6),  rep("lymph", 6),  rep("mch", 6), 
+  rep("lymph", 6),  rep("mch", 6), 
   rep("mchc", 6),  rep("mcv", 6),  rep("mono", 6), 
   rep("mpv", 6),  rep("neut", 6),  rep("platelet", 6), 
-  # rep("rbw", 6),  
+  # rep("rbw", 6), 
   rep("wbc", 6),  rep("crp", 6), 
-  # rep("rbc", 6),  rep("rbw", 6),  rep("wbc", 6),  rep("CRP", 6), 
   rep("alkphos", 6),  rep("alt", 6),  rep("ast", 6), 
-  rep("totprot", 6),  rep("hdl", 6), 
-  # rep("totprot", 6),  rep("chol", 6),  rep("hdl", 6), rep("ldl", 6),  
+  rep("totprot", 6),  rep("hdl", 6), rep("ldl", 6),
   rep("trig", 6)
 )
 features$category = c( 
@@ -71,7 +68,7 @@ features$category = c(
   rep("Comorbidities", 16), 
   # rep("Clinical", 4), 
   rep("Medication", 2*5),
-  rep("Lab", 28*6)
+  rep("Lab", 29*6)
   # rep("Lab", 198)
 )
 
@@ -109,14 +106,14 @@ g = ggplot(data=vi_cat, aes(y=reorder(category, Gain), x=Gain)) +
   ggtitle("Variable importance by category") +
   xlim(0, 1) + ylab("Category")
 filename = paste0(dir_figures, "pdp_new/vi_cat.pdf")
-ggsave(filename, g, width=5, height=5)
+ggsave(filename, g, width=6, height=4)
 
 g = ggplot(data=vi_group, aes(y=reorder(group, Gain), x=Gain)) +
   geom_bar(stat="identity") +
   ggtitle("Variable importance by group") +
   ylab("Feature group")
 filename = paste0(dir_figures, "pdp_new/vi_group.pdf")
-ggsave(filename, g, width=5, height=5)
+ggsave(filename, g, width=6, height=6)
 
 for(cat in features$category %>% unique()){
   g = ggplot(data=vi_group %>% filter(category==!!cat), 
@@ -124,8 +121,9 @@ for(cat in features$category %>% unique()){
     geom_bar(stat="identity") +
     ggtitle(paste0("Variable importance: ", cat))  +
     xlim(0, 1) + ylab("Group")
+  g
   filename = paste0(dir_figures, "pdp_new/vi_group_", cat, ".pdf")
-  ggsave(filename, g, width=5, height=5)
+  ggsave(filename, g, width=6, height=5)
 }
 
 
@@ -218,7 +216,7 @@ df_shap$feature = factor(rownames(df_shap), levels=rownames(df_shap))
 g = ggplot(df_shap, aes(x=SHAP, y=feature)) + geom_bar(stat="identity") +
   xlab("mean|SHAP|") + ylab("") 
 filepath = paste0(dir_figures, "shap_new/shap_groups.pdf")
-ggsave(filepath, g, width=5, height=5)
+ggsave(filepath, g, width=6, height=6)
 
 corr_shap_groups = cor(shap_groups)
 corr_shap_groups_long = 

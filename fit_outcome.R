@@ -12,6 +12,10 @@ library(HOSEA)
 complete_data = readRDS('R_data/processed_records/5-1_test_merged.rds')
 master = complete_data$master
 dff = complete_data$df
+
+# drop columns
+dff %<>% select(-c(starts_with("chol"), starts_with("rbc"), starts_with("hgb")))
+
 # get outcomes
 outcomes = master %>% select(id, casecontrol, cancertype)
 outcomes %<>% mutate(
@@ -45,7 +49,7 @@ param_xg = list(
 )
 
 outcome_list = c("ANY", "EAC", "EGJAC")
-outcome_list = c("EAC", "EGJAC")
+# outcome_list = c("EAC", "EGJAC")
 for(outcome in outcome_list){
   # select outcome
   outcomes_ = outcomes%>%select(id, !!outcome)
