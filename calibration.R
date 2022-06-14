@@ -3,6 +3,7 @@ library(dplyr)
 library(xgboost)
 library(magrittr)
 library(ggplot2)
+theme_set(theme_minimal())
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
 source('R_code/hosea-project/classification_metrics.R')
@@ -80,14 +81,14 @@ ggsave(filepath, g, width=5, height=4)
 # =========================================================
 # calibration plot
 
-calib_50  = calibration_curve(xgb_fit, xgb_df, nbins=1000)
+calib_50  = calibration_curve(xgb_fit, xgb_df, nbins=50)
 
 
 calib_df = calib_50
 calib_df = calib_df*100000
 # calib_df$mid = calib_df$mid / 419
 
-log = F
+log = T
 g = ggplot(data=calib_df, aes(x=mid, y=propcase)) + theme(aspect.ratio=1) + 
   geom_point()  +
   geom_abline(slope=1, intercept=0, linetype="dashed") +
@@ -96,15 +97,15 @@ g = ggplot(data=calib_df, aes(x=mid, y=propcase)) + theme(aspect.ratio=1) +
 if(log){
   g = g + scale_x_log10(limits=c(1, 3000)) + scale_y_log10(limits=c(1, 3000))
 }else{
-  g = g + xlim(0, 3000) + ylim(0, 3000)
+  g = g + xlim(0, 500) + ylim(0, 500)
 }
 g
 filename = paste0(dir_figures, "calibration50_all",  ifelse(log, "_log", "_zoom"), ".pdf")
 ggsave(filename, g, width=4, height=4)
 
-theme_set(theme_minimal())
 
-log = T
+
+log = F
 g = ggplot(data=calib_df) + theme(aspect.ratio=1) + 
   geom_rect(aes(ymin=0, ymax=propcase, xmin=L, xmax=pmin(U, 100000)))  +
   geom_point(aes(x=mid, y=propcase, color="red")) +

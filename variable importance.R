@@ -92,8 +92,7 @@ vi_group = vi_group[, c("category", "group", "Gain")]
 vi_cat = vi_cat[, c("category", "Gain")]
 
 write.csv(vi_all, paste0(dir_figures, "vi.csv"))
-write.csv(vi_group, paste0(dir_figures, "vi_group.
-                           csv"))
+write.csv(vi_group, paste0(dir_figures, "vi_group.csv"))
 write.csv(vi_cat, paste0(dir_figures, "vi_cat.csv"))
 
 
