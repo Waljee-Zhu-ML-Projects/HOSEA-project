@@ -26,12 +26,12 @@ rm(results); gc()
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1.rds")
+file_path = paste0(dir_path, "5-1_test_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
 # subset to test set
-df %<>% filter(ID %in% test_ids)
+df %<>% filter(id %in% test_ids)
 # imputation
 set.seed(0)
 df = impute_srs(df, quantiles)
@@ -39,46 +39,49 @@ df = impute_srs(df, quantiles)
 
 # =========================================================
 # add correct staging
-sample_df = readRDS("./unzipped_data/sample.rds")
-
-# patch cases
-cases_df = readRDS("./unzipped_data/cases/sample.rds")
-sample_df %<>% filter(CaseControl==0)
-sample_df %<>% bind_rows(cases_df)
-
 staging = read.csv("./R_data/staging.csv") %>% tibble::tibble()
+colnames(staging) %<>% tolower()
 
 patch_staging = function(df, staging){
   df %<>% left_join(staging, 
-                    by=c("stagegroupclinical", "clinicalT", "clinicalN", "ClinicalM"))
+                    by=c("stagegroupclinical", "clinicalt", "clinicaln", "clinicalm"))
   df %<>% mutate(
     nccn_stage_2017=ifelse(
-      (CaseControl==1) & (nccn_stage_2017==""), 
+      (casecontrol==1) & (nccn_stage_2017==""), 
       "missing", 
       nccn_stage_2017
       ))
   return(df)
 }
 
-sample_df = patch_staging(sample_df, staging)
+master %<>% patch_staging(staging)
 
-df %<>% left_join(sample_df %>% select(ID, nccn_stage_2017), by="ID")
+df %<>% left_join(master %>% select(id, nccn_stage_2017), by="id")
   
 # =========================================================
 # function to get ROC from a df
 get_roc = function(df){
   # ensure correct column ordering for xgb model
-  df %<>% select(c(ID, CaseControl, xgb_fit$feature_names))
-  y = df$CaseControl
+  df %<>% select(c(id, casecontrol, xgb_fit$feature_names))
+  y = df$casecontrol
   # convert to xgb format
   df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
-                   label=df$CaseControl)
+                   label=df$casecontrol)
   # get predicted risk and ROC curve
   proba = predict(xgb_fit, newdata=df)
   fg = proba[y==1]; bg = proba[y==0]
   roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
   roc$curve = roc$curve[seq(1, nrow(roc$curve), 
                             by=ceiling(nrow(df)/1000)), ]
+  
+  proc = pROC::roc(controls=bg, cases=fg)
+  roc$ci = pROC::ci(proc, of="auc")
+  roc$display.ci = paste0(
+    round(roc$au, 3), " [",
+    round(roc$ci[1], 3), ",",
+    round(roc$ci[3], 3), "]"
+  )
+  roc$display = round(roc$au, 3)
   return(roc)
 }
 
@@ -90,9 +93,9 @@ get_roc = function(df){
 
 # function to get risk histogram
 get_risk_hist = function(df, breaks){
-  dff = df %>% select(c(ID, CaseControl, xgb_fit$feature_names))
+  dff = df %>% select(c(id, casecontrol, xgb_fit$feature_names))
   dff = xgb.DMatrix(as.matrix(dff %>% select(xgb_fit$feature_names)),
-                    label=dff$CaseControl)
+                    label=dff$casecontrol)
   proba = predict(xgb_fit, newdata=dff)
   proba_hist = proba %>% cut(breaks) %>% table()
   return((proba_hist / nrow(df)) %>% cumsum())
@@ -131,10 +134,10 @@ ggsave(filepath, g, width=8, height=4)
 # =========================================================
 # AUROCs
 
-dff = df %>% select(c(ID, CaseControl, xgb_fit$feature_names))
+dff = df %>% select(c(id, casecontrol, xgb_fit$feature_names))
 # convert to xgb format
 xgb_df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
-                 label=df$CaseControl)
+                 label=df$casecontrol)
 # get predicted risk and ROC curve
 proba = predict(xgb_fit, newdata=xgb_df)
 
@@ -159,11 +162,20 @@ aurocs = sapply(names(subsets), function(name){
   fg = proba[y==1]; bg = proba[y==0]
   roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
   
-  return(c(auc=roc$auc, n=sum(y)))
+  proc = pROC::roc(controls=bg, cases=fg)
+  roc$ci = pROC::ci(proc, of="auc")
+  roc$display.ci = paste0(
+    round(roc$au, 3), " [",
+    round(roc$ci[1], 3), ",",
+    round(roc$ci[3], 3), "]"
+  )
+  roc$display = round(roc$au, 3)
+  
+  return(c(auc=roc$auc, n=sum(y), display.ci=roc$display.ci))
 })
 
 
-xtable::xtable(t(aurocs), digits=3)
+xtable::xtable(t(aurocs) %>% data.frame() %>% select(n, display.ci), digits=3)
 
 
 # EAC EGJAC 

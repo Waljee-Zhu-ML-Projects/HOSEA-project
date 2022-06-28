@@ -190,7 +190,7 @@ round(rbind(missing_prop_y, missing_prop_1) %>% t() * 100, 0)
 
 dff = bind_rows(
   df %>% filter(casecontrol==1),
-  df %>% filter(casecontrol==0) %>% sample_n(5000)
+  df %>% filter(casecontrol==0) %>% sample_n(10000)
 )
 xgb_dff = xgb.DMatrix(as.matrix(dff %>% select(xgb_fit$feature_names)),
                       label=dff$casecontrol)
@@ -212,10 +212,35 @@ df_shap = data.frame(sort(shap_group_agg, decreasing=F))
 colnames(df_shap) = c("SHAP")
 df_shap$feature = factor(rownames(df_shap), levels=rownames(df_shap))
 
+#by category
+categories = lapply(unique(features$category), 
+                function(cat) unique(features$name[features$category==cat]))
+names(categories) = unique(features$category)
+shap_categories = lapply(names(categories), function(cat){
+  pr = proba[, categories[[cat]]]
+  if(!is.vector(pr)) pr %<>% rowSums()
+  pr
+})
+names(shap_categories) = names(categories)
+shap_categories = bind_cols(shap_categories)
+shap_categories_agg = abs(shap_categories) %>% colMeans()
+df_shap = data.frame(sort(shap_categories_agg, decreasing=F))
+colnames(df_shap) = c("SHAP")
+df_shap$category = factor(rownames(df_shap), levels=rownames(df_shap))
+
+
+# plot by group
 g = ggplot(df_shap, aes(x=SHAP, y=feature)) + geom_bar(stat="identity") +
   xlab("mean|SHAP|") + ylab("") 
 filepath = paste0(dir_figures, "shap_new/shap_groups.pdf")
 ggsave(filepath, g, width=6, height=6)
+
+#plot by category
+g = ggplot(df_shap, aes(x=SHAP, y=category)) + geom_bar(stat="identity") +
+  xlab("mean|SHAP|") + ylab("") 
+filepath = paste0(dir_figures, "shap_new/shap_categoriess.pdf")
+ggsave(filepath, g, width=6, height=4)
+
 
 corr_shap_groups = cor(shap_groups)
 corr_shap_groups_long = 
@@ -223,57 +248,91 @@ corr_shap_groups_long =
   data.frame() %>% 
   mutate(feature=rownames(.)) %>% 
   tidyr::pivot_longer(rownames(.))
-corr_shap_groups_long %>% 
-  filter(feature!=name) %>% 
-  arrange(desc(value))
 filepath = paste0(dir_figures, "shap_new/shap_corr.pdf")
 pdf(filepath, width=8, height=8)
 corrplot::corrplot(corr_shap_groups)
 dev.off()
 
 
+top = corr_shap_groups_long %>% 
+  mutate(absvalue=abs(value)) %>%
+  filter(feature!=name) %>% 
+  arrange(desc(absvalue))%>%
+  filter(row_number() %% 2 == 1) %>% 
+  filter(!is.na(value)) %>% head(20) %>% select(-absvalue)
+xtable::xtable(top)
 
 
-#by cat
-groups = lapply(unique(features$category), 
-                function(gr) unique(features$name[features$category==gr]))
-names(groups) = unique(features$category)
-shap_groups = lapply(names(groups), function(gr){
-  pr = proba[, groups[[gr]]]
-  if(!is.vector(pr)) pr %<>% rowSums()
-  pr
+
+variables = categories[["Demographic"]]
+title_ = "Demographic"
+variables = categories[["Comorbidities"]]
+title_ = "Comorbidities"
+variables = categories[["Medication"]]
+title_ = "Medication"
+
+for(var in HOSEA:::lab_vars){
+try({
+variables = groups[[var]]
+title_ = var
+
+
+df = proba %>% data.frame() %>% select(variables)
+absSHAP = sapply(df, function(col) mean(abs(col)))
+ordered_absSHAP = absSHAP[order(absSHAP, decreasing=F)]
+df$id = dff$id
+
+df_shap = data.frame()
+if(intersect(variables, colnames(proba)) %>% length()>0){
+for(var in intersect(variables, colnames(proba))){
+  df_shap_var = data.frame(
+    feature = var,
+    shap = proba[, var],
+    value = dff %>% pull(var),
+    value_scaled = dff %>% pull(var) %>% scale() %>% pmin(2.5) %>% pmax(-2.5)
+  )
+  df_shap %<>% bind_rows(df_shap_var)
+}
+}
+
+df_shap$feature = factor(df_shap$feature, levels=names(ordered_absSHAP), ordered=T)
+
+g = ggplot(df_shap, aes(x=shap, y=feature, color=value_scaled)) + 
+  geom_point(alpha=0.1) +
+  geom_jitter(width=0) + 
+  scale_color_gradient2("Std. value", breaks=c(-2, -1, 0, 1, 2),
+                        low="#0a7029", mid="#fede00", high="#ff4500") +
+  xlab("") + ylab("SHAP value") + 
+  ggtitle(title_) 
+filename = paste0(dir_figures, "shap_new/shap_lab_", title_, ".pdf")
+ggsave(filename, g, width=6, height=4)
 })
-names(shap_groups) = names(groups)
-shap_groups = bind_cols(shap_groups)
-shap_group_agg = abs(shap_groups) %>% colMeans()
-df_shap = data.frame(sort(shap_group_agg, decreasing=F))
-colnames(df_shap) = c("SHAP")
-df_shap$feature = factor(rownames(df_shap), levels=rownames(df_shap))
+}
 
-g = ggplot(df_shap, aes(x=SHAP, y=feature)) + geom_bar(stat="identity") +
-  xlab("mean|SHAP|") + ylab("") 
-filepath = paste0(dir_figures, "shap_new/shap_category.pdf")
-ggsave(filepath, g, width=6, height=5)
 
+
+
+# SHAP marginal plots
 shap_vals = data.frame(proba)
 for(var in xgb_fit$feature_names){
   deciles = quantile(df[[var]], (1:9)/10)
   deciles = data.frame(x=deciles, xend=deciles, y=-0.1, yend=0)
   cat(paste0("Feature: ", var, "...\n"))
-  cat = features %>% filter(name==!!var) %>% use_series(category)
-  group = features %>% filter(name==!!var) %>% use_series(group)
-  vi_var = vi_raw %>% filter(Feature==!!var) %>% use_series(Gain)
   plotdf = data.frame(
+    Case=dff$casecontrol %>% factor(levels=c(0,1), labels=c("Control", "Case")),
     var=dff[[var]],
     shap=exp(shap_vals[[var]])
   )
-  g = ggplot(plotdf, aes(x=var, y=shap)) + geom_point(alpha=0.05) +
+  g = ggplot() + 
+    geom_point(data=plotdf, mapping=aes(x=var, y=shap), alpha=0.2) +
     geom_segment(data=deciles, aes(x=x, y=y, xend=xend, yend=yend), 
                  inherit.aes=F) + ylab("exp(SHAP)") + xlab(var) + 
-    geom_smooth(method=ifelse(length(unique(dff[[var]]))>3, "gam", "lm"))
+    geom_smooth(
+      data=plotdf, mapping=aes(x=var, y=shap),
+      method=ifelse(length(unique(dff[[var]]))>3, "gam", "lm"))
   g
   filepath = paste0(dir_figures, "shap_new/", var, ".pdf")
-  ggsave(filepath, g, width=5, height=5)
+  ggsave(filepath, g, width=5, height=4)
   cat("...done!\n")
 }
 

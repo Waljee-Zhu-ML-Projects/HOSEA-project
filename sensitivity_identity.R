@@ -50,9 +50,21 @@ get_roc = function(df){
   # get predicted risk and ROC curve
   proba = predict(xgb_fit, newdata=df)
   fg = proba[y==1]; bg = proba[y==0]
+  
+  
   roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
-  roc$curve = roc$curve[seq(1, nrow(roc$curve), 
-                            by=ceiling(nrow(df)/1000)), ]
+  roc$curve = roc$curve[seq(1, nrow(roc$curve), by=ceiling(nrow(df)/1000)), ]
+  roc$curve %<>% data.frame()
+  colnames(roc$curve) = c("fpr", "recall", "tr")
+  
+  proc = pROC::roc(controls=bg, cases=fg)
+  roc$ci = pROC::ci(proc, of="auc")
+  roc$display.ci = paste0(
+    round(roc$au, 3), " [",
+    round(roc$ci[1], 3), ",",
+    round(roc$ci[3], 3), "]"
+  )
+  roc$display = round(roc$au, 3)
   return(roc)
 }
 
@@ -94,7 +106,7 @@ curves = lapply(seq_along(rocs), function(i){
   colnames(curve) = c("fpr", "recall", "threshold")
   nm = names(rocs)[i]
   curve$window = nm
-  curve$label = paste0(nm, " (AUC=", round(aucs[nm], 3), ")")
+  curve$label = paste0(nm, " (AUC: ", rocs[[i]]$display.ci, ")")
   curve
 })
 curves %<>% bind_rows()
@@ -110,7 +122,7 @@ g = ggplot(data=curves %>% filter(window %in% c("all", "male", "female")),
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   labs(color="Sex") +
   ggtitle("Test ROC stratified by sex")
-ggsave(filepath, g, width=6, height=4)
+ggsave(filepath, g, width=8, height=4)
 
 
 # =========================================================
@@ -126,4 +138,4 @@ g = ggplot(data=curves %>% filter(window %in%
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   labs(color="Race") +
   ggtitle("Test ROC stratified by race")
-ggsave(filepath, g, width=6, height=4)
+ggsave(filepath, g, width=8, height=4)

@@ -52,11 +52,21 @@ get_roc = function(df){
   # get predicted risk and ROC curve
   proba = predict(xgb_fit, newdata=df)
   fg = proba[y==1]; bg = proba[y==0]
+  
+  
   roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
-  roc$curve = roc$curve[seq(1, nrow(roc$curve), 
-                            by=ceiling(nrow(df)/1000)), ]
+  roc$curve = roc$curve[seq(1, nrow(roc$curve), by=ceiling(nrow(df)/1000)), ]
   roc$curve %<>% data.frame()
   colnames(roc$curve) = c("fpr", "recall", "tr")
+  
+  proc = pROC::roc(controls=bg, cases=fg)
+  roc$ci = pROC::ci(proc, of="auc")
+  roc$display.ci = paste0(
+    round(roc$au, 3), " [",
+    round(roc$ci[1], 3), ",",
+    round(roc$ci[3], 3), "]"
+  )
+  roc$display = round(roc$au, 3)
   return(roc)
 }
 
@@ -66,6 +76,8 @@ roc = get_roc(df)
 # =========================================================
 # ROC curve
 roc$curve$tr = roc$curve$tr*100000
+title = paste0("ROC curve ", "(AUC: ", roc$display.ci, ")")
+
 g = ggplot(data=roc$curve, 
            aes(x=fpr, y=recall, color=tr)) + 
   geom_line() +
@@ -74,7 +86,7 @@ g = ggplot(data=roc$curve,
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   labs(color="Threshold\n(/100,000)") + 
   scale_color_gradientn(trans="log", colors=rainbow(6), breaks=c(1, 10, 100, 1000, 10000)) + 
-  ggtitle(paste0("ROC curve (AUC=", round(roc$au, 3), ")"))
+  ggtitle(title)
 filepath = paste0(dir_figures, "roc.pdf")
 ggsave(filepath, g, width=5, height=4)
 

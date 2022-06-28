@@ -161,32 +161,44 @@ guidelines = tail(colnames(scores), 8)
 # 
 # rbind(n_risk_factors, p_risk_factors)
 
+add_ci = function(roc){
+  proc = pROC::roc(controls=bg, cases=fg)
+  roc$ci = pROC::ci(proc, of="auc")
+  roc$display.ci = paste0(
+    round(roc$au, 3), " [",
+    round(roc$ci[1], 3), ",",
+    round(roc$ci[3], 3), "]"
+  )
+  roc$display = round(roc$au, 3)
+  return(roc)
+}
+
 # AUCs
 y = df$casecontrol
 
 proba = kscores
 fg = proba[y==1]; bg = proba[y==0]
-k_roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
+k_roc = PRROC::roc.curve(fg, bg ,curve=TRUE) %>% add_ci()
 
 proba = hscores
 fg = proba[y==1]; bg = proba[y==0]
-h_roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
+h_roc = PRROC::roc.curve(fg, bg ,curve=TRUE) %>% add_ci()
 
 xgb_df = xgb.DMatrix(as.matrix(test_complete %>% select(xgb_fit$feature_names)),
                      label=test_complete$casecontrol)
 proba = predict(xgb_fit, newdata=xgb_df)
 fg = proba[y==1]; bg = proba[y==0]
-x_roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
+x_roc = PRROC::roc.curve(fg, bg ,curve=TRUE) %>% add_ci()
 
 
-curves = data.frame(x_roc$curve[, 1:2], "xgboost")
-colnames(curves) = c("fpr", "recall", "method")
+curves = data.frame(x_roc$curve[, 1:2], paste0("HOSEA (", x_roc$display.ci, ")"))
+colnames(curves) = c("fpr", "recall", "Method")
 cdf = curves
-curves = data.frame(k_roc$curve[, 1:2], "Kunzmann")
-colnames(curves) = c("fpr", "recall", "method")
+curves = data.frame(k_roc$curve[, 1:2], paste0("Kunzmann (", k_roc$display.ci, ")"))
+colnames(curves) = c("fpr", "recall", "Method")
 cdf = rbind(cdf, curves)
-curves = data.frame(h_roc$curve[, 1:2], "HUNT")
-colnames(curves) = c("fpr", "recall", "method")
+curves = data.frame(h_roc$curve[, 1:2], paste0("HUNT (", h_roc$display.ci, ")"))
+colnames(curves) = c("fpr", "recall", "Method")
 cdf = rbind(cdf, curves)
 cdf$label = ""
 
@@ -198,7 +210,7 @@ guide_roc = data.frame(t(sapply(guidelines,
                      curve=TRUE)$curve[2, 1:2]
 )))
 colnames(guide_roc) = c("fpr", "recall")
-guide_roc$method = "guideline"
+guide_roc$Method = "Guideline"
 guide_roc$label = rownames(guide_roc)
 
 guide_roc %<>% arrange(fpr)
@@ -207,7 +219,7 @@ guide_roc$xlab = c(.3, .37, .44, .51, .58, .65, .8, .9)
 guide_roc$ylab = c(.15, .2, .25, .3, .35, .4, .85, .9)
 
 filepath = paste0("R_code/hosea-project/figures/comparison_", outcome, ".pdf")
-g = ggplot(data=cdf, aes(x=fpr, y=recall, color=method)) + geom_line() +
+g = ggplot(data=cdf, aes(x=fpr, y=recall, color=Method)) + geom_line() +
   theme(aspect.ratio=1) +
   xlab("1 - Specificity") + ylab("Sensitivity") + 
   geom_abline(intercept=0, slope=1, linetype="dotted") +
@@ -215,5 +227,5 @@ g = ggplot(data=cdf, aes(x=fpr, y=recall, color=method)) + geom_line() +
   ggtitle(paste0("Cancer type: ", outcome))
 g = g +
   geom_segment(data=guide_roc, aes(x=fpr, xend=xlab, y=recall, yend=ylab)) + 
-  geom_label(data=guide_roc, aes(label=label, x=xlab, y=ylab), size=3)
-ggsave(filepath, g, width=6, height=5)
+  geom_label(data=guide_roc, aes(label=label, x=xlab, y=ylab), size=3, show.legend=FALSE)
+ggsave(filepath, g, width=8, height=5)

@@ -67,7 +67,7 @@ g = ggplot(pred_long, aes(y=name, x=value*100000)) +
 
 
 filepath = paste0(dir_figures, paste0("risk_distribution.pdf"))
-ggsave(filepath, g, width=9, height=7)
+ggsave(filepath, g, width=6, height=4)
 
 
 g = ggplot(pred_long, aes(y=name2, x=value*100000, fill=casecontrol)) + 
@@ -79,7 +79,7 @@ g = ggplot(pred_long, aes(y=name2, x=value*100000, fill=casecontrol)) +
 
 
 filepath = paste0(dir_figures, paste0("risk_distribution_casecontrol.pdf"))
-ggsave(filepath, g, width=9, height=7)
+ggsave(filepath, g, width=6, height=4)
 
 # =========================================================
 # get ROC curves
@@ -105,6 +105,16 @@ for(outcome in outcome_names){
     fg = proba[y==1]; bg = proba[y==0]
     roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
     roc$curve = roc$curve[seq(1, nrow(roc$curve), by=1000), ]
+    
+    proc = pROC::roc(controls=bg, cases=fg)
+    roc$ci = pROC::ci(proc, of="auc")
+    roc$display.ci = paste0(
+      round(roc$au, 3), " [",
+      round(roc$ci[1], 3), ",",
+      round(roc$ci[3], 3), "]"
+    )
+    roc$display = round(roc$au, 3)
+    
     rocs[[outcome]][[name]] = roc
   }
 }
@@ -112,8 +122,8 @@ for(outcome in outcome_names){
 
 # =========================================================
 # postprocessing
-aucs = data.frame(lapply(rocs, function(roc) sapply(roc, function(r) r$auc)))
-xtable::xtable(aucs, digits=3)
+aucs = data.frame(lapply(rocs, function(roc) sapply(roc, function(r) r$display.ci)))
+xtable::xtable(aucs)
 # columns = outcome, rows = models
 curves = list()
 for(outcome in outcome_names){
@@ -140,7 +150,7 @@ for(outcome in outcome_names){
     xlab("1 - Specificity") + ylab("Sensitivity") + 
     geom_abline(intercept=0, slope=1, linetype="dotted") +
     ggtitle(paste0("Sensitivity analysis: Cancer type ", outcome))
-  ggsave(filepath, g, width=9, height=7)
+  ggsave(filepath, g, width=6, height=4)
 }
 
 # =========================================================
@@ -158,7 +168,7 @@ for(outcome in outcome_names){
     geom_density(alpha=0.2) + xlab("Predicted risk (/100,000)") +
     ylab("Density") + scale_x_continuous(trans="log10") + 
     ggtitle(paste0("Risk distribution: Test ", outcome))
-  ggsave(filepath, g, width=9, height=7)
+  ggsave(filepath, g, width=6, height=4)
 }
 
 
@@ -175,7 +185,7 @@ for(trainnm in outcome_names){
     geom_density(alpha=0.2) + xlab("Predicted risk (/100,000)") +
     ylab("Density") + scale_x_continuous(trans="log10") + 
     ggtitle(paste0("Risk distribution: Train ", trainnm))
-  ggsave(filepath, g, width=9, height=7)
+  ggsave(filepath, g, width=6, height=4)
 }
 
 

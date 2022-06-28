@@ -12,8 +12,7 @@ source('R_code/hosea-project/classification_metrics.R')
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
-model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
+model_path = "R_data/results/models/XGB_all_ANY.rds"
 
 # =========================================================
 # read in model
@@ -33,31 +32,41 @@ for(i in seq(8)){
   start = y0s[i]; end = y1s[i]
   cat(paste(i, start, end, "\n"))
   window = paste0("[", y0s[i], "-", y1s[i], "]")
-  file_path = paste0(dir_path, start, "-", end, ".rds")
+  file_path = paste0(dir_path, start, "-", end, "_merged.rds")
   # read in data
   df = readRDS(file_path)$df
   # subset to test set
-  df %<>% filter(ID %in% test_ids)
+  df %<>% filter(id %in% test_ids)
   # imputation
   set.seed(0)
   df = impute_srs(df, quantiles)
   # ensure correct column ordering for xgb model
-  df %<>% select(c(ID, CaseControl, xgb_fit$feature_names))
-  y = df$CaseControl
+  df %<>% select(c(id, casecontrol, xgb_fit$feature_names))
+  y = df$casecontrol
   # convert to xgb format
   df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
-                        label=df$CaseControl)
+                        label=df$casecontrol)
   # get predicted risk and ROC curve
   proba = predict(xgb_fit, newdata=df)
   fg = proba[y==1]; bg = proba[y==0]
   roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
   roc$curve = roc$curve[seq(1, nrow(roc$curve), by=1000), ]
+  
+  proc = pROC::roc(controls=bg, cases=fg)
+  roc$ci = pROC::ci(proc, of="auc")
+  roc$display.ci = paste0(
+    round(roc$au, 3), " [",
+    round(roc$ci[1], 3), ",",
+    round(roc$ci[3], 3), "]"
+  )
+  roc$display = round(roc$au, 3)
   rocs[[window]] = roc
 }
 
 # =========================================================
 # post processing
 aucs = sapply(rocs, function(roc) roc$auc)
+displays.ci = sapply(rocs, function(roc) roc$display.ci)
 curves = lapply(seq_along(rocs), function(i){
   curve = data.frame(rocs[[i]]$curve)
   colnames(curve) = c("fpr", "recall", "threshold")
