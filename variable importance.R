@@ -192,6 +192,9 @@ dff = bind_rows(
   df %>% filter(casecontrol==1),
   df %>% filter(casecontrol==0) %>% sample_n(10000)
 )
+
+dff = df %>% sample_n(100000)
+
 xgb_dff = xgb.DMatrix(as.matrix(dff %>% select(xgb_fit$feature_names)),
                       label=dff$casecontrol)
 proba = predict(xgb_fit, newdata=xgb_dff, predcontrib=TRUE, approxcontrib=F)
@@ -211,10 +214,16 @@ shap_group_agg = abs(shap_groups) %>% colMeans()
 df_shap = data.frame(sort(shap_group_agg, decreasing=F))
 colnames(df_shap) = c("SHAP")
 df_shap$feature = factor(rownames(df_shap), levels=rownames(df_shap))
+# plot by group
+g = ggplot(df_shap, aes(x=SHAP, y=feature)) + geom_bar(stat="identity") +
+  xlab("mean|SHAP|") + ylab("") 
+filepath = paste0(dir_figures, "shap_new/shap_groups.pdf")
+ggsave(filepath, g, width=6, height=6)
+
 
 #by category
 categories = lapply(unique(features$category), 
-                function(cat) unique(features$name[features$category==cat]))
+                    function(cat) unique(features$name[features$category==cat]))
 names(categories) = unique(features$category)
 shap_categories = lapply(names(categories), function(cat){
   pr = proba[, categories[[cat]]]
@@ -227,18 +236,10 @@ shap_categories_agg = abs(shap_categories) %>% colMeans()
 df_shap = data.frame(sort(shap_categories_agg, decreasing=F))
 colnames(df_shap) = c("SHAP")
 df_shap$category = factor(rownames(df_shap), levels=rownames(df_shap))
-
-
-# plot by group
-g = ggplot(df_shap, aes(x=SHAP, y=feature)) + geom_bar(stat="identity") +
-  xlab("mean|SHAP|") + ylab("") 
-filepath = paste0(dir_figures, "shap_new/shap_groups.pdf")
-ggsave(filepath, g, width=6, height=6)
-
 #plot by category
 g = ggplot(df_shap, aes(x=SHAP, y=category)) + geom_bar(stat="identity") +
   xlab("mean|SHAP|") + ylab("") 
-filepath = paste0(dir_figures, "shap_new/shap_categoriess.pdf")
+filepath = paste0(dir_figures, "shap_new/shap_categories.pdf")
 ggsave(filepath, g, width=6, height=4)
 
 
