@@ -127,14 +127,17 @@ for(dir in c("unzipped_data/", "unzipped_data/cases/")){
 }
 df_lab = bind_rows(dfs)
 
+stat = "maxdiff"
 
 
 for(labtype in lab_vars){
+  lab_stat = paste0(labtype, "_", stat)
   yrange = range(df_lab %>% filter(labtype==!!labtype) %>% pull(value), na.rm=T)
   non_na = df_lab %>% filter(labtype%in%!!labtype) %>% group_by(id) %>%
     summarise(n_notna=sum(!is.na(value))) %>% filter(n_notna>1) %>% pull(id)
   df_tmp = df_lab %>% filter(labtype%in%!!labtype) %>% filter(id %in% non_na) %>% 
     select(id, date_to_end, value, casecontrol) %>% filter(date_to_end > 365)
+  df_tmp %<>% left_join(dff %>% select(id, starts_with(labtype)), by="id")
   shap_tmp = shap_groups %>% filter(id %in% non_na)
   # get ids
   qs = quantile(shap_tmp%>%pull(!!labtype), c(0.50, 0.9))
@@ -148,24 +151,27 @@ for(labtype in lab_vars){
   controls = df_tmp %>% filter(casecontrol==0) %>% sample_n(1000) %>% pull(id)
   df_cases = df_tmp %>% filter(id%in%cases) %>% tidyr::drop_na(value)
   df_controls = df_tmp %>% filter(id%in%controls) %>% tidyr::drop_na(value)
+  # plot
   g_top = ggplot() + 
     geom_line(
       data=df_top, 
-      mapping=aes(x=-date_to_end, y=value, group=id),
-      alpha=0.1
+      mapping=aes(x=-date_to_end, y=value, group=id, color=.data[[lab_stat]]),
+      alpha=0.5
     ) + ylim(yrange[1], yrange[2]) + 
     ggtitle(paste0(labtype, ": Top 10% SHAP values [", 
                    round(top_shap[1], 2), ",", round(top_shap[2], 2), "]")) +
-    xlab("Days to index date") + ylab(labtype)
+    xlab("Days to index date") + ylab(labtype) + 
+    scale_color_gradient(low="orange", high="purple")
   g_bottom = ggplot() + 
     geom_line(
       data=df_bottom, 
-      mapping=aes(x=-date_to_end, y=value, group=id),
-      alpha=0.1
+      mapping=aes(x=-date_to_end, y=value, group=id, color=.data[[lab_stat]]),
+      alpha=0.5
     ) + ylim(yrange[1], yrange[2]) + 
     ggtitle(paste0(labtype, ": Bottom 50% SHAP values [", 
                    round(bottom_shap[1], 2), ",", round(bottom_shap[2], 2), "]")) +
-    xlab("Days to index date") + ylab(labtype)
+    xlab("Days to index date") + ylab(labtype) + 
+    scale_color_gradient(low="orange", high="purple")
   g_cases = ggplot() + 
     geom_line(
       data=df_cases, 
@@ -185,3 +191,63 @@ for(labtype in lab_vars){
   g = g_top + g_cases + g_bottom + g_controls + plot_layout(ncol=2)
   ggsave(paste0(dir_figures, "lab/", labtype, ".pdf"), width=8, height=8)
 }
+
+# compare with n labs
+n_labs = df_lab %>% group_by(id) %>% summarize(n=sum(!is.na(value)))
+
+df = shap_groups %>% select(id, !!labtype) %>% left_join(n_labs, by="id")
+
+ggplot(df, aes(x=n+1, y=mch)) + 
+  geom_point() + 
+  geom_smooth() + 
+  scale_x_log10() + 
+  xlab("Nb. lab results") + ylab("SHAP") +
+  ggtitle(labtype)
+
+
+# test
+dir = "unzipped_data/cases/"
+file = 'labs_cbc.sas7bdat'
+type="hct"
+verbose=2
+i = 20000699
+src_df = HOSEA:::load_sas(paste0(dir, file), "labs", verbose=verbose-1)
+colnames(src_df) %<>% tolower()
+# restrict to prediction window
+src_df %<>% left_join(master %>% select(id, start, end), by="id")
+src_df %<>% filter((labdate>=start)&(labdate<=end))
+# ensure ordered
+src_df %<>% arrange(id, labdate)
+src_df %<>% filter(id==i)
+# compute vars
+tmp = src_df %>% select(id, labdate, !!type)
+tmp %<>% tidyr::drop_na(!!type)
+colnames(tmp) = c("id", "labdate", "var")
+# compute lag variables
+tmp %<>% mutate(
+  labdate_lag = lag(labdate),
+  var_lag = lag(var)
+)
+# compute diff and slope
+tmp %<>% mutate(
+  dlabdate = pmax(1, labdate - labdate_lag),
+  dvar = var - var_lag
+)
+tmp %<>% mutate(
+  svar = dvar / dlabdate
+)
+tmp %<>% select(id, labdate, labdate_lag, dlabdate, var, var_lag, dvar, svar)
+# compute summaries
+out = tmp %>% group_by(id) %>%
+  summarize(
+    mean = HOSEA:::safe_mean(var),
+    max = HOSEA:::safe_max(var),
+    min = HOSEA:::safe_min(var),
+    maxdiff = HOSEA:::safe_max(svar),
+    mindiff = HOSEA:::safe_min(svar),
+    tv = HOSEA:::safe_mean(abs(svar)),
+  )
+
+dff %>% select(id, casecontrol, hct_maxdiff) %>% 
+  filter(casecontrol==1) %>%
+  arrange(hct_maxdiff, decreasing=T)
