@@ -3,6 +3,7 @@ library(dplyr)
 library(xgboost)
 library(magrittr)
 library(ggplot2)
+theme_set(theme_minimal())
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
 source('R_code/hosea-project/classification_metrics.R')
@@ -72,7 +73,7 @@ curves = lapply(seq_along(rocs), function(i){
   colnames(curve) = c("fpr", "recall", "threshold")
   nm = names(rocs)[i]
   curve$window = nm
-  curve$label = paste0(nm, " (AUC=", round(aucs[nm], 3), ")")
+  curve$label = paste0(nm, " (", rocs[[i]]$display.ci, ")")
   curve
 })
 curves %<>% bind_rows()
@@ -103,7 +104,7 @@ g = ggplot(data=curves %>% filter(window %in% names(rocs)[c(2, 8, 6)]),
   geom_abline(intercept=0, slope=1, linetype="dotted")+
   labs(color="Window") +
   ggtitle("Sensitivity analysis: [x to x-2] prediction window")
-ggsave(filepath, g, width=6, height=5)
+ggsave(filepath, g, width=8, height=5)
 
 # x-1 curves
 filepath = paste0(dir_figures, "roc_window_x-1.pdf")
@@ -115,5 +116,5 @@ g = ggplot(data=curves %>% filter(window %in% names(rocs)[4:7]),
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   labs(color="Window") +
   ggtitle("Sensitivity analysis: [x-1] prediction window")
-ggsave(filepath, g, width=6, height=5)
+ggsave(filepath, g, width=8, height=5)
 

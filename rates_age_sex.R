@@ -63,5 +63,5 @@ g = ggplot() +
     data=df_group,
     mapping=aes(x=age, y=risk*100000/14, color=sex)
   ) + xlab("Age") + ylab("Pred. risk (/100,000/14)") +
-  scale_y_log10(breaks=c(0.5, 1, 2, 5, 10, 20, 50, 100, 200))
+  scale_y_log10(breaks=c(0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200))
 ggsave(filepath, g, width=8, height=5)
