@@ -137,7 +137,7 @@ ggsave(filename, g, width=4, height=4)
 
 
 # HL
-calib_df = calib_50
+calib_df = calibration_curve(xgb_fit, xgb_df, nbins=50)
 nbins = nrow(calib_df) - 1
 pred = calib_df$mid
 obs = calib_df$propcase
@@ -153,11 +153,25 @@ H51 = sum(((o1-e1)^2/e1 + (o0-e0)^2/e0))
 df51 = nbins - 1
 p51 = pchisq(H51, df51, lower.tail=F)
 print(paste0("H=", H51, ", df=", df51, ", p=", p51))
-nskip = 20
-H50 = sum(((o1-e1)^2/e1 + (o0-e0)^2/e0)[1:(nbins+1-nskip)])
-df50 = nbins - nskip - 1
+which = 6:(nbins+1-5)
+H50 = sum(((o1-e1)^2/e1 + (o0-e0)^2/e0)[which])
+df50 = nbins - 10 - 1
 p50 = pchisq(H50, df50, lower.tail=F)
 print(paste0("H=", H50, ", df=", df50, ", p=", p50))
+
+
+dff = df %>% select(c(id, casecontrol, xgb_fit$feature_names))
+y = dff$casecontrol
+# convert to xgb format
+dff = xgb.DMatrix(as.matrix(dff %>% select(xgb_fit$feature_names)),
+                 label=dff$casecontrol)
+# get predicted risk and ROC curve
+proba = predict(xgb_fit, newdata=dff)
+
+pvals = sapply(c(10, 30, 50, 100, 200, 300, 500, 1000), 
+               function(i) ResourceSelection::hoslem.test(y, proba, g=i)$p.value)
+
+
 
 
 # =========================================================
@@ -176,3 +190,24 @@ cat(print(xtable::xtable(tr_df)),
     file=paste0(dir_figures, "all_calibration.tex"))
 write.csv(tr_df, paste0(dir_figures, "all_calibration.csv"))
 
+# =========================================================
+# Quantile table
+dff = df %>% select(c(id, casecontrol, xgb_fit$feature_names))
+y = dff$casecontrol
+# convert to xgb format
+dff = xgb.DMatrix(as.matrix(dff %>% select(xgb_fit$feature_names)),
+                  label=dff$casecontrol)
+# get predicted risk and ROC curve
+proba = predict(xgb_fit, newdata=dff)
+qs = c(seq(0, 90, 1), seq(90.1, 99, 0.1), seq(99.01, 99.99, 0.01)) / 100
+thresholds = quantile(proba, qs)
+
+tr_df = classification_metrics(xgb_fit, xgb_df, thresholds)
+tr_df %<>% select(one_of("tpr", "ppv", "detection_prevalance"))
+tr_df = tr_df*100
+
+out = tr_df %>% round(2)
+rownames(out) = round(100*(1-qs), 2)
+out$risk_threshold = round(thresholds * 100000)
+
+write.csv(out, paste0(dir_figures, "calibration_quantiles.csv"))
