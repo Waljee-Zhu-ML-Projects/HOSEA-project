@@ -211,3 +211,29 @@ rownames(out) = round(100*(1-qs), 2)
 out$risk_threshold = round(thresholds * 100000)
 
 write.csv(out, paste0(dir_figures, "calibration_quantiles.csv"))
+
+
+# =========================================================
+# Quantile table per age and sex
+
+df0 = data.frame(
+  casecontrol=df$casecontrol,
+  age=df$age,
+  sex=ifelse(df$gender==1, "M", "F"),
+  risk=proba*100000
+)
+
+means = df0 %>% group_by(sex, age) %>% summarise(risk=mean(risk))
+g = ggplot() + 
+  geom_line(
+    data=means, 
+    mapping=aes(x=age, y=risk, color=sex)
+  ) + 
+  scale_y_log10(breaks=c(1, 2, 5, 10, 20, 50, 100, 200)) +
+  xlab("Age") + ylab("Avg. pred. risk (/100,000)") + 
+  ggtitle("Average predicted risk by sex and age")
+
+filename = paste0(dir_figures, "avg_pred_risk_age_sex.pdf")
+ggsave(filename, g, width=8, height=4)
+
+df0 %>% group_by(sex) %>% summarise(risk=mean(risk))
