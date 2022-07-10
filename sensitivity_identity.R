@@ -71,6 +71,16 @@ get_roc = function(df){
 rocs = list()
 rocs[["all"]] = get_roc(df)
 
+
+
+# =========================================================
+# age
+df %<>% mutate(age_group=cut(age, c(0, 45, 60, 70, 80, 100)))
+age_groups = df$age_group %>% levels
+for(group in age_groups){
+  rocs[[group]] = get_roc(df%>%filter(age_group==group))
+}
+
 # =========================================================
 # gender
 male = df %>% filter(gender==1)
@@ -110,6 +120,19 @@ curves = lapply(seq_along(rocs), function(i){
   curve
 })
 curves %<>% bind_rows()
+
+# =========================================================
+# age
+filepath = paste0(dir_figures, "roc_age.pdf")
+g = ggplot(data=curves %>% filter(window %in% c(age_groups, "all")), 
+           aes(x=fpr, y=recall, color=label)) + 
+  geom_line() +
+  theme(aspect.ratio=1) +
+  xlab("1 - Specificity") + ylab("Sensitivity") + 
+  geom_abline(intercept=0, slope=1, linetype="dotted") +
+  labs(color="Age") +
+  ggtitle("Test ROC stratified by age")
+ggsave(filepath, g, width=8, height=4)
 
 # =========================================================
 # gender
