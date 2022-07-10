@@ -36,7 +36,7 @@ df = df$df
 df %<>% filter(id %in% test_ids)
 # imputation
 set.seed(0)
-df = impute_srs(df, quantiles)
+# df = impute_srs(df, quantiles)
 
 # =========================================================
 # get outcomes
@@ -75,7 +75,7 @@ cases = df %>% filter(casecontrol == 1)
 cases = df
 
 means = cases %>% group_by(cancertype) %>% select(xgb_fit$feature_names) %>%
-  summarise_all(mean)
+  summarise_all(mean, na.rm=T)
 means = data.frame(means)
 rownames(means) = c("Control", "EAC", "EGJAC")
 means$cancertype = NULL
@@ -84,13 +84,14 @@ means = data.frame(t(means))
 mean_diff = means$EAC - means$EGJAC
 
 sds = cases %>% group_by(cancertype) %>% select(xgb_fit$feature_names) %>%
-  summarise_all(sd)
+  summarise_all(sd, na.rm=T)
 sds = data.frame(sds)
 rownames(sds) = c("Control", "EAC", "EGJAC")
 sds$cancertype = NULL
 sds = data.frame(t(sds))
 
-ns = (cases %>% group_by(cancertype) %>% summarize(n=n()))$n
+ns = cases %>% group_by(cancertype) %>% select(xgb_fit$feature_names) %>%
+  summarise(across(everything(), ~ sum(!is.na(.))))
 
 test_df = data.frame(
   mean_control=means$Control,
@@ -99,9 +100,11 @@ test_df = data.frame(
   mean_diff=mean_diff,
   sd_EAC=sds$EAC,
   sd_EGJAC=sds$EGJAC,
-  n_EAC=rep(ns[1], 2088),
-  n_EGJAC=rep(ns[2], 761)
+  n_EAC=ns[2, 2:212] %>% unlist(., use.names=FALSE),
+  n_EGJAC=ns[3, 2:212] %>% unlist(., use.names=FALSE)
 )
+test_df$prop_nonNA_EAC = test_df$n_EAC / max(test_df$n_EAC)
+test_df$prop_nonNA_EGJAC = test_df$n_EGJAC / max(test_df$n_EGJAC)
 
 test_df$sd_pooled = with(
   test_df, 
@@ -121,18 +124,47 @@ test_df$pvalue = with(
 )
 rownames(test_df) = xgb_fit$feature_names
 test_df[, c("t_stat", "pvalue")]
+test_df$pvalue.adj = p.adjust(test_df$pvalue, "fdr")
 
-# black and female!?
-tab = test_df[1:40, 1:4]
-xtable::xtable(tab, digits=3)
+test_df %>% filter(pvalue.adj < 0.05) %>% 
+  select(mean_control, mean_EAC, mean_EGJAC, pvalue.adj) %>%
+  xtable::xtable(digits=3)
 
-xtable::xtable(test_df[test_df$pvalue < 0.01 / nrow(test_df), c(1:4)], digits=3)
+prop_df = test_df %>% 
+  select(n_EAC, n_EGJAC) %>% rename(n_nonNA_EAC=n_EAC, n_nonNA_EGJAC=n_EGJAC) %>%
+  mutate(n_EAC=max(n_nonNA_EAC), n_EGJAC=max(n_nonNA_EGJAC))
 
-t.test(
-  df %>% filter(EAC==1) %>% pull(baso_max),
-  df %>% filter(EGJAC==1) %>% pull(baso_max)
+prop_df %<>% mutate(
+  pvalue=prop.test(c(n_nonNA_EAC, n_nonNA_EGJAC), c(n_EAC, n_EGJAC))
+)
+prop_df$pvalue = sapply(seq(nrow(prop_df)), function(i) prop.test(
+  c(prop_df$n_nonNA_EAC[i], prop_df$n_nonNA_EGJAC[i]),
+  c(prop_df$n_EAC[i], prop_df$n_EGJAC[i])
+  )$p.value)
+prop_df$pvalue.adj = p.adjust(prop_df$pvalue, "fdr")
+
+prop_df %<>% mutate(
+  prop_nonNA_EAC=n_nonNA_EAC / n_EAC,
+  prop_nonNA_EGJAC=n_nonNA_EGJAC / n_EGJAC
 )
 
+prop_df %>% filter(pvalue.adj < 0.05) %>% 
+  select(prop_nonNA_EAC, prop_nonNA_EGJAC, pvalue.adj) %>%
+  xtable::xtable(digits=3)
+
+g = ggplot() + 
+  geom_point(
+    data=prop_df,
+    mapping=aes(x=prop_nonNA_EAC, y=prop_nonNA_EGJAC, color=pvalue.adj)
+  ) + xlim(0, 1) + ylim(0, 1) + 
+  geom_abline(slope=1, intercept=0) + 
+  scale_color_gradientn(name="adj. p value", colors=rainbow(3), 
+                        values=c(0, 0.05, 1)) + 
+  xlab("Prop. missing EAC")+ 
+  ylab("Prop. missing EGJAC")
+
+filepath = paste0(dir_figures, "vs_propNA.pdf")
+ggsave(filepath, g, width=6, height=5)
 # =========================================================
 # SHAP values
 
