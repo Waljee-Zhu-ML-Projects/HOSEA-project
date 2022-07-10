@@ -136,26 +136,26 @@ ggsave(filepath, g, width=6, height=6)
 # SHAP marginal plots
 shap_vals = data.frame(shap)
 for(var in xgb_fit$feature_names){
-  deciles = quantile(test[[var]], (1:9)/10, na.rm=T)
+  deciles = quantile(valid[[var]], (1:9)/10, na.rm=T)
   deciles = data.frame(x=deciles, xend=deciles, y=-0.1, yend=0)
-  xlims = quantile(test[[var]], c(0.05, 0.95), na.rm=T)
+  xlims = quantile(valid[[var]], c(0.05, 0.95), na.rm=T)
   cat(paste0("Feature: ", var, "...\n"))
   plotdf = data.frame(
-    Case=test$casecontrol %>% factor(levels=c(0,1), labels=c("EGJAC", "EAC")),
-    var=test[[var]],
+    Case=valid$casecontrol %>% factor(levels=c(0,1), labels=c("EGJAC", "EAC")),
+    var=valid[[var]],
     shap=exp(shap_vals[[var]])
   )
   g = ggplot() + 
-    geom_point(data=plotdf, mapping=aes(x=var, y=shap), alpha=0.2) +
+    geom_point(data=plotdf, mapping=aes(x=var, y=shap, color=Case), alpha=0.5) +
     geom_segment(data=deciles, aes(x=x, y=y, xend=xend, yend=yend), 
                  inherit.aes=F) + ylab("exp(SHAP)") + xlab(var) + 
     geom_smooth(
       data=plotdf, mapping=aes(x=var, y=shap),
-      method=ifelse(length(unique(dff[[var]]))>3, "gam", "lm")) +
+      method=ifelse(length(unique(valid[[var]]))>3, "gam", "lm")) +
     xlim(xlims)
   g
   filepath = paste0(dir_figures, "vs_shap/", var, ".pdf")
-  ggsave(filepath, g, width=5, height=4)
+  ggsave(filepath, g, width=6, height=4)
   cat("...done!\n")
 }
 
