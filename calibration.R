@@ -217,23 +217,23 @@ write.csv(out, paste0(dir_figures, "calibration_quantiles.csv"))
 # Quantile table per age and sex
 
 df0 = data.frame(
-  casecontrol=df$casecontrol,
+  casecontrol=ifelse(df$casecontrol==1, "Case", "Control"),
   age=df$age,
   sex=ifelse(df$gender==1, "M", "F"),
   risk=proba*100000
 )
 
-means = df0 %>% group_by(sex, age) %>% summarise(risk=mean(risk))
+means = df0 %>% group_by(sex, age, casecontrol) %>% summarise(risk=mean(risk))
 g = ggplot() + 
   geom_line(
     data=means, 
-    mapping=aes(x=age, y=risk, color=sex)
+    mapping=aes(x=age, y=risk, color=sex, linetype=casecontrol)
   ) + 
-  scale_y_log10(breaks=c(1, 2, 5, 10, 20, 50, 100, 200)) +
+  scale_y_log10(breaks=c(1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000)) +
   xlab("Age") + ylab("Avg. pred. risk (/100,000)") + 
   ggtitle("Average predicted risk by sex and age")
 
 filename = paste0(dir_figures, "avg_pred_risk_age_sex.pdf")
-ggsave(filename, g, width=8, height=4)
+ggsave(filename, g, width=8, height=6)
 
-df0 %>% group_by(sex) %>% summarise(risk=mean(risk))
+df0 %>% group_by(casecontrol) %>% summarise(risk=mean(risk))

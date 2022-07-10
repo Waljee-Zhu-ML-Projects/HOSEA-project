@@ -3,6 +3,7 @@ library(dplyr)
 library(xgboost)
 library(magrittr)
 library(ggplot2)
+theme_set(theme_minimal())
 library(pdp)
 library(HOSEA)
 source('R_code/hosea-project/compute_quantiles.R')
@@ -14,7 +15,7 @@ source('R_code/hosea-project/classification_metrics.R')
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/eac_v_egjac/"
 outcome_path = "R_data/processed_records/outcome.rds"
-model_path = "R_data/results/models/XGB_n7M_typeANY.rds"
+model_path = "R_data/results/models/XGB_all_ANY.rds"
 
 # =========================================================
 # read in model
@@ -26,41 +27,41 @@ rm(results); gc()
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1.rds")
+file_path = paste0(dir_path, "5-1_test_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
 # subset to test set
-df %<>% filter(ID %in% test_ids)
+df %<>% filter(id %in% test_ids)
 # imputation
 set.seed(0)
 df = impute_srs(df, quantiles)
 
 # =========================================================
 # get outcomes
-outcomes = master %>% select(ID, CancerType)
+outcomes = master %>% select(id, cancertype)
 outcomes %<>% mutate(
-  ANY=ifelse(CancerType=="", 0, 1),
-  EAC=ifelse(CancerType=="EAC", 1, 0),
-  EGJAC=ifelse(CancerType=="EGJAC", 1, 0)
+  ANY=ifelse(cancertype=="", 0, 1),
+  EAC=ifelse(cancertype=="EAC", 1, 0),
+  EGJAC=ifelse(cancertype=="EGJAC", 1, 0)
 )
 # merge into df
-df %<>% left_join(outcomes, by="ID")
+df %<>% left_join(outcomes, by="id")
 outcome_names = c("ANY", "EAC", "EGJAC")
 
 
 # =========================================================
 # predicted risk per outcome
 xgb_df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
-                 label=df$CaseControl)
+                 label=df$casecontrol)
 proba = predict(xgb_fit, newdata=xgb_df)
 
-risks = data.frame(CancerType=df$CancerType, risk=proba*100000)
+risks = data.frame(cancertype=df$cancertype, risk=proba*100000)
 
 filepath = paste0(dir_figures, "risk_distribution.pdf")
-g = ggplot(data=risks, aes(x=risk, colour=CancerType, fill=CancerType)) + 
+g = ggplot(data=risks, aes(x=risk, colour=cancertype, fill=cancertype)) + 
   geom_density(alpha=0.2) + xlab("Predicted risk (/100,000)") +
-  ylab("Density") + xlim(0, 1000) +# scale_x_continuous(trans="log10") + 
+  ylab("Density") + xlim(0, 1000) + scale_x_continuous(trans="log10") + 
   ggtitle(paste0("Risk distribution"))
 g
 ggsave(filepath, g, width=6, height=3)
@@ -68,27 +69,27 @@ ggsave(filepath, g, width=6, height=3)
 # =========================================================
 # difference in features
 
-cases = df %>% filter(CaseControl == 1)
+cases = df %>% filter(casecontrol == 1)
 
 cases = df
 
-means = cases %>% group_by(CancerType) %>% select(xgb_fit$feature_names) %>%
+means = cases %>% group_by(cancertype) %>% select(xgb_fit$feature_names) %>%
   summarise_all(mean)
 means = data.frame(means)
 rownames(means) = c("Control", "EAC", "EGJAC")
-means$CancerType = NULL
+means$cancertype = NULL
 means = data.frame(t(means))
 
 mean_diff = means$EAC - means$EGJAC
 
-sds = cases %>% group_by(CancerType) %>% select(xgb_fit$feature_names) %>%
+sds = cases %>% group_by(cancertype) %>% select(xgb_fit$feature_names) %>%
   summarise_all(sd)
 sds = data.frame(sds)
 rownames(sds) = c("Control", "EAC", "EGJAC")
-sds$CancerType = NULL
+sds$cancertype = NULL
 sds = data.frame(t(sds))
 
-ns = (cases %>% group_by(CancerType) %>% summarize(n=n()))$n
+ns = (cases %>% group_by(cancertype) %>% summarize(n=n()))$n
 
 test_df = data.frame(
   mean_control=means$Control,
@@ -135,16 +136,16 @@ t.test(
 # SHAP values
 
 dff = bind_rows(
-  df %>% filter(CaseControl==1),
-  df %>% filter(CaseControl==0) %>% sample_n(5000)
+  df %>% filter(casecontrol==1),
+  df %>% filter(casecontrol==0) %>% sample_n(5000)
 )
 xgb_dff = xgb.DMatrix(as.matrix(dff %>% select(xgb_fit$feature_names)),
-                     label=dff$CaseControl)
+                     label=dff$casecontrol)
 proba = predict(xgb_fit, newdata=xgb_dff, predcontrib=TRUE, approxcontrib = F)
 
 ids = dff$EAC == 1
 ids = dff$EGJAC == 1
-ids = dff$CaseControl == 0
+ids = dff$casecontrol == 0
 
 shapplot = xgboost:xgb.plot.shap(
   data=dff[ids, ] %>% select(xgb_fit$feature_names) %>% as.matrix(),
@@ -171,18 +172,18 @@ shapplot = xgboost::xgb.plot.shap(
 )
 shap = exp(shapplot$shap_contrib)
 df_shap = data.frame(
-  CaseControl=as.factor(dff$CaseControl),
+  casecontrol=as.factor(dff$casecontrol),
   SHAP=shap,
   age=shapplot$data
 )
-colnames(df_shap) = c("CaseControl", "SHAP", "age")
+colnames(df_shap) = c("casecontrol", "SHAP", "age")
 
-g = ggplot(df_shap, aes(x=age, y=SHAP, group=CaseControl, color=CaseControl)) + 
+g = ggplot(df_shap, aes(x=age, y=SHAP, group=casecontrol, color=casecontrol)) + 
   geom_point(alpha=0.1) + geom_smooth(method="gam") + ylab("exp(SHAP)")
 filepath = paste0(dir_figures, "shap_age.pdf")
 ggsave(filepath, g, width=8, height=5)  
 
-tab = with(df, table(ageatindex, CaseControl))
+tab = with(df, table(ageatindex, casecontrol))
 tab = cbind(tab, rowSums(tab))
 tab = cbind(tab, 100000*tab[, 2]/tab[, 3])
 tab = data.frame(tab)
@@ -197,22 +198,158 @@ ggsave(filepath, g, width=6, height=5)
 
 proba = predict(xgb_fit, newdata=xgb_df)
 df_risk = data.frame(
-  CaseControl=as.factor(df$CaseControl),
+  casecontrol=as.factor(df$casecontrol),
   age=df$ageatindex,
   risk=proba*100000
 )
 
-df_risk_agg = df_risk %>% group_by(CaseControl, age) %>% summarise(
+df_risk_agg = df_risk %>% group_by(casecontrol, age) %>% summarise(
   med_risk=median(risk),
   q25_risk=quantile(risk, 0.25),
   q75_risk=quantile(risk, 0.75)
 )
 
 g = ggplot(df_risk_agg, aes(x=age, y=med_risk, 
-                        group=CaseControl, color=CaseControl, fill=CaseControl,
+                        group=casecontrol, color=casecontrol, fill=casecontrol,
                         ymin=q25_risk, ymax=q75_risk)) +
   geom_line() + ylab("Predicted risk") +
   geom_ribbon(alpha=0.2) + scale_y_continuous(trans="log10")
 
 filepath = paste0(dir_figures, "risk_age.pdf")
 ggsave(filepath, g, width=6, height=5)  
+
+
+
+# ==============================================================================
+# Comparing SHAP values
+
+# read in data
+file_path = paste0(dir_path, "5-1_merged.rds")
+df = readRDS(file_path)
+master = df$master
+df = df$df
+# subset to test set
+df %<>% filter(id %in% test_ids)
+
+# sample ids
+ids = df %>% sample_n(50000) %>% pull(id)
+dfn = df %>% filter(id %in% ids)
+dfn %<>% left_join(outcomes, by="id")
+
+# read in models
+dir_model = "R_data/results/models/"
+model_names = c(
+  ANY="XGB_all_ANY.rds",
+  EAC="XGB_all_EAC.rds",
+  EGJAC="XGB_all_EGJAC.rds"
+)
+models = lapply(model_names, function(file){
+  results = readRDS(paste0(dir_model, file))
+  return(results)
+})
+
+# get SHAP values for all three models
+shap_model = lapply(outcome_names, function(outcome){
+  xgb_fit = models[[outcome]]$xgb_fit
+  set.seed(0)
+  dfni = impute_srs(dfn, models[[outcome]]$quantiles)
+  dfni %<>% mutate(casecontrol = get(outcome))
+  xgb_df = xgb.DMatrix(as.matrix(dfni %>% select(xgb_fit$feature_names)),
+                        label=dfni$casecontrol)
+  proba = predict(xgb_fit, newdata=xgb_df, predcontrib=TRUE, approxcontrib=F)
+  return(proba)
+})
+names(shap_model) = outcome_names
+# variable importance
+
+# group features
+features = data.frame(name=xgb_fit$feature_names)
+print(paste(xgb_fit$feature_names, collapse="   "))
+features$group = c(
+  'gender', 'bmi', 'weight', 
+  rep("race", 4), 'agentorange', 'age', rep("smoke", 2), 
+  'gerd', 'chf', 'ctd', 'dem', 'diab_c', 'hiv', 'mld', 'msld', 
+  'para', 'rd', 'cd', 'copd', 'diab_nc', 'mi', 'pud', 'pvd', 
+  rep("h2r", 5), rep("ppi", 5), 
+  rep("a1c", 6), rep("bun", 6),  rep("calc", 6),  
+  rep("chlor", 6),  rep("co2", 6),  rep("creat", 6), 
+  rep("gluc", 6), rep("k", 6),  rep("na", 6), 
+  rep("baso", 6),  rep("eos", 6),  rep("hct", 6), 
+  rep("lymph", 6),  rep("mch", 6), 
+  rep("mchc", 6),  rep("mcv", 6),  rep("mono", 6), 
+  rep("mpv", 6),  rep("neut", 6),  rep("platelet", 6), 
+  # rep("rbw", 6), 
+  rep("wbc", 6),  rep("crp", 6), 
+  rep("alkphos", 6),  rep("alt", 6),  rep("ast", 6), 
+  rep("totprot", 6),  rep("hdl", 6), rep("ldl", 6),
+  rep("trig", 6)
+)
+features$category = c( 
+  rep("Demographic", 11),
+  rep("Comorbidities", 16), 
+  # rep("Clinical", 4), 
+  rep("Medication", 2*5),
+  rep("Lab", 29*6)
+  # rep("Lab", 198)
+)
+
+
+shap_by_group = lapply(shap_model, function(proba){
+  #by group
+  groups = lapply(unique(features$group), 
+                  function(gr) unique(features$name[features$group==gr]))
+  names(groups) = unique(features$group)
+  shap_groups = lapply(names(groups), function(gr){
+    pr = proba[, groups[[gr]]]
+    if(!is.vector(pr)) pr %<>% rowSums()
+    pr
+  })
+  names(shap_groups) = names(groups)
+  shap_groups = bind_cols(shap_groups)
+  shap_group_agg = abs(shap_groups) %>% colMeans()
+  df_shap = data.frame(sort(shap_group_agg, decreasing=F))
+  colnames(df_shap) = c("SHAP")
+  df_shap$feature = factor(rownames(df_shap), levels=rownames(df_shap))
+  return(df_shap)
+})
+
+shap_by_group %<>% bind_rows(.id="model")
+
+feature_order = shap_by_group %>% filter(model=="ANY") %>% arrange(SHAP) %>% pull(feature)
+
+shap_by_group$feature %<>% factor(levels=feature_order, ordered=T)
+
+# plot by group
+g = ggplot(shap_by_group, aes(x=SHAP, y=feature, fill=model)) + 
+  geom_bar(stat="identity", position="dodge") +
+  xlab("mean|SHAP|") + ylab("") 
+g
+filepath = paste0(dir_figures, "shap_groups_cancertype.pdf")
+ggsave(filepath, g, width=6, height=8)
+
+# shap pdp
+shap_model_ = lapply(shap_model, function(df) df %>% data.frame() %>% mutate(id=dfn$id))
+shap_model_df = shap_model_ %>% bind_rows(.id="model")
+for(var in xgb_fit$feature_names){
+  deciles = quantile(dfn[[var]], (1:9)/10, na.rm=T)
+  xlims = quantile(dfn[[var]], c(0.05, 0.95), na.rm=T)
+  deciles = data.frame(x=deciles, xend=deciles, y=-0.1, yend=0)
+  cat(paste0("Feature: ", var, "...\n"))
+  plotdf = shap_model_df %>% 
+    select(id, model, !!var) %>% 
+    rename(shap=!!var) %>%
+    left_join(dfn %>% select(id, casecontrol, !!var), by="id")
+  plotdf$Case = plotdf$casecontrol %>% factor(levels=c(0,1), labels=c("Control", "Case"))
+  plotdf %<>% mutate(shap=exp(shap))
+  g = ggplot() + 
+    geom_segment(data=deciles, aes(x=x, y=y, xend=xend, yend=yend), 
+                 inherit.aes=F) + ylab("exp(SHAP)") + xlab(var) + 
+    geom_smooth(
+      data=plotdf, mapping=aes_string(x=var, y="shap", color="model"),
+      method=ifelse(length(unique(dff[[var]]))>3, "gam", "lm")) +
+    xlim(xlims)
+  g
+  filepath = paste0(dir_figures, "shap/", var, ".pdf")
+  ggsave(filepath, g, width=6, height=4)
+  cat("...done!\n")
+}
