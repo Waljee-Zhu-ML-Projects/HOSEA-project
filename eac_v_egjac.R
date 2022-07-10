@@ -1,5 +1,6 @@
 setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 library(dplyr)
+library(tidyr)
 library(xgboost)
 library(magrittr)
 library(ggplot2)
@@ -353,3 +354,64 @@ for(var in xgb_fit$feature_names){
   ggsave(filepath, g, width=6, height=4)
   cat("...done!\n")
 }
+
+# ==============================================================================
+# comparison
+
+
+# read in data
+file_path = paste0(dir_path, "5-1_merged.rds")
+df = readRDS(file_path)
+master = df$master
+df = df$df
+# subset to test set
+df %<>% filter(id %in% test_ids)
+
+# sample ids
+ids = df %>% sample_n(50000) %>% pull(id)
+dfn = df %>% filter(id %in% ids)
+dfn %<>% left_join(outcomes, by="id")
+
+# read in models
+dir_model = "R_data/results/models/"
+model_names = c(
+  ANY="XGB_all_ANY.rds",
+  EAC="XGB_all_EAC.rds",
+  EGJAC="XGB_all_EGJAC.rds"
+)
+models = lapply(model_names, function(file){
+  results = readRDS(paste0(dir_model, file))
+  return(results)
+})
+
+# get predictions for all three models
+risk_model = lapply(outcome_names, function(outcome){
+  xgb_fit = models[[outcome]]$xgb_fit
+  set.seed(0)
+  dfni = impute_srs(dfn, models[[outcome]]$quantiles)
+  dfni %<>% mutate(casecontrol = get(outcome))
+  xgb_df = xgb.DMatrix(as.matrix(dfni %>% select(xgb_fit$feature_names)),
+                       label=dfni$casecontrol)
+  proba = predict(xgb_fit, newdata=xgb_df)
+  out = data.frame(
+    id=dfni$id, 
+    risk=log10(proba*100000)
+  )
+  return(out)
+})
+names(risk_model) = outcome_names
+
+risk_model %<>% bind_rows(.id="model")
+
+risk_model %<>% pivot_wider(id_cols=id, names_from=model, values_from=risk)
+
+risk_model %<>% left_join(outcomes%>%select(id, cancertype), by="id")
+
+g = GGally::ggpairs(
+  data=risk_model %>% select(-id),
+  mapping=aes(color=cancertype, alpha=0.2),
+  columns=outcome_names
+)
+g
+filepath = paste0(dir_figures, "risk_scatter.pdf")
+ggsave(filepath, g, width=6, height=6)
