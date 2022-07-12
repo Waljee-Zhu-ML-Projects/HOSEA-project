@@ -70,7 +70,7 @@ ggsave(filepath, g, width=6, height=3)
 # =========================================================
 # difference in features
 
-cases = df %>% filter(casecontrol == 1)
+# cases = df %>% filter(casecontrol == 1)
 
 cases = df
 
@@ -100,9 +100,11 @@ test_df = data.frame(
   mean_diff=mean_diff,
   sd_EAC=sds$EAC,
   sd_EGJAC=sds$EGJAC,
+  n_Control=ns[1, 2:212] %>% unlist(., use.names=FALSE),
   n_EAC=ns[2, 2:212] %>% unlist(., use.names=FALSE),
   n_EGJAC=ns[3, 2:212] %>% unlist(., use.names=FALSE)
 )
+test_df$prop_nonNA_Control = test_df$n_Control / max(test_df$n_Control)
 test_df$prop_nonNA_EAC = test_df$n_EAC / max(test_df$n_EAC)
 test_df$prop_nonNA_EGJAC = test_df$n_EGJAC / max(test_df$n_EGJAC)
 
@@ -131,7 +133,7 @@ test_df %>% filter(pvalue.adj < 0.05) %>%
   xtable::xtable(digits=3)
 
 prop_df = test_df %>% 
-  select(n_EAC, n_EGJAC) %>% rename(n_nonNA_EAC=n_EAC, n_nonNA_EGJAC=n_EGJAC) %>%
+  select(n, Control, n_EAC, n_EGJAC) %>% rename(n_nonNA_Control=n_control, n_nonNA_EAC=n_EAC, n_nonNA_EGJAC=n_EGJAC) %>%
   mutate(n_EAC=max(n_nonNA_EAC), n_EGJAC=max(n_nonNA_EGJAC))
 
 prop_df %<>% mutate(
