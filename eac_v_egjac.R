@@ -5,6 +5,7 @@ library(xgboost)
 library(magrittr)
 library(ggplot2)
 theme_set(theme_minimal())
+library(cowplot)
 library(pdp)
 library(HOSEA)
 source('R_code/hosea-project/compute_quantiles.R')
@@ -133,12 +134,10 @@ test_df %>% filter(pvalue.adj < 0.05) %>%
   xtable::xtable(digits=3)
 
 prop_df = test_df %>% 
-  select(n, Control, n_EAC, n_EGJAC) %>% rename(n_nonNA_Control=n_control, n_nonNA_EAC=n_EAC, n_nonNA_EGJAC=n_EGJAC) %>%
-  mutate(n_EAC=max(n_nonNA_EAC), n_EGJAC=max(n_nonNA_EGJAC))
+  select(n_Control, n_EAC, n_EGJAC) %>% 
+  rename(n_nonNA_Control=n_Control, n_nonNA_EAC=n_EAC, n_nonNA_EGJAC=n_EGJAC) %>%
+  mutate(n_Control=max(n_nonNA_Control), n_EAC=max(n_nonNA_EAC), n_EGJAC=max(n_nonNA_EGJAC))
 
-prop_df %<>% mutate(
-  pvalue=prop.test(c(n_nonNA_EAC, n_nonNA_EGJAC), c(n_EAC, n_EGJAC))
-)
 prop_df$pvalue = sapply(seq(nrow(prop_df)), function(i) prop.test(
   c(prop_df$n_nonNA_EAC[i], prop_df$n_nonNA_EGJAC[i]),
   c(prop_df$n_EAC[i], prop_df$n_EGJAC[i])
@@ -146,13 +145,14 @@ prop_df$pvalue = sapply(seq(nrow(prop_df)), function(i) prop.test(
 prop_df$pvalue.adj = p.adjust(prop_df$pvalue, "fdr")
 
 prop_df %<>% mutate(
+  prop_nonNA_Control=n_nonNA_Control / n_Control,
   prop_nonNA_EAC=n_nonNA_EAC / n_EAC,
   prop_nonNA_EGJAC=n_nonNA_EGJAC / n_EGJAC
 )
 
 prop_df %>% filter(pvalue.adj < 0.05) %>% 
-  select(prop_nonNA_EAC, prop_nonNA_EGJAC, pvalue.adj) %>%
-  xtable::xtable(digits=3)
+  select(prop_nonNA_Control, prop_nonNA_EAC, prop_nonNA_EGJAC, pvalue.adj) %>%
+  xtable::xtable(digits=3) %>% print()
 
 g = ggplot() + 
   geom_point(
@@ -449,3 +449,114 @@ g = GGally::ggpairs(
 g
 filepath = paste0(dir_figures, "risk_scatter.pdf")
 ggsave(filepath, g, width=6, height=6)
+
+
+# ==============================================================================
+# CBC Missing values
+cbc_vars = c("baso", "hct", "lymph", "mch", "mchc", 
+             "mcv", "mono", "mpv", "neut",
+             "platelet", "wbc")
+
+df_cbc = df %>% select(id, cancertype)
+
+for(cbc_var in cbc_vars){
+  df_cbc[[cbc_var]] = df %>% select(starts_with(cbc_var)) %>%
+    mutate_all(is.na) %>% rowSums() > 0
+}
+
+cancertypes = unique(df_cbc$cancertype)
+
+corrs = lapply(cancertypes, function(x) df_cbc %>% 
+                filter(cancertype==x) %>% 
+                select(-id, -cancertype) %>% 
+                 as.matrix() %>% cor)
+names(corrs) = c("Control", "EAC", "EGJAC")
+
+
+gs = lapply(names(corrs), function(ctype){
+  ggcorrplot::ggcorrplot(corrs[[ctype]]) + ggtitle(ctype)
+})
+
+g = cowplot::plot_grid(plotlist=gs, ncol=2)
+fig_path = paste0(dir_figures, "corr_na_type.pdf")
+ggsave(fig_path, g, width=8, height=8)
+
+
+
+df_cbc %>% select(-id) %>% 
+  mutate(cancertype=ifelse(cancertype=="", "Control", cancertype)) %>%
+  group_by(cancertype) %>%
+  summarise_all(mean)
+
+# there is something different, but what
+
+labs_cbc = HOSEA:::load_sas("./unzipped_data/cases/labs_cbc.rds")
+labs_cbc %<>% rename(id=ID)
+labs_cbc %<>% left_join(master %>% select(id, cancertype), by="id")
+tmp = labs_cbc %>% select(-id, -labdate, -cancertype) %>% is.na() %>% ifelse(1, 0)
+labs_cbc[, colnames(tmp)] = tmp
+
+corrs = lapply(cancertypes, function(x) labs_cbc %>% 
+                 filter(cancertype==x) %>% 
+                 select(-id, -cancertype, -labdate) %>% 
+                 as.matrix() %>% cor)
+names(corrs) = c("Control", "EAC", "EGJAC")
+
+gs = lapply(names(corrs), function(ctype){
+  ggcorrplot::ggcorrplot(corrs[[ctype]]) + ggtitle(ctype)
+})
+
+g = cowplot::plot_grid(plotlist=gs, ncol=2)
+fig_path = paste0(dir_figures, "corr_na_type_raw.pdf")
+ggsave(fig_path, g, width=8, height=8)
+
+# 20009527 20002384 20008822 20008488 20003054
+
+labs_cbc %>% filter(id==20009527) %>% arrange(labdate) %>% print(n=100)
+labs_cbc %>% filter(id==20002384) %>% arrange(labdate) %>% print(n=100)
+labs_cbc %>% filter(id==20008822) %>% arrange(labdate) %>% print(n=100)
+labs_cbc %>% filter(id==20008488) %>% arrange(labdate) %>% print(n=100)
+labs_cbc %>% filter(id==20003054) %>% arrange(labdate) %>% print(n=100)
+
+# 20005199 20001156 20000578 20009890
+labs_cbc %>% filter(id==20005199) %>% arrange(labdate) %>% print(n=100)
+labs_cbc %>% filter(id==20001156) %>% arrange(labdate) %>% print(n=100)
+labs_cbc %>% filter(id==20000578) %>% arrange(labdate) %>% print(n=100)
+labs_cbc %>% filter(id==20009890) %>% arrange(labdate) %>% print(n=100)
+
+
+
+# checek missing values for everything
+
+
+# group features
+features = data.frame(name=xgb_fit$feature_names)
+print(paste(xgb_fit$feature_names, collapse="   "))
+features$group = c(
+  'gender', 'bmi', 'weight', 
+  rep("race", 4), 'agentorange', 'age', rep("smoke", 2), 
+  'gerd', 'chf', 'ctd', 'dem', 'diab_c', 'hiv', 'mld', 'msld', 
+  'para', 'rd', 'cd', 'copd', 'diab_nc', 'mi', 'pud', 'pvd', 
+  rep("h2r", 5), rep("ppi", 5), 
+  rep("a1c", 6), rep("bun", 6),  rep("calc", 6),  
+  rep("chlor", 6),  rep("co2", 6),  rep("creat", 6), 
+  rep("gluc", 6), rep("k", 6),  rep("na", 6), 
+  rep("baso", 6),  rep("eos", 6),  rep("hct", 6), 
+  rep("lymph", 6),  rep("mch", 6), 
+  rep("mchc", 6),  rep("mcv", 6),  rep("mono", 6), 
+  rep("mpv", 6),  rep("neut", 6),  rep("platelet", 6), 
+  rep("wbc", 6),  rep("crp", 6), 
+  rep("alkphos", 6),  rep("alt", 6),  rep("ast", 6), 
+  rep("totprot", 6),  rep("hdl", 6), rep("ldl", 6),
+  rep("trig", 6)
+)
+features$category = c( 
+  rep("Demographic", 11),
+  rep("Comorbidities", 16), 
+  rep("Medication", 2*5),
+  rep("Lab", 29*6)
+)
+
+
+groups = features %>% pull(group) %>% unique()
+
