@@ -53,20 +53,53 @@ outcome_names = c("ANY", "EAC", "EGJAC")
 
 
 # =========================================================
-# predicted risk per outcome
-xgb_df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
-                 label=df$casecontrol)
-proba = predict(xgb_fit, newdata=xgb_df)
+# predicted risk per outcome & model
 
-risks = data.frame(cancertype=df$cancertype, risk=proba*100000)
+file_path = paste0(dir_path, "5-1_merged.rds")
+df = readRDS(file_path)
+master = df$master
+df = df$df
+outcomes = master %>% select(id, cancertype)
+df %<>% left_join(outcomes, by="id")
 
-filepath = paste0(dir_figures, "risk_distribution.pdf")
-g = ggplot(data=risks, aes(x=risk, colour=cancertype, fill=cancertype)) + 
-  geom_density(alpha=0.2) + xlab("Predicted risk (/100,000)") +
-  ylab("Density") + xlim(0, 1000) + scale_x_continuous(trans="log10") + 
-  ggtitle(paste0("Risk distribution"))
-g
-ggsave(filepath, g, width=6, height=34)
+# read in models
+dir_model = "R_data/results/models/"
+model_names = c(
+  ANY="XGB_all_ANY.rds",
+  EAC="XGB_all_EAC.rds",
+  EGJAC="XGB_all_EGJAC.rds"
+)
+models = lapply(model_names, function(file){
+  results = readRDS(paste0(dir_model, file))
+  return(results)
+})
+
+for(model in names(model_names)){
+  xgb_fit = models[[model]]$xgb_fit
+  quantiles = models[[model]]$quantiles
+  test_ids = models[[model]]$test_ids
+  
+  dff = df %>% filter(id %in% test_ids)
+  set.seed(0)
+  dff = impute_srs(dff, quantiles)
+  
+  xgb_df = xgb.DMatrix(as.matrix(dff %>% select(xgb_fit$feature_names)),
+                   label=dff$casecontrol)
+  proba = predict(xgb_fit, newdata=xgb_df)
+  
+  risks = data.frame(cancertype=dff$cancertype, risk=proba*100000)
+  
+  filepath = paste0(dir_figures, "risk_distribution_", model ,".pdf")
+  g = ggplot(data=risks, aes(x=risk, colour=cancertype, fill=cancertype)) + 
+    geom_density(alpha=0.2) + xlab("Predicted risk (/100,000)") +
+    ylab("Density") + 
+    scale_x_continuous(trans="log10", limits=c(0.1, 10000)) + 
+    ggtitle(paste0("Risk distribution trained on ", model))
+  g
+  ggsave(filepath, g, width=6, height=4)
+  
+}
+
 
 # =========================================================
 # difference in features

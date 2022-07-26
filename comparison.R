@@ -44,6 +44,71 @@ outcomes %<>% mutate(
   EGJAC=as.integer(cancertype=="EGJAC")
 )
 
+
+# =========================================================
+# get all AUCs
+aucs = data.frame(matrix(NA, nrow=3, ncol=3))
+colnames(aucs) = names(model_names)
+rownames(aucs) = names(model_names)
+
+# columns are training (ie model name)
+# rows are testing (ie outcome)
+
+# function to get ROC from a df
+get_roc = function(df){
+  # ensure correct column ordering for xgb model
+  df %<>% select(c(id, casecontrol, xgb_fit$feature_names))
+  y = df$casecontrol
+  # convert to xgb format
+  df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
+                   label=df$casecontrol)
+  # get predicted risk and ROC curve
+  proba = predict(xgb_fit, newdata=df)
+  fg = proba[y==1]; bg = proba[y==0]
+  
+  
+  roc = PRROC::roc.curve(fg, bg ,curve=TRUE)
+  roc$curve = roc$curve[seq(1, nrow(roc$curve), by=ceiling(nrow(df)/1000)), ]
+  roc$curve %<>% data.frame()
+  colnames(roc$curve) = c("fpr", "recall", "tr")
+  
+  proc = pROC::roc(controls=bg, cases=fg)
+  roc$ci = pROC::ci(proc, of="auc")
+  roc$display.ci = paste0(
+    round(roc$au, 3), " [",
+    round(roc$ci[1], 3), ",",
+    round(roc$ci[3], 3), "]"
+  )
+  roc$display = round(roc$au, 3)
+  return(roc)
+}
+
+for(model in names(model_names)){
+  for(outcome in names(model_names)){
+    xgb_fit = models[[outcome]]$xgb_fit
+    quantiles = models[[outcome]]$quantiles
+    test_ids = models[[outcome]]$test_ids
+    
+    outcomes_ = outcomes%>%select(id, !!outcome)
+    
+    dff = df %>% filter(id %in% test_ids)
+    dff %<>% 
+      left_join(outcomes_, by="id") %>%
+      select(-casecontrol) %>% 
+      rename(casecontrol=!!outcome)
+    
+    set.seed(0)
+    dff = impute_srs(dff, quantiles)
+    
+    roc = get_roc(dff)
+    
+    aucs[outcome, model] = roc$display.ci
+  }
+}
+
+
+# =========================================================
+# ROC curves
 outcome = "EGJAC"
 
 xgb_fit = models[[outcome]]$xgb_fit
