@@ -13,9 +13,8 @@ source('R_code/hosea-project/classification_metrics.R')
 dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
-model_path = "R_data/results/models/XGB_nALL_typeANY.rds"
 model_path = "R_data/results/models/XGB_all_ANY.rds"
-complete = F
+complete = T
 
 # =========================================================
 # read in model
@@ -27,7 +26,7 @@ rm(results); gc()
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1_test_merged.rds")
+file_path = paste0(dir_path, "5-1_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df

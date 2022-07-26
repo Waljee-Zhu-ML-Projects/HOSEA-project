@@ -83,7 +83,7 @@ shap = predict(xgb_fit, newdata=xgb_df, predcontrib=TRUE, approxcontrib=F)
 features = data.frame(name=xgb_fit$feature_names)
 print(paste(xgb_fit$feature_names, collapse="   "))
 features$group = c(
-  'gender', 'bmi', 'weight', 
+   'gender', 'bmi_weight', 'bmi_weight', 
   rep("race", 4), 'agentorange', 'age', rep("smoke", 2), 
   'gerd', 'chf', 'ctd', 'dem', 'diab_c', 'hiv', 'mld', 'msld', 
   'para', 'rd', 'cd', 'copd', 'diab_nc', 'mi', 'pud', 'pvd', 

@@ -26,7 +26,7 @@ rm(results); gc()
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1_test_merged.rds")
+file_path = paste0(dir_path, "5-1_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
@@ -123,10 +123,10 @@ colnames(proba_hist_df_long) = c("mid", "stage", "freq")
 filepath = paste0(dir_figures, "risk_stage.pdf")
 g = ggplot(data=proba_hist_df_long %>% filter(stage %in% c("I", "II", "III", "IV")), 
            aes(x=mid, y=freq, color=stage)) + 
-  geom_line() + scale_x_continuous(trans="log10") +
+  geom_line() + scale_x_continuous(trans="log10", limits=c(10, 10000)) +
   xlab("Predicted risk (/100,000)") + ylab("Cumulative freq.") +
   ggtitle("Risk distribution per stage (test cases only)")
-ggsave(filepath, g, width=8, height=4)
+ggsave(filepath, g, width=6, height=4)
 
 
 
@@ -145,7 +145,7 @@ proba = predict(xgb_fit, newdata=xgb_df)
 # which subsets to get ROC
 stages = c("1", "2", "3", "3 or 4", "4", "missing", "u")
 subsets = list(
-  "all" = stages,
+  "Any" = stages,
   "I" = c("1"),
   "II" = c("2"),
   "III" = c("3"),
@@ -175,10 +175,117 @@ aurocs = sapply(names(subsets), function(name){
 })
 
 
-xtable::xtable(t(aurocs) %>% data.frame() %>% select(n, display.ci), digits=3)
+xtable::xtable(t(aurocs) %>% data.frame() %>% select(display.ci, n), digits=3)
 
 
 # EAC EGJAC 
 # 8430  2965 
 
+# ==============================================================================
+# SHAP values per stage
 
+
+# read in data
+file_path = paste0(dir_path, "5-1_merged.rds")
+df = readRDS(file_path)
+master = df$master
+df = df$df
+# subset to test set
+df %<>% filter(id %in% test_ids)
+master %<>% patch_staging(staging)
+
+# sample ids
+id_controls = df %>% filter(casecontrol==0) %>% sample_n(50000) %>% pull(id)
+id_cases = df %>% filter(casecontrol==1) %>% pull(id)
+ids = c(id_controls, id_cases)
+dfn = df %>% filter(id %in% ids)
+dfn %<>% left_join(master %>% select(id, nccn_stage_2017), by="id")
+
+set.seed(0)
+dfni = impute_srs(dfn, quantiles)
+xgb_df = xgb.DMatrix(as.matrix(dfni %>% select(xgb_fit$feature_names)),
+                     label=dfni$casecontrol)
+proba = predict(xgb_fit, newdata=xgb_df, predcontrib=TRUE, approxcontrib=F)
+proba_df = proba %>% data.frame() %>% mutate(cancerstage=dfni$nccn_stage_2017)
+
+# group features
+features = data.frame(name=xgb_fit$feature_names)
+print(paste(xgb_fit$feature_names, collapse="   "))
+features$group = c(
+  'gender', 'bmi', 'weight', 
+  rep("race", 4), 'agentorange', 'age', rep("smoke", 2), 
+  'gerd', 'chf', 'ctd', 'dem', 'diab_c', 'hiv', 'mld', 'msld', 
+  'para', 'rd', 'cd', 'copd', 'diab_nc', 'mi', 'pud', 'pvd', 
+  rep("h2r", 5), rep("ppi", 5), 
+  rep("a1c", 6), rep("bun", 6),  rep("calc", 6),  
+  rep("chlor", 6),  rep("co2", 6),  rep("creat", 6), 
+  rep("gluc", 6), rep("k", 6),  rep("na", 6), 
+  rep("baso", 6),  rep("eos", 6),  rep("hct", 6), 
+  rep("lymph", 6),  rep("mch", 6), 
+  rep("mchc", 6),  rep("mcv", 6),  rep("mono", 6), 
+  rep("mpv", 6),  rep("neut", 6),  rep("platelet", 6), 
+  # rep("rbw", 6), 
+  rep("wbc", 6),  rep("crp", 6), 
+  rep("alkphos", 6),  rep("alt", 6),  rep("ast", 6), 
+  rep("totprot", 6),  rep("hdl", 6), rep("ldl", 6),
+  rep("trig", 6)
+)
+features$category = c( 
+  rep("Demographic", 11),
+  rep("Comorbidities", 16), 
+  # rep("Clinical", 4), 
+  rep("Medication", 2*5),
+  rep("Lab", 29*6)
+  # rep("Lab", 198)
+)
+
+stages = c("1", "2", "3", "3 or 4", "4", "missing", "u")
+subsets = list(
+  "All" = c("", stages),
+  "None" = c(""),
+  "Any" = stages,
+  "I" = c("1"),
+  "II" = c("2"),
+  "III" = c("3"),
+  "IV" = c("4"),
+  "I+" = c("1", "2", "3", "3 or 4", "4"),
+  "II+" = c("2", "3", "3 or 4", "4"),
+  "III+" = c("3", "3 or 4", "4"),
+  "IV+" = c("4")
+)
+shap_by_group = lapply(subsets, function(stage){
+  #by group
+  groups = lapply(unique(features$group), 
+                  function(gr) unique(features$name[features$group==gr]))
+  names(groups) = unique(features$group)
+  proba_tmp = proba_df %>% filter(cancerstage %in% stage)
+  shap_groups = lapply(names(groups), function(gr){
+    pr = proba_tmp[, groups[[gr]]]
+    if(!is.vector(pr)) pr %<>% rowSums()
+    pr
+  })
+  names(shap_groups) = names(groups)
+  shap_groups = bind_cols(shap_groups)
+  shap_group_agg = abs(shap_groups) %>% colMeans()
+  df_shap = data.frame(sort(shap_group_agg, decreasing=F))
+  colnames(df_shap) = c("SHAP")
+  df_shap$feature = factor(rownames(df_shap), levels=rownames(df_shap))
+  return(df_shap)
+})
+
+shap_by_group %<>% bind_rows(.id="cancerstage")
+
+feature_order = shap_by_group %>% filter(cancerstage=="All") %>% arrange(SHAP) %>% pull(feature)
+
+shap_by_group$feature %<>% factor(levels=feature_order, ordered=T)
+
+# plot by group
+g = ggplot(
+  shap_by_group %>% filter(cancerstage %in% c("All", "None", "I+", "II+", "III+", "IV")), 
+  aes(x=SHAP, y=feature, fill=cancerstage)
+  ) + 
+  geom_bar(stat="identity", position="dodge") +
+  xlab("mean|SHAP|") + ylab("") 
+g
+filepath = paste0(dir_figures, "shap_groups_cancerstage.pdf")
+ggsave(filepath, g, width=6, height=10)

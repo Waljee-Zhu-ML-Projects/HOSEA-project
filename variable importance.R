@@ -26,7 +26,7 @@ rm(results); gc()
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1_test_merged.rds")
+file_path = paste0(dir_path, "5-1_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
@@ -45,7 +45,7 @@ xgb_df = xgb.DMatrix(as.matrix(df %>% select(xgb_fit$feature_names)),
 features = data.frame(name=xgb_fit$feature_names)
 print(paste(xgb_fit$feature_names, collapse="   "))
 features$group = c(
-  'gender', 'bmi', 'weight', 
+  'gender', 'bmi_weight', 'bmi_weight', 
   rep("race", 4), 'agentorange', 'age', rep("smoke", 2), 
   'gerd', 'chf', 'ctd', 'dem', 'diab_c', 'hiv', 'mld', 'msld', 
   'para', 'rd', 'cd', 'copd', 'diab_nc', 'mi', 'pud', 'pvd', 
@@ -188,11 +188,6 @@ round(rbind(missing_prop_y, missing_prop_1) %>% t() * 100, 0)
 # =========================================================
 # SHAP values
 
-dff = bind_rows(
-  df %>% filter(casecontrol==1),
-  df %>% filter(casecontrol==0) %>% sample_n(10000)
-)
-
 dff = df %>% sample_n(100000)
 
 xgb_dff = xgb.DMatrix(as.matrix(dff %>% select(xgb_fit$feature_names)),
@@ -217,6 +212,7 @@ df_shap$feature = factor(rownames(df_shap), levels=rownames(df_shap))
 # plot by group
 g = ggplot(df_shap, aes(x=SHAP, y=feature)) + geom_bar(stat="identity") +
   xlab("mean|SHAP|") + ylab("") 
+g
 filepath = paste0(dir_figures, "shap_new/shap_groups.pdf")
 ggsave(filepath, g, width=6, height=6)
 

@@ -9,7 +9,7 @@ source('R_code/hosea-project/evaluation_split.R')
 library(HOSEA)
 
 # import data
-complete_data = readRDS('R_data/processed_records/5-1_test_merged.rds')
+complete_data = readRDS('R_data/processed_records/5-1_merged.rds')
 master = complete_data$master
 dff = complete_data$df
 
@@ -40,9 +40,9 @@ log = function(df) cat(paste("Full data set: ", nrow(df), "observations,",
 
 # prepare stuff
 param_xg = list(
-  max_depth = 5,
-  subsample = 0.1,
-  eta = .2,
+  max_depth = 4,
+  subsample = 0.2,
+  eta = .02,
   objective = 'binary:logistic',
   eval_metric = 'auc',
   nthread=-1
@@ -121,6 +121,11 @@ for(outcome in outcome_list){
     missing_rate=missing_rate
   )
   filepath = paste0("R_data/results/models/XGB_", nname, "_", outcome, ".rds")
+  print(filepath)
   saveRDS(out, filepath)
+  
+  filepath = paste0("R_data/results/models/xgb_", tolower(outcome), ".model")
+  print(filepath)
+  xgboost::xgb.save(HOSEA::XGB_EGJAC$xgb_fit, filepath)
 
 }
