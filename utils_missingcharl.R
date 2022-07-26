@@ -424,6 +424,20 @@ charl_checks <- list(
                       substr(s,1,5)=='Z95.9',
                       substr(s,1,3)=='I70',
                       substr(s,1,3)=='I71'))
-    }))
-
+    }),
+  'hh'=list(
+    'icd9'=function(s){
+      as.integer(pmax(substr(s,1,6)=='750.6'))
+    },
+    'icd10'=function(s){
+      as.integer(pmax(substr(s,1,5)=='Q40.1'))
+    }),
+  'estrict'=list(
+    'icd9'=function(s){
+      as.integer(pmax(substr(s,1,6)=='530.3'))
+    },
+    'icd10'=function(s){
+      as.integer(pmax(substr(s,1,5)=='K22.2'))
+    }),
+)
 
