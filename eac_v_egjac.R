@@ -96,7 +96,7 @@ for(model in names(model_names)){
     scale_x_continuous(trans="log10", limits=c(0.1, 10000)) + 
     ggtitle(paste0("Risk distribution trained on ", model))
   g
-  ggsave(filepath, g, width=6, height=4)
+  ggsave(filepath, g, width=8, height=4)
   
 }
 
