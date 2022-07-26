@@ -3,6 +3,7 @@ library(dplyr)
 library(xgboost)
 library(magrittr)
 library(ggplot2)
+theme_set(theme_minimal())
 source('R_code/hosea-project/compute_quantiles.R')
 source('R_code/hosea-project/utils_subsample.R')
 source('R_code/hosea-project/classification_metrics.R')
@@ -24,12 +25,14 @@ rm(results); gc()
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1_test_merged.rds")
+file_path = paste0(dir_path, "5-1_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
 # subset to test set
 df %<>% filter(id %in% test_ids)
+
+# compute stuff
 master$indexdate = master$end + 365
 master %<>% left_join(df%>%select(id, age), by="id")
 year_end = 18690 + 365
@@ -59,12 +62,14 @@ prop_cases$age = as.numeric(prop_cases$age)+17
 
 g = ggplot(prop_cases, aes(x=age, y=Freq, color=birth_cohort)) +
   geom_line() + ylab("Prop. cases (/100,000)")
+g
 ggsave(paste0(dir_figures, "prop_cases_age_birth.pdf"), g, width=8, height=4)
 
 
 
 g = ggplot(dff, aes(x=age, fill=birth_cohort)) +
   geom_histogram(binwidth=1, position="fill", alpha=0.8)
+g
 ggsave(paste0(dir_figures, "age_birth.pdf"), g, width=8, height=4)
 
 # imputation
@@ -91,11 +96,13 @@ plot_df %<>% mutate(birth_cohort=cut(birthyear, c(1900, 1935, 1945, 1955, 1965, 
 g = ggplot(plot_df, aes(x=age, y=risk, color=birth_cohort)) +
   geom_point(alpha=0.05) + scale_y_continuous(trans="log10") +
   geom_smooth(method="gam")
+g
 ggsave(paste0(dir_figures, "risk_age_birth.pdf"), g, width=6, height=4)
 
 g = ggplot(plot_df, aes(x=age, y=SHAP_age, color=birth_cohort)) +
   geom_point(alpha=0.05) +
   geom_smooth(method="gam") + ylim(0, 0.1)
+g
 ggsave(paste0(dir_figures, "shap_age_birth.pdf"), g, width=6, height=4)
 
 # pdps

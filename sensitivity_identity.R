@@ -25,7 +25,7 @@ rm(results); gc()
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1_test_merged.rds")
+file_path = paste0(dir_path, "5-1_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
@@ -149,7 +149,7 @@ ggsave(filepath, g, width=8, height=4)
 
 
 # =========================================================
-# gender
+# race
 filepath = paste0(dir_figures, "roc_Race.pdf")
 g = ggplot(data=curves %>% filter(window %in% 
               c("white", "black", "hawaiianpacific", "indianalaskan", 

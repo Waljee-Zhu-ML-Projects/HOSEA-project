@@ -29,7 +29,7 @@ rm(results); gc()
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1_test_merged.rds")
+file_path = paste0(dir_path, "5-1_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
@@ -66,7 +66,7 @@ g = ggplot(data=risks, aes(x=risk, colour=cancertype, fill=cancertype)) +
   ylab("Density") + xlim(0, 1000) + scale_x_continuous(trans="log10") + 
   ggtitle(paste0("Risk distribution"))
 g
-ggsave(filepath, g, width=6, height=3)
+ggsave(filepath, g, width=6, height=34)
 
 # =========================================================
 # difference in features
@@ -160,8 +160,8 @@ g = ggplot() +
     mapping=aes(x=prop_nonNA_EAC, y=prop_nonNA_EGJAC, color=pvalue.adj)
   ) + xlim(0, 1) + ylim(0, 1) + 
   geom_abline(slope=1, intercept=0) + 
-  scale_color_gradientn(name="adj. p value", colors=rainbow(3), 
-                        values=c(0, 0.05, 1)) + 
+  scale_color_gradientn(name="adj. p value", colors=rainbow(5), 
+                        values=c(0, 0.05, 0.1, 0.5, 1), limits=c(0,1)) + 
   xlab("Prop. missing EAC")+ 
   ylab("Prop. missing EGJAC")
 
@@ -174,23 +174,12 @@ dff = bind_rows(
   df %>% filter(casecontrol==1),
   df %>% filter(casecontrol==0) %>% sample_n(5000)
 )
+set.seed(0)
+dff = impute_srs(dff, quantiles)
 xgb_dff = xgb.DMatrix(as.matrix(dff %>% select(xgb_fit$feature_names)),
                      label=dff$casecontrol)
 proba = predict(xgb_fit, newdata=xgb_dff, predcontrib=TRUE, approxcontrib = F)
 
-ids = dff$EAC == 1
-ids = dff$EGJAC == 1
-ids = dff$casecontrol == 0
-
-shapplot = xgboost:xgb.plot.shap(
-  data=dff[ids, ] %>% select(xgb_fit$feature_names) %>% as.matrix(),
-  shap_contrib=proba[ids, ], 
-  top_n=9,
-  # features=xgb_fit$feature_names[1:9], 
-  n_col=3,
-  model=xgb_fit,
-  plot=T
-)
 
 
 
@@ -201,7 +190,7 @@ filepath = paste0(dir_figures, "shap_age.pdf")
 shapplot = xgboost::xgb.plot.shap(
   data=dff %>% select(xgb_fit$feature_names) %>% as.matrix(),
   shap_contrib=proba, 
-  features="ageatindex", 
+  features="age", 
   model=xgb_fit,
   plot=F
 )
@@ -213,12 +202,13 @@ df_shap = data.frame(
 )
 colnames(df_shap) = c("casecontrol", "SHAP", "age")
 
+
 g = ggplot(df_shap, aes(x=age, y=SHAP, group=casecontrol, color=casecontrol)) + 
   geom_point(alpha=0.1) + geom_smooth(method="gam") + ylab("exp(SHAP)")
 filepath = paste0(dir_figures, "shap_age.pdf")
 ggsave(filepath, g, width=8, height=5)  
 
-tab = with(df, table(ageatindex, casecontrol))
+tab = with(df, table(age, casecontrol))
 tab = cbind(tab, rowSums(tab))
 tab = cbind(tab, 100000*tab[, 2]/tab[, 3])
 tab = data.frame(tab)
@@ -301,7 +291,7 @@ names(shap_model) = outcome_names
 features = data.frame(name=xgb_fit$feature_names)
 print(paste(xgb_fit$feature_names, collapse="   "))
 features$group = c(
-  'gender', 'bmi', 'weight', 
+  'gender', 'bmi/weight', 'bmi/weight', 
   rep("race", 4), 'agentorange', 'age', rep("smoke", 2), 
   'gerd', 'chf', 'ctd', 'dem', 'diab_c', 'hiv', 'mld', 'msld', 
   'para', 'rd', 'cd', 'copd', 'diab_nc', 'mi', 'pud', 'pvd', 
@@ -448,7 +438,7 @@ g = GGally::ggpairs(
 )
 g
 filepath = paste0(dir_figures, "risk_scatter.pdf")
-ggsave(filepath, g, width=6, height=6)
+ggsave(filepath, g, width=8, height=8)
 
 
 # ==============================================================================
@@ -533,7 +523,7 @@ labs_cbc %>% filter(id==20009890) %>% arrange(labdate) %>% print(n=100)
 features = data.frame(name=xgb_fit$feature_names)
 print(paste(xgb_fit$feature_names, collapse="   "))
 features$group = c(
-  'gender', 'bmi', 'weight', 
+  'gender', 'bmi_weight', 'bmi_weight', 
   rep("race", 4), 'agentorange', 'age', rep("smoke", 2), 
   'gerd', 'chf', 'ctd', 'dem', 'diab_c', 'hiv', 'mld', 'msld', 
   'para', 'rd', 'cd', 'copd', 'diab_nc', 'mi', 'pud', 'pvd', 
@@ -557,6 +547,115 @@ features$category = c(
   rep("Lab", 29*6)
 )
 
-
+df %<>% mutate(cancertype=ifelse(cancertype=="", "Control", cancertype))
 groups = features %>% pull(group) %>% unique()
 
+miss_prop = lapply(groups, function(group){
+  df0 = df %>% select(cancertype, starts_with(group))
+  df1 = data.frame(
+    cancertype=df$cancertype,
+    missing=ifelse(is.na(df0%>%select(-cancertype))%>%rowSums()>0, 1, 0)
+  )
+  out = df1 %>% group_by(cancertype) %>% summarize(prop_missing=mean(missing))
+  out$group = group
+  return(out)
+})
+
+miss_prop_df = bind_rows(miss_prop)
+
+g = ggplot(miss_prop_df, aes(x=prop_missing, y=group, fill=cancertype)) + 
+  geom_bar(stat="identity", position="dodge") +
+  xlab("Missing proportion") + ylab("") 
+g
+filepath = paste0(dir_figures, "missing_prop.pdf")
+ggsave(filepath, g, width=6, height=8)
+
+
+
+
+
+# ==============================================================================
+# ordering of predicted risk
+
+
+# read in data
+file_path = paste0(dir_path, "5-1_merged.rds")
+df = readRDS(file_path)
+master = df$master
+df = df$df
+# subset to test set
+df %<>% filter(id %in% test_ids)
+
+# sample ids
+set.seed(1)
+ids = df %>% sample_n(50000) %>% pull(id)
+dfn = df %>% filter(id %in% ids)
+dfn %<>% left_join(outcomes, by="id")
+
+# read in models
+dir_model = "R_data/results/models/"
+model_names = c(
+  ANY="XGB_all_ANY.rds",
+  EAC="XGB_all_EAC.rds",
+  EGJAC="XGB_all_EGJAC.rds"
+)
+models = lapply(model_names, function(file){
+  results = readRDS(paste0(dir_model, file))
+  return(results)
+})
+
+# get predictions for all three models
+risk_model = lapply(outcome_names, function(outcome){
+  xgb_fit = models[[outcome]]$xgb_fit
+  set.seed(0)
+  dfni = impute_srs(dfn, models[[outcome]]$quantiles)
+  dfni %<>% mutate(casecontrol = get(outcome))
+  xgb_df = xgb.DMatrix(as.matrix(dfni %>% select(xgb_fit$feature_names)),
+                       label=dfni$casecontrol)
+  proba = predict(xgb_fit, newdata=xgb_df)
+  out = data.frame(
+    id=dfni$id, 
+    risk=proba*100000
+  )
+  return(out)
+})
+names(risk_model) = outcome_names
+
+risk_model %<>% bind_rows(.id="model")
+
+risk_model %<>% pivot_wider(id_cols=id, names_from=model, values_from=risk)
+
+risk_model %<>% left_join(outcomes%>%select(id, cancertype), by="id")
+
+margin = 1.1
+
+risk_model %<>% mutate(
+  EAC_le_ANY=(EAC<=ANY*margin),
+  EGJAC_le_ANY=(EGJAC<=ANY*margin),
+  ANY_le_EACpEGJAC=(ANY<=(EAC+EGJAC)*margin)
+)
+
+risk_model %<>% mutate(
+  EAC_gt_840=EAC>=840/14,
+  EGJAC_gt_840=EGJAC>=840/14,
+  ANY_gt_80=ANY>=840/14
+)
+
+with(risk_model, table(EAC_le_ANY, cancertype))
+with(risk_model, table(EGJAC_le_ANY, cancertype))
+with(risk_model, table(ANY_le_EACpEGJAC, cancertype))
+
+with(risk_model, table(EAC_gt_840, cancertype))
+with(risk_model, table(EGJAC_gt_840, cancertype))
+with(risk_model, table(ANY_gt_80, cancertype))
+
+
+ggplot() + 
+  geom_point(
+    data=risk_model,
+    mapping=aes(x=ANY, y=EAC, color=cancertype, alpha=0.1)
+  ) + 
+  geom_abline(intercept=0, slope=1) + 
+  scale_x_log10() + scale_y_log10() + 
+  geom_hline(yintercept=840/14) + 
+  geom_vline(xintercept=840/14)

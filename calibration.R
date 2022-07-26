@@ -26,7 +26,7 @@ rm(results); gc()
 
 # =========================================================
 # read in data
-file_path = paste0(dir_path, "5-1_test_merged.rds")
+file_path = paste0(dir_path, "5-1_merged.rds")
 df = readRDS(file_path)
 master = df$master
 df = df$df
@@ -100,7 +100,7 @@ calib_df = calib_50
 calib_df = calib_df*100000
 # calib_df$mid = calib_df$mid / 419
 
-log = T
+log = F
 g = ggplot(data=calib_df, aes(x=mid, y=propcase)) + theme(aspect.ratio=1) + 
   geom_point()  +
   geom_abline(slope=1, intercept=0, linetype="dashed") +
@@ -153,6 +153,7 @@ H51 = sum(((o1-e1)^2/e1 + (o0-e0)^2/e0))
 df51 = nbins - 1
 p51 = pchisq(H51, df51, lower.tail=F)
 print(paste0("H=", H51, ", df=", df51, ", p=", p51))
+
 which = 6:(nbins+1-5)
 H50 = sum(((o1-e1)^2/e1 + (o0-e0)^2/e0)[which])
 df50 = nbins - 10 - 1
@@ -177,7 +178,7 @@ pvals = sapply(c(10, 30, 50, 100, 200, 300, 500, 1000),
 # =========================================================
 # Threshold table
 thresholds = sort(unique(c(
-  seq(10, 50, 10), seq(50, 200, 5),
+  seq(10, 50, 5), seq(50, 200, 5),
   seq(200, 300, 10), seq(300, 500, 25),
   seq(500, 2000, 100)
 ))) /100000
@@ -188,7 +189,9 @@ rownames(tr_df) = format(round(as.numeric(rownames(tr_df)), 5)*100000, digits=5)
 tr_df = tr_df*100
 cat(print(xtable::xtable(tr_df)), 
     file=paste0(dir_figures, "all_calibration.tex"))
-write.csv(tr_df, paste0(dir_figures, "all_calibration.csv"))
+
+write.csv(tr_df, paste0(dir_figures, "classification_metrics.csv"))
+
 
 # =========================================================
 # Quantile table
