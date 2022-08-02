@@ -178,13 +178,12 @@ pvals = sapply(c(10, 30, 50, 100, 200, 300, 500, 1000),
 # =========================================================
 # Threshold table
 thresholds = sort(unique(c(
-  seq(10, 50, 5), seq(50, 200, 5),
+  seq(5, 50, 5), seq(50, 200, 5),
   seq(200, 300, 10), seq(300, 500, 25),
-  seq(500, 2000, 100)
+  seq(500, 2000, 100), seq(3000, 8000, 1000), 10000
 ))) /100000
 tr_df = classification_metrics(xgb_fit, xgb_df, thresholds)
 tr_df = tr_df %>% select(one_of("tpr", "ppv", "detection_prevalance"))
-# tr_df = tr_df[46:225, ]
 rownames(tr_df) = format(round(as.numeric(rownames(tr_df)), 5)*100000, digits=5)
 tr_df = tr_df*100
 cat(print(xtable::xtable(tr_df)), 

@@ -55,7 +55,7 @@ rownames(aucs) = names(model_names)
 # rows are testing (ie outcome)
 
 # function to get ROC from a df
-get_roc = function(df){
+get_roc = function(df, xgb_fit){
   # ensure correct column ordering for xgb model
   df %<>% select(c(id, casecontrol, xgb_fit$feature_names))
   y = df$casecontrol
@@ -85,9 +85,9 @@ get_roc = function(df){
 
 for(model in names(model_names)){
   for(outcome in names(model_names)){
-    xgb_fit = models[[outcome]]$xgb_fit
-    quantiles = models[[outcome]]$quantiles
-    test_ids = models[[outcome]]$test_ids
+    xgb_fit = models[[model]]$xgb_fit
+    quantiles = models[[model]]$quantiles
+    test_ids = models[[model]]$test_ids
     
     outcomes_ = outcomes%>%select(id, !!outcome)
     
@@ -100,16 +100,18 @@ for(model in names(model_names)){
     set.seed(0)
     dff = impute_srs(dff, quantiles)
     
-    roc = get_roc(dff)
+    roc = get_roc(dff, xgb_fit)
     
     aucs[outcome, model] = roc$display.ci
+    print(aucs)
   }
 }
 
+xtable::xtable(aucs)
 
 # =========================================================
 # ROC curves
-outcome = "EGJAC"
+outcome = "ANY"
 
 xgb_fit = models[[outcome]]$xgb_fit
 quantiles = models[[outcome]]$quantiles

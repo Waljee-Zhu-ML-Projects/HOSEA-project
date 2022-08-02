@@ -11,9 +11,12 @@ library(dplyr)
 library(magrittr)
 
 # import data
-complete_data = readRDS('R_data/processed_records/5-1_test_merged.rds')
+complete_data = readRDS('R_data/processed_records/5-1_merged.rds')
 master = complete_data$master
 complete_data = complete_data$df
+
+# drop columns
+complete_data %<>% select(-c(starts_with("chol"), starts_with("rbc"), starts_with("hgb")))
 
 # add in year
 master$indexdate = master$end + 365
@@ -127,7 +130,7 @@ for(case in cases){
     quantiles=quantiles,
     test_ids=test_$id
   )
-  filepath = paste0("R_data/results/models/test/XGB_n", nname, "_typeANY_year", case, ".rds")
+  filepath = paste0("R_data/results/models/year/XGB_", nname, "_ANY_year", case, ".rds")
   saveRDS(out, filepath)
   rm(xgb_fit, out, dwatchlist, train_s, test_s, valid_s)
 }

@@ -139,20 +139,19 @@ ggsave(filepath, g, width=8, height=4)
 # = Fitted models ==============================================================
 # ==============================================================================
 MODELS_PATHS = list(
-  NONE = "R_data/results/models/test/XGB_n1M_typeANY_yearNONE.rds",
-  IND = "R_data/results/models/test/XGB_n1M_typeANY_yearIND.rds",
-  NUM = "R_data/results/models/test/XGB_n1M_typeANY_yearNUM.rds",
-  DROP = "R_data/results/models/test/XGB_n1M_typeANY_yearDROP.rds"
+  NONE = "R_data/results/models/year/XGB_1M_ANY_yearNONE.rds",
+  IND = "R_data/results/models/year/XGB_1M_ANY_yearIND.rds",
+  NUM = "R_data/results/models/year/XGB_1M_ANY_yearNUM.rds",
+  DROP = "R_data/results/models/year/XGB_1M_ANY_yearDROP.rds"
 ) 
 models = lapply(names(MODELS_PATHS), function(name){
   file_path = MODELS_PATHS[[name]]
   return(readRDS(file_path))
 })
 names(models) = names(MODELS_PATHS)
-lapply(models, function(model) model$xgb_fit)
 
 # import data
-complete_data = readRDS('R_data/processed_records/5-1_test_merged.rds')
+complete_data = readRDS('R_data/processed_records/5-1_merged.rds')
 master = complete_data$master
 complete_data = complete_data$df
 
@@ -184,7 +183,7 @@ calibration_dfs = lapply(names(models), function(name){
 names(calibration_dfs) = names(models)
 cdf = bind_rows(calibration_dfs, .id="model")
 
-log = T
+log = F
 g = ggplot(cdf, aes(x=mid, y=propcase, color=model)) + 
   theme(aspect.ratio=1) + 
   geom_line() +
@@ -193,9 +192,9 @@ g = ggplot(cdf, aes(x=mid, y=propcase, color=model)) +
   ggtitle(paste0("Calibration", ifelse(log, " (log-log)", "")))
 
 if(log){
-  g = g + scale_x_log10(limits=c(1, 15000)) + scale_y_log10(limits=c(1, 15000))
+  g = g + scale_x_log10(limits=c(1, 10000)) + scale_y_log10(limits=c(1, 10000))
 }else{
-  g = g + xlim(0, 500) + ylim(0, 500)
+  g = g + xlim(0, 1000) + ylim(0, 1000)
 }
 g
 filename = paste0(dir_figures, "calibration50_birthcohort",  ifelse(log, "_log", "_zoom"), ".pdf")
@@ -203,7 +202,7 @@ ggsave(filename, g, width=5, height=5)
 
 # merge into single df
 library(HOSEA)
-pred = predict.HOSEA(complete_data, 1, models, models)
+pred = predict.HOSEA(complete_data, 1, models, models, use_json=F)
 df = complete_data %>% select(id, casecontrol, age, birthyear)
 df %<>% left_join(pred, by="id")
 

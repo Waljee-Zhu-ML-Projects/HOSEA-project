@@ -35,21 +35,29 @@ nname = "all"
 log = function(df) cat(paste("Full data set: ", nrow(df), "observations,", 
                              df$casecontrol%>%sum, "cases", 
                              (df$casecontrol==0)%>%sum, "controls"), fill=T)
-
-
-
-# prepare stuff
+# old settings
 param_xg = list(
-  max_depth = 4,
-  subsample = 0.2,
-  eta = .02,
+  max_depth = 5,
+  subsample = 0.1,
+  eta = 2,
   objective = 'binary:logistic',
   eval_metric = 'auc',
   nthread=-1
 )
 
+
+# prepare stuff
+# param_xg = list(
+#   max_depth = 4,
+#   subsample = 0.2,
+#   eta = .02,
+#   objective = 'binary:logistic',
+#   eval_metric = 'auc',
+#   nthread=-1
+# )
+
 outcome_list = c("ANY", "EAC", "EGJAC")
-# outcome_list = c("EAC", "EGJAC")
+outcome_list = c("EGJAC")
 for(outcome in outcome_list){
   # select outcome
   outcomes_ = outcomes%>%select(id, !!outcome)
