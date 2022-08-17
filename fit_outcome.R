@@ -39,7 +39,7 @@ log = function(df) cat(paste("Full data set: ", nrow(df), "observations,",
 param_xg = list(
   max_depth = 5,
   subsample = 0.1,
-  eta = 2,
+  eta = 0.2, # 0.05 for EGJAC
   objective = 'binary:logistic',
   eval_metric = 'auc',
   nthread=-1
@@ -65,6 +65,13 @@ for(outcome in outcome_list){
     left_join(outcomes_, by="id") %>%
     select(-casecontrol) %>% 
     rename(casecontrol=!!outcome)
+  # drop other
+  if(outcome %in% c("EAC", "EGJAC")){
+    other_outcome = ifelse(outcome=="EAC", "EGJAC", "EAC")
+    outcomes_ = outcomes %>% select(id, !!other_outcome)
+    to_drop = outcomes_ %>% filter((!!rlang::sym(other_outcome))==1) %>% pull(id)
+    df %<>% filter(!(id %in% to_drop))
+  }
     
   n0all = (df$casecontrol==0)%>%sum
   n1all = (df$casecontrol==1)%>%sum
@@ -134,6 +141,6 @@ for(outcome in outcome_list){
   
   filepath = paste0("R_data/results/models/xgb_", tolower(outcome), ".model")
   print(filepath)
-  xgboost::xgb.save(HOSEA::XGB_EGJAC$xgb_fit, filepath)
+  xgboost::xgb.save(xgb_fit, filepath)
 
 }

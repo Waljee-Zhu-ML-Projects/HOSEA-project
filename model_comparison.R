@@ -36,12 +36,57 @@ models = list(
   )
 )
 
+# original is flipped:
+sapply(models, function(omodels){
+  sapply(omodels, function(model) model$quantiles$wbc_max %>% mean(na.rm=T))
+})
+
 # =========================================================
 # read in data
+# dir_out = "./R_data/processed_records/by_commits/f6f1f465_" # before last update (min-max still switched)
+# dir_out = "./R_data/processed_records/by_commits/69cc9e5b_" # new gerd, add all variables back in
+# dir_out = "./R_data/processed_records/by_commits/395ef360_" # before gerd update
+# dir_out = "./R_data/processed_records/by_commits/6cd84924_" # few small fixes
+# dir_out = "./R_data/processed_records/by_commits/f44d1bff_" # first gerd update
+
+# data before the last update had min-max and mindiff-maxdiff switched in lab variables
+switch_minmax = function(df){
+  cols = df$df %>% colnames()
+  cols = sapply(cols, function(col){
+    if(grepl("h2r", col, fixed=TRUE)) return(col)
+    if(grepl("ppi", col, fixed=TRUE)) return(col)
+    if(grepl("min", col, fixed=TRUE)) return(stringr::str_replace(col, "min", "max"))
+    if(grepl("max", col, fixed=TRUE)) return(stringr::str_replace(col, "max", "min"))
+    return(col)
+  })
+  colnames(df$df) = cols
+  return(df)
+}
+
 dfs = list(
+  post_egjac=readRDS(paste0(dir_data, "5-1_merged.rds")),
   pre_egjac=readRDS(paste0(dir_data, "5-1_merged_old.rds")),
-  post_egjac=readRDS(paste0(dir_data, "5-1_merged.rds"))
+  c_f6f1f465=readRDS(paste0(dir_data, "by_commits/f6f1f465_5-1_merged.rds")) %>% switch_minmax(),
+  c_69cc9e5b=readRDS(paste0(dir_data, "by_commits/69cc9e5b_5-1_merged.rds")) %>% switch_minmax(),  
+  c_395ef360=readRDS(paste0(dir_data, "by_commits/395ef360_5-1_merged.rds")) %>% switch_minmax(),  
+  c_6cd84924=readRDS(paste0(dir_data, "by_commits/6cd84924_5-1_merged.rds")) %>% switch_minmax(),
+  shifted=readRDS(paste0(dir_data, "4-0_merged.rds"))
 )
+
+means = sapply(dfs, function(df) df$df %>% summarize_all(mean, na.rm=T))
+prop_na = lapply(dfs, function(df) df$df %>% summarize_all(function(x) mean(is.na(x))))
+prop_na_df = prop_na %>% bind_rows() %>% t()
+round(prop_na_df * 100)
+
+prop_na_models = lapply(models$ANY, function(model) model$missing_rate)
+prop_na_models %<>% bind_cols()
+prop_na_models %<>% data.frame()
+rownames(prop_na_models) = names(models$ANY$original$missing_prop)
+round(prop_na_models * 100)
+
+vars = intersect(rownames(prop_na), rownames(prop_na_models))
+
+round(100 * prop_na_models / 5134140)
 
 # =========================================================
 # function to get ROC from a df
@@ -163,6 +208,21 @@ hunt_score = function(dff){
 
 # =========================================================
 # get ROCs
+
+swap_minmax = function(df){
+  cols = df %>% colnames()
+  cols = sapply(cols, function(col){
+    if(grepl("h2r", col, fixed=TRUE)) return(col)
+    if(grepl("ppi", col, fixed=TRUE)) return(col)
+    if(grepl("min", col, fixed=TRUE)) return(stringr::str_replace(col, "min", "max"))
+    if(grepl("max", col, fixed=TRUE)) return(stringr::str_replace(col, "max", "min"))
+    return(col)
+  })
+  colnames(df) = cols
+  return(df)
+}
+
+
 cols = c("outcome", "model", "data", "auc")
 rocs = data.frame(matrix(NA, 3*0, ncol=length(cols)))
 colnames(rocs) = cols
@@ -176,8 +236,10 @@ for(model in names(omodels)){
   test_ids = omodels[[model]]$test_ids
   df = dfs[[dfname]]$df
   master = dfs[[dfname]]$master
+  df1 = df %>% filter(id %in% test_ids)
   df0 = preprocess_for_comparison(df, test_ids)
   df1 = df %>% filter(id %in% (df0 %>% pull(id)))
+  set.seed(0)
   df1 %<>% impute_srs(quantiles)
   
   outcomes = master %>% select(id, cancertype)
@@ -191,22 +253,24 @@ for(model in names(omodels)){
   df1 %<>% left_join(outcomes, by="id")
   df1 %<>% mutate(casecontrol = get(outcome))
   
+  if(model=="original") df1 %<>% swap_minmax()
+  
   roc = get_roc(df1, xgb_fit)
   row = c(outcome, model, dfname, roc$display.ci)
-  print(row)
+  cat(row, "\n")
   rocs[nrow(rocs) + 1, ] = row
 }
   # Kunzmann
   scores = kunzmann_score(df0)
   roc = get_roc(df0, xgb_fit, scores)
   row = c(outcome, "Kunzmann", dfname, roc$display.ci)
-  print(row)
+  cat(row, "\n")
   rocs[nrow(rocs) + 1, ] = row
   # HUNT
   scores = hunt_score(df0)
   roc = get_roc(df0, xgb_fit, scores)
   row = c(outcome, "HUNT", dfname, roc$display.ci)
-  print(row)
+  cat(row, "\n")
   rocs[nrow(rocs) + 1, ] = row
 }}
 
@@ -233,3 +297,97 @@ for(m0 in names(test_ids)){
 }
 
 # comparing test sets 
+
+for(dfname in names(dfs)){
+  for(outcome in names(models)){
+    omodels = models[[outcome]]
+    for(model in names(omodels)){
+      xgb_fit = omodels[[model]]$xgb_fit
+      quantiles = omodels[[model]]$quantiles
+      test_ids = omodels[[model]]$test_ids
+      df = dfs[[dfname]]$df
+      df0 = preprocess_for_comparison(df, test_ids)
+      master = dfs[[dfname]]$master
+      outcomes = master %>% select(id, cancertype)
+      outcomes %<>% mutate(
+        ANY=ifelse(cancertype=="", 0, 1),
+        EAC=ifelse(cancertype=="EAC", 1, 0),
+        EGJAC=ifelse(cancertype=="EGJAC", 1, 0)
+      )
+      df0 %<>% left_join(outcomes, by="id")
+      df0 %<>% mutate(casecontrol = get(outcome))
+      n = nrow(df0)
+      n1 = df0 %>% pull(casecontrol) %>% sum()
+      cat(dfname, model, outcome, n, n1, "\n")
+    }}}
+
+# compare missing_props
+sapply(models$ANY, function(model) model$missing_prop["gerd"])
+
+sapply(dfs, function(df) df$df$gerd %>% is.na() %>% mean)
+
+
+
+
+# =========================================================
+# EAC
+
+dfs = list(
+  post_egjac=readRDS(paste0(dir_data, "5-1_merged.rds")),
+  pre_egjac=readRDS(paste0(dir_data, "5-1_merged_old.rds")),
+  shifted=readRDS(paste0(dir_data, "4-0_merged.rds"))
+)
+
+swap_minmax = function(df){
+  cols = df %>% colnames()
+  cols = sapply(cols, function(col){
+    if(grepl("h2r", col, fixed=TRUE)) return(col)
+    if(grepl("ppi", col, fixed=TRUE)) return(col)
+    if(grepl("min", col, fixed=TRUE)) return(stringr::str_replace(col, "min", "max"))
+    if(grepl("max", col, fixed=TRUE)) return(stringr::str_replace(col, "max", "min"))
+    return(col)
+  })
+  colnames(df) = cols
+  return(df)
+}
+
+
+cols = c("seed", "model", "data", "auc")
+rocs = data.frame(matrix(NA, 3*0, ncol=length(cols)))
+colnames(rocs) = cols
+
+for(dfname in names(dfs)){
+  for(seed in seq(10)){
+    outcome = "EAC"
+    omodels = models[[outcome]]
+    for(model in names(omodels)){
+      xgb_fit = omodels[[model]]$xgb_fit
+      quantiles = omodels[[model]]$quantiles
+      test_ids = omodels[[model]]$test_ids
+      df = dfs[[dfname]]$df
+      master = dfs[[dfname]]$master
+      df1 = df %>% filter(id %in% test_ids)
+      set.seed(seed)
+      df1 %<>% impute_srs(quantiles)
+      
+      outcomes = master %>% select(id, cancertype)
+      outcomes %<>% mutate(
+        ANY=ifelse(cancertype=="", 0, 1),
+        EAC=ifelse(cancertype=="EAC", 1, 0),
+        EGJAC=ifelse(cancertype=="EGJAC", 1, 0)
+      )
+      df1 %<>% left_join(outcomes, by="id")
+      df1 %<>% mutate(casecontrol = get(outcome))
+      
+      if(model=="original") df1 %<>% swap_minmax()
+      
+      roc = get_roc(df1, xgb_fit)
+      row = c(seed, model, dfname, roc$display.ci)
+      cat(row, "\n")
+      rocs[nrow(rocs) + 1, ] = row
+    }
+}}
+
+rocs_wide = rocs %>% pivot_wider(names_from=model, values_from=auc)
+rocs_wide %<>% select(data, seed, everything())
+xtable::xtable(rocs_wide)
