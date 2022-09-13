@@ -223,9 +223,17 @@ metrics = function(proba, y, threshold=0.5){
 thresholds = seq(0, 15, 0.5)
 tr_df = metrics(risks$Kunzmann, risks$casecontrol, thresholds)
 tr_df = tr_df %>% select(one_of("tpr", "ppv", "detection_prevalance"))
-rownames(tr_df) = format(round(as.numeric(rownames(tr_df)), 5)*100000, digits=5)
+# rownames(tr_df) = format(round(as.numeric(rownames(tr_df)), 5)*100000, digits=5)
 tr_df = tr_df*100
 cat(print(xtable::xtable(tr_df)), 
-    file=paste0(dir_figures, "all_calibration.tex"))
+    file=paste0(dir_figures, "Kunzmann_threshold.tex"))
 
-write.csv(tr_df, paste0(dir_figures, "classification_metrics.csv"))
+# HUNT
+thresholds = seq(0, 320, 10)
+tr_df = metrics(risks$HUNT, risks$casecontrol, thresholds)
+tr_df = tr_df %>% select(one_of("tpr", "ppv", "detection_prevalance"))
+# rownames(tr_df) = format(round(as.numeric(rownames(tr_df)), 5)*100000, digits=5)
+tr_df = tr_df*100
+cat(print(xtable::xtable(tr_df)), 
+    file=paste0(dir_figures, "HUNT_threshold.tex"))
+
