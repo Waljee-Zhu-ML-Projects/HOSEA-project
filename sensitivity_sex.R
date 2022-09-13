@@ -14,7 +14,6 @@ dir_path = "R_data/processed_records/"
 dir_figures = "R_code/hosea-project/figures/"
 dir_results = "R_data/results/analyses/"
 model_path = "R_data/results/models/XGB_all_ANY.rds"
-complete = T
 
 # =========================================================
 # read in model
@@ -39,6 +38,8 @@ master %<>% filter(id %in% test_ids)
 
 egjac = master$cancertype == "EGJAC"
 df %<>% filter(!egjac)
+
+complete = T
 
 # =========================================================
 # find complete cases for other methods
@@ -233,7 +234,7 @@ guide_roc$ylab = c(.15, .2, .25, .3, .35, .4, .6, .8)
 # guide_roc$xlab = c(.3, .37, .44, .51, .58, .65, .8, .9)
 # guide_roc$ylab = c(.15, .2, .25, .3, .35, .4, .85, .9)
 
-filepath = paste0("R_code/hosea-project/figures/comparison_sex_", 
+filepath = paste0("R_code/hosea-project/figures/comparison_EAC_sex_", 
                   ifelse(complete, "complete", "imputed"), ".pdf")
 g = ggplot(data=cdf, aes(x=fpr, y=recall, color=Method)) + geom_line() +
   theme(aspect.ratio=1) +
@@ -244,4 +245,5 @@ g = ggplot(data=cdf, aes(x=fpr, y=recall, color=Method)) + geom_line() +
 g = g +
   geom_segment(data=guide_roc, aes(x=fpr, xend=xlab, y=recall, yend=ylab)) +
   geom_label(data=guide_roc, aes(label=label, x=xlab, y=ylab), size=3)
+g
 ggsave(filepath, g, width=8, height=4)
