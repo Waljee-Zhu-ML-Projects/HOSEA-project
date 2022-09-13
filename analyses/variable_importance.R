@@ -272,23 +272,26 @@ for(var in variables){
   wdf %<>% left_join(df %>% select(id, !!var), by="id")
   wdf %<>% left_join(raw_df$master %>% select(id, cancertype), by="id")
   colnames(wdf) = c("id", "Model", "SHAP", "Var", "CancerType")
+  bin = (wdf %>% pull(Var)%>% unique() %>% length()) <3
+  xrange = quantile(wdf %>% pull(Var), c(0.001, 0.999))
   g_shap = ggplot() + 
     geom_smooth(
       data=wdf,
-      mapping=aes(x=Var, y=exp(SHAP), color=Model)
+      mapping=aes(x=Var, y=exp(SHAP), color=Model),
+      method=ifelse(bin, "lm", "gam")
     ) + 
-    geom_hline(yintercept=1) + xlab("")
-    theme(axis.text.x = element_blank())
+    geom_hline(yintercept=1) + xlab("") +
+    theme(axis.text.x = element_blank()) + xlim(xrange)
   g_density = ggplot() + 
     geom_density(
       data=wdf,
       mapping=aes(Var, fill=CancerType, color=CancerType),
       alpha=0.2
-    )+
-    xlab(var)
+    ) +
+    xlab(var) + xlim(xrange)
   g = cowplot::plot_grid(g_shap, g_density, nrow=2, rel_heights=c(2, 1), align="v")
   filename = paste0(dir_shap, var, ".pdf")
-  ggsave(filename, g, width=5, height=6)
+  ggsave(filename, g, width=6, height=6)
 }
 
 # ------------------------------------------------------------------------------
