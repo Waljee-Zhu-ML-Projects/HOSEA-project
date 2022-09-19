@@ -26,7 +26,9 @@ dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
 dir_figures = "./R_code/hosea-project/figures/variable_importance/"
 dir_shap = "./R_code/hosea-project/figures/shap/"
+dir_pdp = "./R_code/hosea-project/figures/pdp/"
 dir_tables = "./R_code/hosea-project/tables/variable_importance/"
+dir_models = "./R_data/results/models/"
 imputed_data = "test_mice_any.rds"
 raw_data = "5-1_merged.rds"
 # ------------------------------------------------------------------------------
@@ -56,7 +58,7 @@ features = feature_groups()
 # ==============================================================================
 # PREPARE DATA
 set.seed(seed)
-# subsample for SHAP
+# subsample for SHAP/PDPs
 df = imputed_df %>% sample_n(1000000)
 # ------------------------------------------------------------------------------
 
@@ -293,6 +295,70 @@ for(var in variables){
   filename = paste0(dir_shap, var, ".pdf")
   ggsave(filename, g, width=6, height=6)
 }
+
+# ------------------------------------------------------------------------------
+
+
+
+
+
+
+
+# ==============================================================================
+# PDPs
+
+models_rds = lapply(names(models), function(mname) readRDS(paste0(dir_models, "XGB_all_", mname, ".rds")))
+names(models_rds) = names(models)
+
+set.seed(seed)
+df_ = df %>% sample_n(100000)
+
+
+for(var in models_rds[["ANY"]]$xgb_fit$feature_names){
+  cat(paste0(var, "\n"))
+  wdf = df %>% select(id, !!var) %>% left_join(raw_df$master %>% select(id, cancertype), by="id")
+  bin = (wdf %>% pull(var)%>% unique() %>% length()) < 3
+  xrange = quantile(wdf %>% pull(var), c(0.001, 0.999), na.rm=T)
+  colnames(wdf) = c("id", var, "CancerType")
+  
+  g_density = ggplot() + 
+    geom_density(
+      data=wdf,
+      mapping=aes(get(var), fill=CancerType, color=CancerType),
+      alpha=0.2
+    ) +
+    xlab(var) + xlim(xrange)
+  
+  
+  pdps = list()
+  
+  for(mname in names(models)){
+    model = models_rds[[mname]]
+    out = pdp::partial(model$xgb_fit, pred.var=var, 
+                       train=df_ %>% select(model$xgb_fit$feature_names), 
+                       type="classification", prob=T, which.class=1,
+                       plot=F, progress="text")
+    out$yhat = out$yhat * 100000
+    out$odds = out$yhat / mean(out$yhat)
+    
+    pdps[[mname]] = out
+  }
+  
+  pdps %<>% bind_rows(.id="Model")
+  
+  g_pdp = ggplot(
+    data=pdps,
+    mapping=aes(x=get(var), y=odds, color=Model)
+  ) + geom_line() + 
+    ylab("Odds") + xlab("") +
+    theme(axis.text.x = element_blank()) + xlim(xrange)
+  
+  g = cowplot::plot_grid(g_pdp, g_density, nrow=2, rel_heights=c(2, 1), align="v")
+  filename = paste0(dir_pdp, var, ".pdf")
+  ggsave(filename, g, width=6, height=6)
+  
+}
+
 
 # ------------------------------------------------------------------------------
       

@@ -25,6 +25,7 @@ setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
 dir_figures = "./R_code/hosea-project/figures/comparison/"
+dir_rocs = "./R_code/hosea-project/figures/roc/"
 imputed_data = "test_mice_any.rds"
 raw_data = "5-1_merged.rds"
 # ------------------------------------------------------------------------------
@@ -73,7 +74,7 @@ if(missing_which == "incomplete"){
 # compute new columns
 comparison_df = imputed_df %>% compute_columns_for_comparison()
 # change outcome
-comparison_df %<>% patch_outcome(raw_df$master, outcome=outcome)
+comparison_df %<>% patch_outcome(master=raw_df$master, outcome=outcome)
 # working df
 imputed_wdf = imputed_df %>% filter(id %in% ids)
 imputed_wdf %<>% patch_outcome(raw_df$master, outcome=outcome)
@@ -116,6 +117,38 @@ rocs = roc(score_df)
 
 
 # ==============================================================================
+# ROC CURVE
+
+roc_ = rocs[["HOSEA"]]
+
+roc_$curve$tr = roc_$curve$tr*100000
+title = paste0("Cancer type: ", outcome, "\n",
+               "Dataset: test, ", missing_which, 
+               ifelse(representative, ", representative", ""), "\n",
+               "Cases: ", n_cases, "/", n_patients, "\n",
+               "AUC: ", roc_$display.ci)
+filepath = paste0(dir_rocs, outcome, "_", 
+                  missing_which, 
+                  ifelse(representative, "_representative", ""),
+                  ".pdf")
+
+g = ggplot(data=roc_$curve, 
+           aes(x=fpr, y=recall, color=tr)) + 
+  geom_line() +
+  theme(aspect.ratio=1) +
+  xlab("1 - Specificity") + ylab("Sensitivity") + 
+  geom_abline(intercept=0, slope=1, linetype="dotted") +
+  labs(color="Threshold\n(/100,000)") + 
+  scale_color_gradientn(trans="log", colors=rainbow(10), breaks=c(1, 10, 100, 1000, 10000)) + 
+  ggtitle(title)
+ggsave(filepath, g, width=6, height=6)
+
+# ------------------------------------------------------------------------------
+
+
+
+
+# ==============================================================================
 # PLOT
 which_point = scores[["Guidelines"]] %>% select(-id) %>% colnames()
 which_curve = c("HOSEA", "Kunzmann", "HUNT")
@@ -129,6 +162,12 @@ df_curves = sapply(which_curve, function(name){
 
 df_points = sapply(which_point, function(name) rocs[[name]]$curve[2, 1:2], simplify=F) %>% bind_rows(.id="label")
 df_points$Method = "Guideline"
+df_points %<>% arrange(fpr)
+
+df_points$xlab = df_points$fpr
+df_points$ylab = df_points$recall + 0.1*(-1)^(seq_along(which_point)) +
+  0.05 * (-1)^ceiling(seq_along(which_point)/2)
+df_points$ylab = ifelse(df_points$ylab > 1, 1-(df_points$ylab-1), df_points$ylab)
 
 
 filepath = paste0(dir_figures, outcome, "_", 
@@ -141,11 +180,18 @@ g = ggplot(data=df_curves, aes(x=fpr, y=recall, color=Method)) + geom_line() +
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   geom_point(data=df_points) + 
   ggtitle(paste0("Cancer type: ", outcome, "\n",
-                 "Dataset: test, ", ifelse(complete, "complete", "imputed"), 
+                 "Dataset: test, ", missing_which, 
                               ifelse(representative, ", representative", ""), "\n",
                  "Cases: ", n_cases, "/", n_patients))
+g = g +
+  geom_segment(data=df_points, aes(x=fpr, xend=xlab, y=recall, yend=ylab)) + 
+  geom_label(data=df_points, aes(label=label, x=xlab, y=ylab), size=3, show.legend=FALSE)
 g
 ggsave(filepath, g, width=8, height=6)
 # ------------------------------------------------------------------------------
 
 }}}
+
+
+
+
