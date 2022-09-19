@@ -14,12 +14,13 @@
 \usepackage{lscape}
 \usepackage[round]{natbib}
 \usepackage{graphicx}
-\graphicspath{{figures_old/}{figures/}{figures_old/roc}{figures_old/calibration_curves}}
+\graphicspath{{figures/}}
 \usepackage{amssymb}
 \usepackage{color}
 \usepackage{hyperref}
 \usepackage{booktabs}
 \usepackage{verbatim}
+\usepackage{longtable}
 
 % style setup
 \bibliographystyle{plainnat}
@@ -49,7 +50,150 @@
 
 
 
-\section*{Current status}
+\section{Current status}
+
+\subsection{Comparison}
+
+\subsubsection{ANY}
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{comparison/ANY_imputed.pdf}
+\end{figure}
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{comparison/ANY_complete.pdf}
+\end{figure}
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{comparison/ANY_incomplete.pdf}
+\caption{This should read ``incomplete''...}
+\end{figure}
+
+\clearpage
+\newpage
+\subsubsection{EAC}
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{comparison/EAC_imputed.pdf}
+\end{figure}
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{comparison/EAC_complete.pdf}
+\end{figure}
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{comparison/EAC_incomplete.pdf}
+\caption{This should read ``incomplete''...}
+\end{figure}
+
+\clearpage
+\newpage
+\subsubsection{EGJAC}
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{comparison/EGJAC_imputed.pdf}
+\end{figure}
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{comparison/EGJAC_complete.pdf}
+\end{figure}
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{comparison/EGJAC_incomplete.pdf}
+\caption{This should read ``incomplete''...}
+\end{figure}
+
+
+\newpage
+\clearpage
+\subsection{Calibration}
+
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{calibration/ANY_imputed.pdf}
+\end{figure}
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{calibration/EAC_imputed.pdf}
+\end{figure}
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{calibration/EGJAC_imputed.pdf}
+\end{figure}
+
+
+
+\newpage
+\clearpage
+\subsection{Threshold}
+
+\input{tables/calibration/thresholds_ANY_imputed.tex}
+
+\input{tables/calibration/thresholds_EAC_imputed.tex}
+
+\input{tables/calibration/thresholds_EGJAC_imputed.tex}
+
+
+
+\newpage
+\clearpage
+\subsection{Identity}
+
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{identity/ANY_age.pdf}
+\end{figure}
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{identity/ANY_sex.pdf}
+\end{figure}
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{identity/ANY_race.pdf}
+\end{figure}
+
+
+
+\newpage
+\clearpage
+\subsection{Representative samples}
+
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{comparison/ANY_imputed_representative.pdf}
+\end{figure}
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{comparison/ANY_complete_representative.pdf}
+\end{figure}
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{comparison/ANY_incomplete_representative.pdf}
+\caption{This should read ``incomplete''...}
+\end{figure}
+
+\newpage
+\clearpage
+\subsection{Variable importance}
+
+A few observations:
+\begin{itemize}
+\item Age, gender, race, smoking, GERD all among the top 8 most important in terms of SHAP
+\item BMI/weight much farther
+\item HIV is now one of the most important
+\item Important labs: WBC, NA
+\item EAC: mostly similar to ANY (not surprising because of large prevalance)
+\item EGJAC: Age, race, smoking, gender, GERD are all less important
+\end{itemize}
+
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{variable_importance/shap_cat.pdf}
+\end{figure}
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{variable_importance/shap_group.pdf}
+\end{figure}
+
+
+\newpage
+\clearpage
+
+\section*{Previous update}
 
 
 \begin{itemize}
