@@ -44,29 +44,31 @@ raw_df = readRDS(paste0(dir_raw_data, raw_data))
 
 # ==============================================================================
 # PARAMETERS
-outcome = "EAC"
-complete = F # F: uses imputed data, T: only use complete records wrt other methods
-representative = F # F: uses everything, T: downsamples males so get a more representative sample 
 seed = 0
 # ------------------------------------------------------------------------------
 
 # to get everything
 for(outcome in c("ANY", "EAC", "EGJAC")){
-for(complete in c(T, F)){
+for(missing_which in c("all", "complete", "incomplete")){
 for(representative in c(T, F)){
 
       
 # ==============================================================================
 # PREPARE DATA
 # get complete cases for Kunzmann, HUNT and guidelines
-if(complete){
+if(missing_which == "complete"){
   ids = complete_for_comparison(raw_df$df)
-}else{
+}
+if(missing_which == "all"){
   ids = imputed_df %>% pull(id)
+}
+if(missing_which == "incomplete"){
+  complete_ids = complete_for_comparison(raw_df$df)
+  ids = imputed_df %>% filter(!(id %in% complete_ids)) %>% pull(id)
 }
 # working df
 imputed_wdf = imputed_df %>% filter(id %in% ids)
-imputed_wdf %<>% patch_outcome(raw_df$master, outcome=outcome)
+imputed_wdf %<>% patch_outcome(master=raw_df$master, outcome=outcome)
 # representative sample
 if(representative){
   set.seed(seed)
@@ -103,12 +105,12 @@ hl = hosmer_lemeshow(
 for(log in c(T, F)){
   
 filepath = paste0(dir_figures, outcome, "_", 
-                  ifelse(complete, "complete", "imputed"), 
+                  missing_which, 
                   ifelse(representative, "_representative", ""),
                   ifelse(log, "_log", ""),
                   ".pdf")
 main = paste0("Cancer type: ", outcome, "\n",
-               "Dataset: test, ", ifelse(complete, "complete", "imputed"), 
+               "Dataset: test, ", missing_which, 
                ifelse(representative, ", representative", ""), "\n",
                "Cases: ", n_cases, "/", n_patients, "\n",
                "HL: ", hl)
@@ -137,7 +139,7 @@ ggsave(filepath, g, width=5, height=6)
 ttable = classification_metrics(proba$HOSEA, y)
 
 filepath = paste0(dir_tables, "thresholds_", outcome, "_", 
-                  ifelse(complete, "complete", "imputed"), 
+                  missing_which, 
                   ifelse(representative, "_representative", ""),
                   ".tex")
 
