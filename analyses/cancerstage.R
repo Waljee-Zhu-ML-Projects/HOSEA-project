@@ -115,7 +115,7 @@ master %<>% patch_staging(path_staging)
 scores = predict.HOSEA(imputed_wdf, imputer=NULL) %>% 
                       select(id, !!outcome) %>% rename(HOSEA=!!outcome)
 scores %<>% 
-  left_join(imputed_df %>% select(id, casecontrol), by="id") %>%
+  left_join(imputed_wdf %>% select(id, casecontrol), by="id") %>%
   left_join(master %>% select(id, nccn_stage_2017), by="id")
 # ------------------------------------------------------------------------------
 
