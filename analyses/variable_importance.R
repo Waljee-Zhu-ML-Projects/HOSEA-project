@@ -120,7 +120,7 @@ vi_cat_long$category %<>% factor(levels=category_order, ordered=T)
 g = ggplot(data=vi_cat_long, aes(y=reorder(category, Gain), x=Gain*100, fill=Model)) +
   geom_bar(stat="identity", position="dodge") +
   ggtitle("Variable importance by category") +
-  xlim(0, 1) + ylab("Category") + xlab("Gain (%)")
+  xlim(0, 100) + ylab("Category") + xlab("Gain (%)")
 filename = paste0(dir_figures, "vi_cat.pdf")
 ggsave(filename, g, width=6, height=4)
 
