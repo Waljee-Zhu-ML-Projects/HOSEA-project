@@ -45,6 +45,9 @@ raw_df = readRDS(paste0(dir_raw_data, raw_data))
 # ==============================================================================
 # PARAMETERS
 seed = 0
+outcome = "ANY"
+missing_which = "all"
+representative = F
 # ------------------------------------------------------------------------------
 
 # to get everything
