@@ -20,3 +20,18 @@ Third, upon studying the effect of GERD on the predicted risk, we noticed that o
 We implemented our prediction tool in a private R package to be used in the pilot study. The package contains a few functions performing data processing, data validation and risk prediction. 
 
 Among the tasks currently under progress, we note: studying the difference between EAC and EGJAC predicted risk in the separate models, preparing the ICD9/10 comparison when new data will be available, discussing threshold selection and risk reporting, interpreting variables better, especially lab results and medication. 
+
+
+
+2022/07/01 - 2022/09/30
+-----------------------
+
+While inspecting the difference in performance between our EAC and EGJAC models, we uncovered issues with our data. Somehow, lab results for EGJAC patients were incomplete which induced a much higher proportion of missing values, especially for CBC results. Then, it appears our fitted EGJAC model was able to reverse engineer the imputation: indeed, performance was inflated and the importance of these lab results was also over-emphasized. After reprocessing the cases and refitting the model, we now have three models of similar performances. 
+
+This investigative process also uncovered an important bug that inadvertantly crept in the code. In particular, when preparing the R package for eventual use, the default window for processing data was set to 4 years before index time to index time, as would be required for practical use. However, for building the model and futher analyses we needed to set it to 5 years prior to 1 year prior: that change was not made for fitting. That mistake yielded inflated performance as it is harder to predict case/control status a year prior to diagnosis that at the diagnosis it self. In terms of AUC, we originally had ANY 0.90, EAC 0.86 and EGJAC 0.95 which reduced to ANY 0.82, EAC 0.80 and EGJAC 0.94 after rolling back to 5 years to 1 year. Then, after the EGJAC lab results update, we obtained AUCs of ANY 0.77, EAC 0.77 and EGJAC 0.74. In comparison, the Kunzmann method applied to our dataset has an AUC of around 0.65 and the HUNT study method has an AUC of around 0.60. 
+
+We repeated all the previous sensitivity analyses and found similar conclusions as before. We find that the all predictors known to be risk factors, i.e., age, sex, race, GERD, bmi/weight and smoking status, all are amoung the top 10 most important features of the models. Visual inspection of partial dependence agrees with the known associations.
+
+Early on, we discarded the use of regression imputation as it produced inflated preformance on patiets with missing values, suggesting that the model is learning the imputation. We found that simple random sampling from the training set protects best against that phenomenon. The issue with EGJAC discussed above led us to reconsider these conclusions. We are currently working on using MICE imputation instead: early results seem to indicate that it can improve the performance of our models while guarding against over-fitting to missing values.
+
+
