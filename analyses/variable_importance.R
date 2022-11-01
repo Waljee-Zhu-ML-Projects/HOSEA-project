@@ -21,15 +21,15 @@ theme_set(theme_minimal())
 
 # ==============================================================================
 # PATHS
+imputation = "mice"
 setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
-dir_figures = "./R_code/hosea-project/figures/variable_importance/"
-dir_shap = "./R_code/hosea-project/figures/shap/"
-dir_pdp = "./R_code/hosea-project/figures/pdp/"
-dir_tables = "./R_code/hosea-project/tables/variable_importance/"
-dir_models = "./R_data/results/models/"
-imputed_data = "test_mice_any.rds"
+dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/variable_importance/")
+dir_tables = paste0("./R_code/hosea-project/tables/", imputation, "/variable_importance/")
+dir_shap = paste0("./R_code/hosea-project/figures/", imputation, "/shap/")
+dir_pdp = paste0("./R_code/hosea-project/figures/", imputation, "/pdp/")
+imputed_data = paste0("test_", imputation, "_any.rds")
 raw_data = "5-1_merged.rds"
 # ------------------------------------------------------------------------------
 
@@ -48,7 +48,18 @@ raw_df = readRDS(paste0(dir_raw_data, raw_data))
 # ==============================================================================
 # PARAMETERS
 seed = 0
-models = load_models()
+models = load_models(
+  files_meta=list(
+    ANY=paste0("xgb_", imputation, "_any.meta"), 
+    EAC=paste0("xgb_", imputation, "_eac.meta"), 
+    EGJAC=paste0("xgb_", imputation, "_egjac.meta")
+  ),
+  files_models=list(
+    ANY=paste0("xgb_", imputation, "_any.model"), 
+    EAC=paste0("xgb_", imputation, "_eac.model"), 
+    EGJAC=paste0("xgb_", imputation, "_egjac.model")
+  )
+)
 features = feature_groups()
 # ------------------------------------------------------------------------------
 
@@ -157,7 +168,7 @@ for(mname in names(models)){
   model = models[[mname]]
   
   xgb_df = xgb.DMatrix(as.matrix(df %>% select(model$feature_names)),
-                        label=df$casecontrol)
+                       label=df$casecontrol)
   proba = predict(model, newdata=xgb_df, predcontrib=TRUE, approxcontrib=F)
   
   vi = colSums(abs(proba))
@@ -273,9 +284,30 @@ for(var in variables){
   wdf = shap %>% select(id, Model, !!var)
   wdf %<>% left_join(df %>% select(id, !!var), by="id")
   wdf %<>% left_join(raw_df$master %>% select(id, cancertype), by="id")
+  wdf %<>% mutate(cancertype=ifelse(cancertype=="", "Control", cancertype))
   colnames(wdf) = c("id", "Model", "SHAP", "Var", "CancerType")
   bin = (wdf %>% pull(Var)%>% unique() %>% length()) <3
   xrange = quantile(wdf %>% pull(Var), c(0.001, 0.999))
+  if(bin){
+    g_density = ggplot() + 
+      geom_histogram(
+        data=wdf %>% group_by(CancerType) %>% mutate(weight=1/n()),
+        mapping=aes(Var, fill=CancerType, weight=weight),
+        position="dodge",
+        stat="count",
+        width=0.1
+      ) +
+      xlab(var) + ylab("Frequency") + scale_x_continuous(breaks=0:1)
+    xrange=c(-0.05, 1.05)
+  }else{ 
+    g_density = ggplot() + 
+      geom_density(
+        data=wdf,
+        mapping=aes(Var, fill=CancerType, color=CancerType),
+        alpha=0.2
+      ) +
+      xlab(var) + xlim(xrange) + ylab("Density")
+  }
   g_shap = ggplot() + 
     geom_smooth(
       data=wdf,
@@ -284,13 +316,6 @@ for(var in variables){
     ) + 
     geom_hline(yintercept=1) + xlab("") +
     theme(axis.text.x = element_blank()) + xlim(xrange)
-  g_density = ggplot() + 
-    geom_density(
-      data=wdf,
-      mapping=aes(Var, fill=CancerType, color=CancerType),
-      alpha=0.2
-    ) +
-    xlab(var) + xlim(xrange)
   g = cowplot::plot_grid(g_shap, g_density, nrow=2, rel_heights=c(2, 1), align="v")
   filename = paste0(dir_shap, var, ".pdf")
   ggsave(filename, g, width=6, height=6)
@@ -306,38 +331,56 @@ for(var in variables){
 
 # ==============================================================================
 # PDPs
+df = imputed_df
 
-models_rds = lapply(names(models), function(mname) readRDS(paste0(dir_models, "XGB_all_", mname, ".rds")))
+models_rds = lapply(
+  names(models),
+  function(mname) readRDS(paste0(system.file('extdata', package = 'HOSEA'), "/xgb_", 
+                                 imputation, "_", tolower(mname), ".meta"))
+)
 names(models_rds) = names(models)
 
-set.seed(seed)
-df_ = df %>% sample_n(100000)
 
-
-for(var in models_rds[["ANY"]]$xgb_fit$feature_names){
+for(var in features$name){
   cat(paste0(var, "\n"))
   wdf = df %>% select(id, !!var) %>% left_join(raw_df$master %>% select(id, cancertype), by="id")
   bin = (wdf %>% pull(var)%>% unique() %>% length()) < 3
+  wdf %<>% mutate(cancertype=ifelse(cancertype=="", "Control", cancertype))
   xrange = quantile(wdf %>% pull(var), c(0.001, 0.999), na.rm=T)
   colnames(wdf) = c("id", var, "CancerType")
   
-  g_density = ggplot() + 
-    geom_density(
-      data=wdf,
-      mapping=aes(get(var), fill=CancerType, color=CancerType),
-      alpha=0.2
-    ) +
-    xlab(var) + xlim(xrange)
+  if(bin){
+    g_density = ggplot() + 
+      geom_histogram(
+        data=wdf %>% group_by(CancerType) %>% mutate(weight=1/n()),
+        mapping=aes(get(var), fill=CancerType, weight=weight),
+        position="dodge",
+        stat="count",
+        width=0.1
+      ) +
+      xlab(var) + ylab("Frequency") + scale_x_continuous(breaks=0:1)
+    xrange=c(-0.05, 1.05)
+  }else{
+    g_density = ggplot() + 
+      geom_density(
+        data=wdf,
+        mapping=aes(get(var), fill=CancerType, color=CancerType),
+        alpha=0.2
+      ) +
+      xlab(var) + xlim(xrange) + ylab("Density")
+  }
   
-  
+  set.seed(seed)
+  wdf %<>% sample_n(100000)
   pdps = list()
   
   for(mname in names(models)){
-    model = models_rds[[mname]]
-    out = pdp::partial(model$xgb_fit, pred.var=var, 
-                       train=df_ %>% select(model$xgb_fit$feature_names), 
+    model = models_rds[[mname]]$xgb_fit
+    out = pdp::partial(model, pred.var=var, 
+                       train=df %>% select(model$feature_names), 
                        type="classification", prob=T, which.class=1,
-                       plot=F, progress="text")
+                       plot=F, progress=T, approx=F, 
+                       quantiles=!bin)
     out$yhat = out$yhat * 100000
     out$odds = out$yhat / mean(out$yhat)
     
@@ -351,7 +394,9 @@ for(var in models_rds[["ANY"]]$xgb_fit$feature_names){
     mapping=aes(x=get(var), y=odds, color=Model)
   ) + geom_line() + 
     ylab("Odds") + xlab("") +
-    theme(axis.text.x = element_blank()) + xlim(xrange)
+    theme(axis.text.x = element_blank()) + xlim(xrange) + 
+    geom_hline(yintercept=1)
+  if(bin) g_pdp = g_pdp + scale_x_continuous(breaks=0:1)
   
   g = cowplot::plot_grid(g_pdp, g_density, nrow=2, rel_heights=c(2, 1), align="v")
   filename = paste0(dir_pdp, var, ".pdf")
@@ -361,4 +406,3 @@ for(var in models_rds[["ANY"]]$xgb_fit$feature_names){
 
 
 # ------------------------------------------------------------------------------
-      
