@@ -21,12 +21,13 @@ theme_set(theme_minimal())
 
 # ==============================================================================
 # PATHS
+imputation = "srs"
 setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
-dir_figures = "./R_code/hosea-project/figures/calibration/"
-dir_tables = "./R_code/hosea-project/tables/calibration/"
-imputed_data = "test_mice_any.rds"
+dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/calibration/")
+dir_tables = paste0("./R_code/hosea-project/tables/", imputation, "/calibration/")
+imputed_data = paste0("test_", imputation, "_any.rds")
 raw_data = "5-1_merged.rds"
 # ------------------------------------------------------------------------------
 
@@ -87,7 +88,19 @@ n_patients = imputed_wdf %>% nrow()
 
 # ==============================================================================
 # GET SCORES
-proba = predict.HOSEA(imputed_wdf, imputer=NULL) %>% 
+models = load_models(
+    files_meta=list(
+      ANY=paste0("xgb_", imputation, "_any.meta"), 
+      EAC=paste0("xgb_", imputation, "_eac.meta"), 
+      EGJAC=paste0("xgb_", imputation, "_egjac.meta")
+      ),
+    files_models=list(
+      ANY=paste0("xgb_", imputation, "_any.model"), 
+      EAC=paste0("xgb_", imputation, "_eac.model"), 
+      EGJAC=paste0("xgb_", imputation, "_egjac.model")
+      )
+)
+proba = predict.HOSEA(imputed_wdf, imputer=NULL, models=models) %>% 
   select(id, !!outcome) %>% rename(HOSEA=!!outcome)
 y = imputed_wdf %>% pull(casecontrol)
 # ------------------------------------------------------------------------------

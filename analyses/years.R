@@ -24,7 +24,7 @@ theme_set(theme_minimal())
 setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
-dir_figures = "./R_code/hosea-project/figures/years/"
+dir_figures = "./R_code/hosea-project/figures/srs/years/"
 # ------------------------------------------------------------------------------
 
 
@@ -42,10 +42,10 @@ representative = F # F: uses everything, T: downsamples males so get a more repr
 seed = 0
 
 imputed_data = list(
-  "[5-1]"="test_mice_any.rds",
-  "[5-3]"="5-3test_mice_any.rds",
-  "[4-2]"="4-2test_mice_any.rds",
-  "[3-1]"="3-1test_mice_any.rds"
+  "[5-1]"="5-1test_srs_any.rds",
+  "[5-3]"="5-3test_srs_any.rds",
+  "[4-2]"="4-2test_srs_any.rds",
+  "[3-1]"="3-1test_srs_any.rds"
 )
 
 raw_data = list(

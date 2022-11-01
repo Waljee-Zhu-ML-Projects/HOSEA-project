@@ -24,10 +24,10 @@ theme_set(theme_minimal())
 setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
-dir_figures = "./R_code/hosea-project/figures/cancerstage/"
-dir_tables = "./R_code/hosea-project/tables/cancerstage/"
+dir_figures = "./R_code/hosea-project/figures/srs/cancerstage/"
+dir_tables = "./R_code/hosea-project/tables/srs/cancerstage/"
 path_staging = "./R_data/staging.csv"
-imputed_data = "test_mice_any.rds"
+imputed_data = "5-1test_srs_any.rds"
 raw_data = "5-1_merged.rds"
 # ------------------------------------------------------------------------------
 

@@ -24,9 +24,9 @@ theme_set(theme_minimal())
 setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
-dir_figures = "./R_code/hosea-project/figures/comparison/"
-dir_rocs = "./R_code/hosea-project/figures/roc/"
-imputed_data = "test_mice_any.rds"
+dir_figures = "./R_code/hosea-project/figures/srs/comparison/"
+dir_rocs = "./R_code/hosea-project/figures/srs/roc/"
+imputed_data = "5-1test_srs_any.rds"
 raw_data = "5-1_merged.rds"
 # ------------------------------------------------------------------------------
 

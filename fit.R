@@ -3,8 +3,6 @@ library(magrittr)
 library(dplyr)
 library(HOSEA) # requires v >=0.0.0.9008
 
-imputer_path = "./R_data/results/imputers/mice20K.rds"
-imputer = readRDS(imputer_path)
 dir_models = "./R_data/results/models/imputation2/"
 imputation = "srs"
 to_drop = c("chol", "rbc", "hgb")
@@ -32,19 +30,19 @@ cat("[HOSEA]", timestamp(prefix="", suffix="", quiet=T), "\n")
 cat("[HOSEA] Loading data\n")
 df_list = list()
 
-filepath = paste0("./R_data/imputed_records/valid_", imputation, "_", tolower(outcome), ".rds")
+filepath = paste0("./R_data/imputed_records/5-1valid_", imputation, "_", tolower(outcome), ".rds")
 print(filepath)
 df_list$valid = readRDS(filepath)
 
 cat("[HOSEA]", timestamp(prefix="", suffix="", quiet=T), "\n")
 
-filepath = paste0("./R_data/imputed_records/test_", imputation, "_", tolower(outcome), ".rds")
+filepath = paste0("./R_data/imputed_records/5-1test_", imputation, "_", tolower(outcome), ".rds")
 print(filepath)
 df_list$test = readRDS(filepath)
 
 cat("[HOSEA]", timestamp(prefix="", suffix="", quiet=T), "\n")
 
-filepath = paste0("./R_data/imputed_records/train_", imputation, "_", tolower(outcome), ".rds")
+filepath = paste0("./R_data/imputed_records/5-1train_", imputation, "_", tolower(outcome), ".rds")
 print(filepath)
 df_list$train = readRDS(filepath)
 
