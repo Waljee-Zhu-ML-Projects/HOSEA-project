@@ -21,10 +21,30 @@ theme_set(theme_minimal())
 
 # ==============================================================================
 # PATHS
+imputation = "srs"
 setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
-dir_figures = "./R_code/hosea-project/figures/srs/years/"
+dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/years/")
+# ------------------------------------------------------------------------------
+
+
+
+
+# ==============================================================================
+# MODELS
+models = load_models(
+  files_meta=list(
+    ANY=paste0("xgb_", imputation, "_any.meta"), 
+    EAC=paste0("xgb_", imputation, "_eac.meta"), 
+    EGJAC=paste0("xgb_", imputation, "_egjac.meta")
+  ),
+  files_models=list(
+    ANY=paste0("xgb_", imputation, "_any.model"), 
+    EAC=paste0("xgb_", imputation, "_eac.model"), 
+    EGJAC=paste0("xgb_", imputation, "_egjac.model")
+  )
+)
 # ------------------------------------------------------------------------------
 
 
@@ -42,10 +62,10 @@ representative = F # F: uses everything, T: downsamples males so get a more repr
 seed = 0
 
 imputed_data = list(
-  "[5-1]"="5-1test_srs_any.rds",
-  "[5-3]"="5-3test_srs_any.rds",
-  "[4-2]"="4-2test_srs_any.rds",
-  "[3-1]"="3-1test_srs_any.rds"
+  "[5-1]"=paste0("5-1test_", imputation, "_any.rds"),
+  "[5-3]"=paste0("5-3test_", imputation, "_any.rds"),
+  "[4-2]"=paste0("4-2test_", imputation, "_any.rds"),
+  "[3-1]"=paste0("3-1test_", imputation, "_any.rds")
 )
 
 raw_data = list(
@@ -61,7 +81,7 @@ subsets = list(
 # ------------------------------------------------------------------------------
 
 for(outcome in c("ANY", "EAC", "EGJAC")){
-model = load_models()[[outcome]]
+model = models[[outcome]]
 
 for(nsubset in names(subsets)){
 dfs = subsets[[nsubset]]

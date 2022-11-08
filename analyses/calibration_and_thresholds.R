@@ -21,16 +21,32 @@ theme_set(theme_minimal())
 
 # ==============================================================================
 # PATHS
-imputation = "srs"
+imputation = "mice"
 setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
 dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/calibration/")
 dir_tables = paste0("./R_code/hosea-project/tables/", imputation, "/calibration/")
-imputed_data = paste0("test_", imputation, "_any.rds")
+imputed_data = paste0("5-1test_", imputation, "_any.rds")
 raw_data = "5-1_merged.rds"
 # ------------------------------------------------------------------------------
 
+
+# ==============================================================================
+# MODELS
+models = load_models(
+  files_meta=list(
+    ANY=paste0("xgb_", imputation, "_any.meta"), 
+    EAC=paste0("xgb_", imputation, "_eac.meta"), 
+    EGJAC=paste0("xgb_", imputation, "_egjac.meta")
+  ),
+  files_models=list(
+    ANY=paste0("xgb_", imputation, "_any.model"), 
+    EAC=paste0("xgb_", imputation, "_eac.model"), 
+    EGJAC=paste0("xgb_", imputation, "_egjac.model")
+  )
+)
+# ------------------------------------------------------------------------------
 
 
 
@@ -46,7 +62,7 @@ raw_df = readRDS(paste0(dir_raw_data, raw_data))
 # ==============================================================================
 # PARAMETERS
 seed = 0
-outcome = "ANY"
+outcome = "EAC"
 missing_which = "all"
 representative = F
 # ------------------------------------------------------------------------------
@@ -110,7 +126,7 @@ y = imputed_wdf %>% pull(casecontrol)
 
 # ==============================================================================
 # CALIBRATION PLOT
-calibration = calibration_curve(proba$HOSEA, y)
+calibration = calibration_curve(proba$HOSEA, y, 50)
 hl = hosmer_lemeshow(
   calibration$mid,
   calibration$prop_cases,
@@ -139,7 +155,7 @@ if(log){
   m = max(max(calibration$mid), max(calibration$prop_cases))*100000
   g = g + scale_x_log10(limits=c(1, m)) + scale_y_log10(limits=c(1, m))
 }else{
-  g = g + xlim(0, 400) + ylim(0, 400)
+  g = g + xlim(0, ifelse(outcome=="EGJAC", 200, 400)) + ylim(0, ifelse(outcome=="EGJAC", 200, 400))
 }
 g
 ggsave(filepath, g, width=5, height=6)

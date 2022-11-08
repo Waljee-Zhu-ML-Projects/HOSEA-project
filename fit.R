@@ -3,8 +3,8 @@ library(magrittr)
 library(dplyr)
 library(HOSEA) # requires v >=0.0.0.9008
 
-dir_models = "./R_data/results/models/imputation2/"
-imputation = "srs"
+dir_models = "./R_data/results/models/imputation3/"
+imputation = "mice"
 to_drop = c("chol", "rbc", "hgb")
 
 # Training
@@ -15,16 +15,11 @@ early_stopping_rounds=100
 
 complete_data = readRDS('R_data/processed_records/5-1_merged.rds')
 master = complete_data$master
-df = complete_data$df
+# df = complete_data$df
 
 # HOSEA.fit
 outcome = "ANY"
-set.seed(0)
-df %<>% HOSEA:::patch_outcome(master, outcome)
-cat("[HOSEA] Selected outcome ", outcome, "\n")
-n0all = (df$casecontrol==0)%>%sum
-n1all = (df$casecontrol==1)%>%sum
-rm(df);gc()
+
 
 cat("[HOSEA]", timestamp(prefix="", suffix="", quiet=T), "\n")
 cat("[HOSEA] Loading data\n")
@@ -56,7 +51,13 @@ for(outcome in c("ANY", "EAC", "EGJAC")){
   cat("[HOSEA]", timestamp(prefix="", suffix="", quiet=T), "\n")
   cat("[HOSEA] Selecting outcome ", outcome, "\n")
   df_list1 = df_list %>% lapply(function(df) patch_outcome(df, master, outcome, drop=T))
-  # df_list1 = df_list %>% lapply(function(df) HOSEA:::patch_outcome(df, master, outcome, drop=T))
+  
+  n0train = (df_list1$train$casecontrol==0)%>%sum
+  n1train = (df_list1$train$casecontrol==1)%>%sum
+  
+  n0test = (df_list1$test$casecontrol==0)%>%sum
+  n1test = (df_list1$test$casecontrol==1)%>%sum
+  
   cat("[HOSEA] Summary of train/valid/test\n")
   HOSEA:::summary_df_list(df_list1) %>% print()
   
@@ -66,7 +67,7 @@ for(outcome in c("ANY", "EAC", "EGJAC")){
   params_xgb = HOSEA:::xgboost_options(
     eta=0.05
   )
-  params_xgb$scale_pos_weight = n1all/n0all
+  params_xgb$scale_pos_weight = (n1test/n1train) * (n0train/n0test)
   cat("[HOSEA] Starting XGBoost fitting\n")
   cat("[HOSEA]", timestamp(prefix="", suffix="", quiet=T), "\n")
   set.seed(0)

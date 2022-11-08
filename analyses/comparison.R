@@ -14,6 +14,7 @@ library(magrittr)
 library(ggplot2)
 library(HOSEA)
 theme_set(theme_minimal())
+imputation = "srs"
 # ------------------------------------------------------------------------------
 
 
@@ -24,12 +25,29 @@ theme_set(theme_minimal())
 setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
-dir_figures = "./R_code/hosea-project/figures/srs/comparison/"
-dir_rocs = "./R_code/hosea-project/figures/srs/roc/"
-imputed_data = "5-1test_srs_any.rds"
+dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/comparison/")
+dir_rocs = paste0("./R_code/hosea-project/figures/", imputation, "/roc/")
+imputed_data = paste0("5-1test_", imputation, "_any.rds")
 raw_data = "5-1_merged.rds"
 # ------------------------------------------------------------------------------
 
+
+
+# ==============================================================================
+# MODELS
+models = load_models(
+  files_meta=list(
+    ANY=paste0("xgb_", imputation, "_any.meta"), 
+    EAC=paste0("xgb_", imputation, "_eac.meta"), 
+    EGJAC=paste0("xgb_", imputation, "_egjac.meta")
+  ),
+  files_models=list(
+    ANY=paste0("xgb_", imputation, "_any.model"), 
+    EAC=paste0("xgb_", imputation, "_eac.model"), 
+    EGJAC=paste0("xgb_", imputation, "_egjac.model")
+  )
+)
+# ------------------------------------------------------------------------------
 
 
 
@@ -44,16 +62,16 @@ raw_df = readRDS(paste0(dir_raw_data, raw_data))
 
 # ==============================================================================
 # PARAMETERS
-outcome = "EAC"
-missing_which = "incomplete"
-representative = F # F: uses everything, T: downsamples males so get a more representative sample 
+# outcome = "EAC"
+# missing_which = "incomplete"
+# representative = F # F: uses everything, T: downsamples males so get a more representative sample 
 seed = 0
 # ------------------------------------------------------------------------------
 
 
 # to get everything
 for(outcome in c("ANY", "EAC", "EGJAC")){
-for(missing_which in c("all", "complete", "incomplete")){
+for(missing_which in c("all", "complete")){
 for(representative in c(T, F)){
 
 
@@ -96,7 +114,7 @@ n_patients = imputed_wdf %>% nrow()
 # ==============================================================================
 # GET SCORES
 scores = list()
-scores[["HOSEA"]] = predict.HOSEA(imputed_wdf, imputer=NULL) %>% 
+scores[["HOSEA"]] = predict.HOSEA(imputed_wdf, models, imputer=NULL) %>% 
   select(id, !!outcome) %>% rename(HOSEA=!!outcome)
 scores[["Kunzmann"]] = kunzmann_score(comparison_wdf)
 scores[["HUNT"]] = hunt_score(comparison_wdf)

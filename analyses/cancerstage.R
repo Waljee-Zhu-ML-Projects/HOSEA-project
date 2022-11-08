@@ -21,15 +21,38 @@ theme_set(theme_minimal())
 
 # ==============================================================================
 # PATHS
+imputation = "mice"
 setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
-dir_figures = "./R_code/hosea-project/figures/srs/cancerstage/"
-dir_tables = "./R_code/hosea-project/tables/srs/cancerstage/"
+dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/cancerstage/")
+dir_tables = paste0("./R_code/hosea-project/tables/", imputation, "/cancerstage/")
 path_staging = "./R_data/staging.csv"
-imputed_data = "5-1test_srs_any.rds"
+imputed_data = paste0("5-1test_", imputation, "_any.rds")
 raw_data = "5-1_merged.rds"
 # ------------------------------------------------------------------------------
+
+
+
+
+
+# ==============================================================================
+# MODELS
+models = load_models(
+  files_meta=list(
+    ANY=paste0("xgb_", imputation, "_any.meta"), 
+    EAC=paste0("xgb_", imputation, "_eac.meta"), 
+    EGJAC=paste0("xgb_", imputation, "_egjac.meta")
+  ),
+  files_models=list(
+    ANY=paste0("xgb_", imputation, "_any.model"), 
+    EAC=paste0("xgb_", imputation, "_eac.model"), 
+    EGJAC=paste0("xgb_", imputation, "_egjac.model")
+  )
+)
+# ------------------------------------------------------------------------------
+
+
 
 
 
@@ -112,7 +135,7 @@ master %<>% patch_staging(path_staging)
 
 # ==============================================================================
 # GET SCORES
-scores = predict.HOSEA(imputed_wdf, imputer=NULL) %>% 
+scores = predict.HOSEA(imputed_wdf, imputer=NULL, models=models) %>% 
                       select(id, !!outcome) %>% rename(HOSEA=!!outcome)
 scores %<>% 
   left_join(imputed_wdf %>% select(id, casecontrol), by="id") %>%
