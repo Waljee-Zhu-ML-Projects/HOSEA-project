@@ -21,13 +21,33 @@ theme_set(theme_minimal())
 
 # ==============================================================================
 # PATHS
+imputation = "srs"
 setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
-dir_figures = "./R_code/hosea-project/figures/mice/identity/"
-imputed_data = "5-1test_mice_any.rds"
+dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/identity/")
+imputed_data = paste0("5-1test_", imputation, "_any.rds")
 raw_data = "5-1_merged.rds"
 # ------------------------------------------------------------------------------
+
+
+
+# ==============================================================================
+# MODELS
+models = load_models(
+  files_meta=list(
+    ANY=paste0("xgb_", imputation, "_any.meta"), 
+    EAC=paste0("xgb_", imputation, "_eac.meta"), 
+    EGJAC=paste0("xgb_", imputation, "_egjac.meta")
+  ),
+  files_models=list(
+    ANY=paste0("xgb_", imputation, "_any.model"), 
+    EAC=paste0("xgb_", imputation, "_eac.model"), 
+    EGJAC=paste0("xgb_", imputation, "_egjac.model")
+  )
+)
+# ------------------------------------------------------------------------------
+
 
 
 
@@ -51,7 +71,7 @@ age_bins = c(0, 45, 55, 65, 75, 100)
 
 # ==============================================================================
 # GET SCORES
-proba = predict.HOSEA(imputed_df, imputer=NULL)
+proba = predict.HOSEA(imputed_df, imputer=NULL, models=models)
 # ------------------------------------------------------------------------------
 
 
