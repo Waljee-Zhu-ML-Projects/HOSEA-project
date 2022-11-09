@@ -112,7 +112,7 @@ rocs = lapply(dfs, function(ndf){
   
   # ==============================================================================
   # GET SCORES
-  scores = predict.HOSEA(imputed_wdf, imputer=NULL) %>% 
+  scores = predict.HOSEA(imputed_wdf, imputer=NULL, models=models) %>% 
     select(id, !!outcome) %>% 
     rename(HOSEA=!!outcome)
   scores %<>% 
