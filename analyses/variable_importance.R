@@ -68,6 +68,7 @@ features = feature_groups()
 
 # ==============================================================================
 # PREPARE DATA
+df = imputed_df
 set.seed(seed)
 # subsample for SHAP/PDPs
 df = imputed_df %>% sample_n(1000000)
@@ -134,6 +135,7 @@ g = ggplot(data=vi_cat_long, aes(y=reorder(category, Gain), x=Gain*100, fill=Mod
   xlim(0, 100) + ylab("Category") + xlab("Gain (%)")
 filename = paste0(dir_figures, "vi_cat.pdf")
 ggsave(filename, g, width=6, height=4)
+ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=4)
 
 vi_group_long = vi_group %>% tidyr::pivot_longer(names(models), names_to="Model", values_to="Gain")
 group_order = vi_group_long %>% filter(Model=="ANY") %>% arrange(Gain) %>% pull(group)
@@ -145,6 +147,7 @@ g = ggplot(data=vi_group_long, aes(y=reorder(group, Gain), x=Gain*100, fill=Mode
   ylab("Feature group") + xlab("Gain (%)")
 filename = paste0(dir_figures, "vi_group.pdf")
 ggsave(filename, g, width=6, height=8)
+ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=8)
 
 for(mname in names(models)){
   g = ggplot(data=vi_group_long %>% filter(Model==!!mname), aes(y=reorder(group, Gain), x=Gain*100)) +
@@ -152,7 +155,8 @@ for(mname in names(models)){
     ggtitle(paste0("Gain Variable importance by group (", mname, ")")) +
     ylab("Feature group") + xlab("Gain (%)")
   filename = paste0(dir_figures, "vi_group_", mname, ".pdf")
-  ggsave(filename, g, width=4, height=8)
+  ggsave(filename, g, width=6, height=8)
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=8)
 }
 
 
@@ -252,6 +256,7 @@ g = ggplot(data=vi_cat_long, aes(y=reorder(category, Gain), x=Gain, fill=Model))
   ylab("Category") + xlab("mean|SHAP|")
 filename = paste0(dir_figures, "shap_cat.pdf")
 ggsave(filename, g, width=6, height=4)
+ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=4)
 
 vi_group_long = vi_group %>% tidyr::pivot_longer(names(models), names_to="Model", values_to="Gain")
 group_order = vi_group_long %>% filter(Model=="ANY") %>% arrange(Gain) %>% pull(group)
@@ -263,6 +268,7 @@ g = ggplot(data=vi_group_long, aes(y=reorder(group, Gain), x=Gain, fill=Model)) 
   ylab("Feature group") + xlab("mean|SHAP|")
 filename = paste0(dir_figures, "shap_group.pdf")
 ggsave(filename, g, width=6, height=8)
+ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=8)
 
 for(mname in names(models)){
   g = ggplot(data=vi_group_long %>% filter(Model==!!mname), aes(y=reorder(group, Gain), x=Gain)) +
@@ -270,7 +276,8 @@ for(mname in names(models)){
     ggtitle(paste0("SHAP Variable importance by group (", mname, ")")) +
     ylab("Feature group") + xlab("mean|SHAP|")
   filename = paste0(dir_figures, "shap_group_", mname, ".pdf")
-  ggsave(filename, g, width=4, height=8)
+  ggsave(filename, g, width=6, height=8)
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=8)
 }
 
 # ------------------------------------------------------------------------------
@@ -280,6 +287,9 @@ for(mname in names(models)){
 
 # ==============================================================================
 # SHAP Marginals
+set.seed(seed)
+# subsample for SHAP/PDPs
+df = imputed_df %>% sample_n(100000)
 
 shaps = list()
 
@@ -296,47 +306,51 @@ for(mname in names(models)){
 shap = shaps %>% bind_rows()
 
 variables = shap %>% select(-c(id, Model, BIAS)) %>% colnames()
-# 
-# for(var in variables){
-#   wdf = shap %>% select(id, Model, !!var)
-#   wdf %<>% left_join(df %>% select(id, !!var), by="id")
-#   wdf %<>% left_join(raw_df$master %>% select(id, cancertype), by="id")
-#   wdf %<>% mutate(cancertype=ifelse(cancertype=="", "Control", cancertype))
-#   colnames(wdf) = c("id", "Model", "SHAP", "Var", "CancerType")
-#   bin = (wdf %>% pull(Var)%>% unique() %>% length()) <3
-#   xrange = quantile(wdf %>% pull(Var), c(0.001, 0.999))
-#   if(bin){
-#     g_density = ggplot() + 
-#       geom_histogram(
-#         data=wdf %>% group_by(CancerType) %>% mutate(weight=1/n()),
-#         mapping=aes(Var, fill=CancerType, weight=weight),
-#         position="dodge",
-#         stat="count",
-#         width=0.1
-#       ) +
-#       xlab(var) + ylab("Frequency") + scale_x_continuous(breaks=0:1)
-#     xrange=c(-0.05, 1.05)
-#   }else{ 
-#     g_density = ggplot() + 
-#       geom_density(
-#         data=wdf,
-#         mapping=aes(Var, fill=CancerType, color=CancerType),
-#         alpha=0.2
-#       ) +
-#       xlab(var) + xlim(xrange) + ylab("Density")
-#   }
-#   g_shap = ggplot() + 
-#     geom_smooth(
-#       data=wdf,
-#       mapping=aes(x=Var, y=exp(SHAP), color=Model),
-#       method=ifelse(bin, "lm", "gam")
-#     ) + 
-#     geom_hline(yintercept=1) + xlab("") +
-#     theme(axis.text.x = element_blank()) + xlim(xrange)
-#   g = cowplot::plot_grid(g_shap, g_density, nrow=2, rel_heights=c(2, 1), align="v")
-#   filename = paste0(dir_shap, var, ".pdf")
-#   ggsave(filename, g, width=6, height=6)
-# }
+
+for(var in variables){
+  wdf = shap %>% select(id, Model, !!var)
+  wdf %<>% left_join(df %>% select(id, !!var), by="id")
+  wdf %<>% left_join(raw_df$master %>% select(id, cancertype), by="id")
+  wdf %<>% mutate(cancertype=ifelse(cancertype=="", "Control", cancertype))
+  colnames(wdf) = c("id", "Model", "SHAP", "Var", "CancerType")
+  bin = (wdf %>% pull(Var)%>% unique() %>% length()) <3
+  xrange = quantile(wdf %>% pull(Var), c(0.001, 0.999))
+  if(bin){
+    g_density = ggplot() +
+      geom_histogram(
+        data=wdf %>% group_by(CancerType) %>% mutate(weight=1/n()),
+        mapping=aes(Var, fill=CancerType, weight=weight),
+        position="dodge",
+        stat="count",
+        width=0.1
+      ) +
+      xlab(var) + ylab("Frequency") + scale_x_continuous(breaks=0:1)
+    xrange=c(-0.05, 1.05)
+  }else{
+    r = wdf %>% pull(Var) %>% range
+    g_density = ggplot() +
+      geom_histogram(
+        data=wdf %>% group_by(CancerType) %>% mutate(weight=1/n()),
+        mapping=aes(x=Var, color=CancerType, weight=weight, fill=CancerType),
+        alpha=0.2,
+        position="identity",
+        binwidth=ifelse(r[2]-r[1] < 200, 1, (r[2]-r[1])/20)
+      ) + xlab(var) + xlim(xrange) + ylab("Frequency")
+  }
+  g_shap = ggplot() +
+    geom_smooth(
+      data=wdf,
+      mapping=aes(x=Var, y=exp(SHAP), color=Model),
+      method=ifelse(bin, "lm", "gam"),
+      se=F
+    ) +
+    geom_hline(yintercept=1) + xlab("") +
+    theme(axis.text.x = element_blank()) + xlim(xrange)
+  g = cowplot::plot_grid(g_shap, g_density, nrow=2, rel_heights=c(2, 1), align="v")
+  filename = paste0(dir_shap, var, ".pdf")
+  ggsave(filename, g, width=6, height=6)
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=6)
+}
 
 # ------------------------------------------------------------------------------
 
@@ -394,6 +408,7 @@ for(mname in names(models)){
     paste0("Correlation between Lab and Comorbidities group SHAP (", mname, ")")
   )
   ggsave(filename, g, width=8, height=4)
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=8, height=4)
   
   filename = paste0(dir_figures, "shap_corr_groups_", mname, ".pdf")
   g = ggcorrplot::ggcorrplot(
@@ -403,6 +418,7 @@ for(mname in names(models)){
     paste0("Correlation between group SHAP (", mname, ")")
   )
   ggsave(filename, g, width=8, height=8)
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=8, height=8)
   
   filename = paste0(dir_figures, "shap_corr_groups_categories_", mname, ".pdf")
   g = ggcorrplot::ggcorrplot(
@@ -412,6 +428,7 @@ for(mname in names(models)){
     paste0("Correlation between group and category SHAP (", mname, ")")
   )
   ggsave(filename, g, width=8, height=3)
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=8, height=3)
 }
 
 # ------------------------------------------------------------------------------
@@ -434,7 +451,7 @@ models_rds = lapply(
 names(models_rds) = names(models)
 
 
-for(var in features$name[201:211]){
+for(var in features$name){
   cat(paste0(var, "\n"))
   wdf = df %>% select(id, !!var) %>% left_join(raw_df$master %>% select(id, cancertype), by="id")
   bin = (wdf %>% pull(var)%>% unique() %>% length()) < 3
@@ -454,13 +471,15 @@ for(var in features$name[201:211]){
       xlab(var) + ylab("Frequency") + scale_x_continuous(breaks=0:1)
     xrange=c(-0.05, 1.05)
   }else{
-    g_density = ggplot() + 
-      geom_density(
-        data=wdf,
-        mapping=aes(get(var), fill=CancerType, color=CancerType),
-        alpha=0.2
-      ) +
-      xlab(var) + xlim(xrange) + ylab("Density")
+    r = wdf %>% pull(var) %>% range
+    g_density = ggplot() +
+      geom_histogram(
+        data=wdf %>% group_by(CancerType) %>% mutate(weight=1/n()),
+        mapping=aes(x=get(var), color=CancerType, weight=weight, fill=CancerType),
+        alpha=0.2,
+        position="identity",
+        binwidth=ifelse(r[2]-r[1] < 200, 1, (r[2]-r[1])/20)
+      ) + xlab(var) + xlim(xrange) + ylab("Frequency")
   }
   
   set.seed(seed)
@@ -494,6 +513,7 @@ for(var in features$name[201:211]){
   g = cowplot::plot_grid(g_pdp, g_density, nrow=2, rel_heights=c(2, 1), align="v")
   filename = paste0(dir_pdp, var, ".pdf")
   ggsave(filename, g, width=6, height=6)
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=6)
   
 }
 
