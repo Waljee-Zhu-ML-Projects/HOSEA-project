@@ -11,7 +11,7 @@
 \usepackage{booktabs}
 \usepackage{textcomp}
 \usepackage{graphicx}
-\graphicspath{{figures/}}
+\graphicspath{{figures/mice/}}
 \usepackage[unicode=true,pdfusetitle,
  bookmarks=true,bookmarksnumbered=false,bookmarksopen=false,
  breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=true]
@@ -22,7 +22,7 @@
 
 
 % header
-\title{HOSEA Aim I -- Report}
+\title{HOSEA Aim I -- Results (MICE)}
 \author{Simon Fontaine}
 \date{\today}
 
@@ -121,9 +121,9 @@
 \clearpage
 \section{Thresholds}
 
-\input{./tables/calibration/thresholds_ANY_all.tex}
-\input{./tables/calibration/thresholds_EAC_all.tex}
-\input{./tables/calibration/thresholds_EGJAC_all.tex}
+\input{./tables/mice/calibration/thresholds_ANY_all.tex}
+\input{./tables/mice/calibration/thresholds_EAC_all.tex}
+\input{./tables/mice/calibration/thresholds_EGJAC_all.tex}
 
 \newpage
 \clearpage
@@ -178,9 +178,9 @@
 \textit{NB: the discrepancy in number of cases between I+ and Any comes from the fact that some were classified as unknown stage according to the provided staging. }
 
 
-\input{./tables/cancerstage/auc_ANY_all.tex}
-\input{./tables/cancerstage/auc_EAC_all.tex}
-\input{./tables/cancerstage/auc_EGJAC_all.tex}
+\input{./tables/mice/cancerstage/auc_ANY_all.tex}
+\input{./tables/mice/cancerstage/auc_EAC_all.tex}
+\input{./tables/mice/cancerstage/auc_EGJAC_all.tex}
 
 
 
@@ -199,6 +199,10 @@
 \begin{figure}[ht]
 \includegraphics[width=0.8\linewidth]{variable_importance/vi_group.pdf}
 \end{figure}
+\begin{figure}[ht]
+\includegraphics[width=0.49\linewidth]{variable_importance/vi_group_ANY.pdf}
+\includegraphics[width=0.49\linewidth]{variable_importance/vi_group_EGJAC.pdf}
+\end{figure}
 
 \newpage
 \clearpage
@@ -214,6 +218,11 @@
 \includegraphics[width=0.8\linewidth]{variable_importance/shap_group.pdf}
 \end{figure}
 
+\begin{figure}[ht]
+\includegraphics[width=0.49\linewidth]{variable_importance/shap_group_ANY.pdf}
+\includegraphics[width=0.49\linewidth]{variable_importance/shap_group_EGJAC.pdf}
+\end{figure}
+
 
 
 
@@ -225,19 +234,44 @@
 
 
 \begin{figure}[ht]
-\includegraphics[width=1.0\linewidth]{cancerstage/2y_ANY_all.pdf}
+\includegraphics[width=1.0\linewidth]{years/2y_ANY_all.pdf}
 \end{figure}
 
 
 \begin{figure}[ht]
-\includegraphics[width=1.0\linewidth]{cancerstage/2y_EAC_all.pdf}
+\includegraphics[width=1.0\linewidth]{years/2y_EAC_all.pdf}
 \end{figure}
 
 
 \begin{figure}[ht]
-\includegraphics[width=1.0\linewidth]{cancerstage/2y_EGJAC_all.pdf}
+\includegraphics[width=1.0\linewidth]{years/2y_EGJAC_all.pdf}
 \end{figure}
 
+
+
+\newpage
+\clearpage
+\section{SHAP correlation and imputation model}
+
+
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{variable_importance/shap_corr_groups_ANY.pdf}
+\end{figure}
+
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{variable_importance/shap_corr_groups_categories_ANY.pdf}
+\end{figure}
+
+\begin{figure}[ht]
+\includegraphics[width=1.0\linewidth]{variable_importance/shap_corr_lab_comorbidities_ANY.pdf}
+\end{figure}
+
+
+\begin{figure}[ht]
+\includegraphics[width=0.3\linewidth]{variable_importance/mice_comorbidities_lab.pdf}
+\end{figure}
 
 
 
