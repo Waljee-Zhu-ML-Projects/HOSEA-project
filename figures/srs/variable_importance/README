@@ -1,0 +1,19 @@
+File name structure:
+
+<Imputation>
+_<Some description of the content>
+[_<Cancer Type>]
+.<File type>
+
+In particular:
+- Imputation:
+  - mice or srs
+- Description
+  - cat: variable importance aggregated at the category level
+  - group: variable importance aggregated at the group level
+  - corr_groups: SHAP correlation between groups
+  - corr_groups_categories: SHAP correlation between groups and categories
+  - corr_lab_comorbidities: SHAP correlation between lab groups and comorbidities
+- Cancer type: 
+  - ANY, EAC, EGJAC determine which model is used 
+  - Otherwise, all three models are included
