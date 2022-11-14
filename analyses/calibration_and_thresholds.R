@@ -159,6 +159,7 @@ if(log){
 }
 g
 ggsave(filepath, g, width=5, height=6)
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=5, height=6)
 
 }
 # ------------------------------------------------------------------------------

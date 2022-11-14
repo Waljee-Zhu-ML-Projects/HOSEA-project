@@ -156,6 +156,7 @@ g = ggplot(data=df_curves, aes(x=fpr, y=recall, color=Years)) + geom_line() +
   ggtitle(gtitle)
 g
 ggsave(filepath, g, width=8, height=6)
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6)
 # ------------------------------------------------------------------------------
 
   

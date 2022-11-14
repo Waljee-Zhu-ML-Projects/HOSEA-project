@@ -62,9 +62,9 @@ raw_df = readRDS(paste0(dir_raw_data, raw_data))
 
 # ==============================================================================
 # PARAMETERS
-# outcome = "EAC"
-# missing_which = "incomplete"
-# representative = F # F: uses everything, T: downsamples males so get a more representative sample 
+outcome = "EAC"
+missing_which = "all"
+representative = F # F: uses everything, T: downsamples males so get a more representative sample
 seed = 0
 # ------------------------------------------------------------------------------
 
@@ -115,7 +115,7 @@ n_patients = imputed_wdf %>% nrow()
 # GET SCORES
 scores = list()
 scores[["HOSEA"]] = predict.HOSEA(imputed_wdf, models, imputer=NULL) %>% 
-  select(id, !!outcome) %>% rename(HOSEA=!!outcome)
+  select(id, !!outcome) %>% rename("K-ECAN"=!!outcome)
 scores[["Kunzmann"]] = kunzmann_score(comparison_wdf)
 scores[["HUNT"]] = hunt_score(comparison_wdf)
 scores[["Guidelines"]] = guidelines(comparison_wdf)
@@ -137,7 +137,7 @@ rocs = roc(score_df)
 # ==============================================================================
 # ROC CURVE
 
-roc_ = rocs[["HOSEA"]]
+roc_ = rocs[["K-ECAN"]]
 
 roc_$curve$tr = roc_$curve$tr*100000
 title = paste0("Cancer type: ", outcome, "\n",
@@ -160,6 +160,7 @@ g = ggplot(data=roc_$curve,
   scale_color_gradientn(trans="log", colors=rainbow(10), breaks=c(1, 10, 100, 1000, 10000)) + 
   ggtitle(title)
 ggsave(filepath, g, width=6, height=6)
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=6, height=6)
 
 # ------------------------------------------------------------------------------
 
@@ -169,7 +170,7 @@ ggsave(filepath, g, width=6, height=6)
 # ==============================================================================
 # PLOT
 which_point = scores[["Guidelines"]] %>% select(-id) %>% colnames()
-which_curve = c("HOSEA", "Kunzmann", "HUNT")
+which_curve = c("K-ECAN", "Kunzmann", "HUNT")
 
 # build dfs
 df_curves = sapply(which_curve, function(name){
@@ -181,6 +182,10 @@ df_curves = sapply(which_curve, function(name){
 df_points = sapply(which_point, function(name) rocs[[name]]$curve[2, 1:2], simplify=F) %>% bind_rows(.id="label")
 df_points$Method = "Guideline"
 df_points %<>% arrange(fpr)
+
+xorder = order(df_points$fpr)
+xs = df_points$fpr[xorder]
+ys = df_points$recall[xorder]
 
 df_points$xlab = df_points$fpr
 df_points$ylab = df_points$recall + 0.1*(-1)^(seq_along(which_point)) +
@@ -202,10 +207,21 @@ g = ggplot(data=df_curves, aes(x=fpr, y=recall, color=Method)) + geom_line() +
                               ifelse(representative, ", representative", ""), "\n",
                  "Cases: ", n_cases, "/", n_patients))
 g = g +
-  geom_segment(data=df_points, aes(x=fpr, xend=xlab, y=recall, yend=ylab)) + 
-  geom_label(data=df_points, aes(label=label, x=xlab, y=ylab), size=3, show.legend=FALSE)
+  # geom_segment(data=df_points, aes(x=fpr, xend=xlab, y=recall, yend=ylab)) + 
+  ggrepel::geom_label_repel(
+    data=df_points, 
+    mapping=aes(label=label, x=fpr, y=recall), 
+    size=3, 
+    show.legend=FALSE,
+    max.overlaps=20,
+    direction="both",
+    min.segment.length=0,
+    nudge_x=0.1, 
+    nudge_y=-0.1
+    )
 g
 ggsave(filepath, g, width=8, height=6)
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6)
 # ------------------------------------------------------------------------------
 
 }}}
