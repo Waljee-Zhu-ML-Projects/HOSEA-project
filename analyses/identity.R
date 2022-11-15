@@ -21,7 +21,7 @@ theme_set(theme_minimal())
 
 # ==============================================================================
 # PATHS
-imputation = "srs"
+imputation = "mice"
 setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
@@ -119,7 +119,6 @@ g = ggplot(data=roc_age, aes(x=fpr, y=recall, color=Age)) + geom_line() +
   ggtitle(title)
 g
 ggsave(filepath, g, width=8, height=6)
-ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6)
 # ------------------------------------------------------------------------------
 
 
@@ -149,7 +148,6 @@ g = ggplot(data=roc_sex, aes(x=fpr, y=recall, color=Sex)) + geom_line() +
   ggtitle(title)
 g
 ggsave(filepath, g, width=8, height=6)
-ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6)
 # ------------------------------------------------------------------------------
 
 
@@ -178,7 +176,6 @@ g = ggplot(data=roc_race, aes(x=fpr, y=recall, color=Race)) + geom_line() +
   ggtitle(title)
 g
 ggsave(filepath, g, width=8, height=6)
-ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6)
 # ------------------------------------------------------------------------------
 
 }

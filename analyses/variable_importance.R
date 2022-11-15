@@ -471,14 +471,16 @@ for(var in features$name){
       xlab(var) + ylab("Frequency") + scale_x_continuous(breaks=0:1)
     xrange=c(-0.05, 1.05)
   }else{
-    r = wdf %>% pull(var) %>% range
+    r = xrange
+    binwidth = NULL
+    if(r[2]-r[1] < 100 & r[2]-r[1] >10) binwidth=1 
     g_density = ggplot() +
       geom_histogram(
         data=wdf %>% group_by(CancerType) %>% mutate(weight=1/n()),
         mapping=aes(x=get(var), color=CancerType, weight=weight, fill=CancerType),
         alpha=0.2,
         position="identity",
-        binwidth=ifelse(r[2]-r[1] < 200, 1, (r[2]-r[1])/20)
+        binwidth=binwidth
       ) + xlab(var) + xlim(xrange) + ylab("Frequency")
   }
   
