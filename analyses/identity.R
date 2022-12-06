@@ -118,7 +118,8 @@ g = ggplot(data=roc_age, aes(x=fpr, y=recall, color=Age)) + geom_line() +
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   ggtitle(title)
 g
-ggsave(filepath, g, width=8, height=6)
+ggsave(filepath, g, width=8, height=6, bg="white")
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6, bg="white")
 # ------------------------------------------------------------------------------
 
 
@@ -147,7 +148,8 @@ g = ggplot(data=roc_sex, aes(x=fpr, y=recall, color=Sex)) + geom_line() +
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   ggtitle(title)
 g
-ggsave(filepath, g, width=8, height=6)
+ggsave(filepath, g, width=8, height=6, bg="white")
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6, bg="white")
 # ------------------------------------------------------------------------------
 
 
@@ -175,7 +177,8 @@ g = ggplot(data=roc_race, aes(x=fpr, y=recall, color=Race)) + geom_line() +
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   ggtitle(title)
 g
-ggsave(filepath, g, width=8, height=6)
+ggsave(filepath, g, width=8, height=6, bg="white")
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6, bg="white")
 # ------------------------------------------------------------------------------
 
 }

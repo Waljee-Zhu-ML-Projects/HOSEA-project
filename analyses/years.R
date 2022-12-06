@@ -155,8 +155,8 @@ g = ggplot(data=df_curves, aes(x=fpr, y=recall, color=Years)) + geom_line() +
   geom_abline(intercept=0, slope=1, linetype="dotted") +
   ggtitle(gtitle)
 g
-ggsave(filepath, g, width=8, height=6)
-ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6)
+ggsave(filepath, g, width=8, height=6, bg="white")
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6, bg="white")
 # ------------------------------------------------------------------------------
 
   

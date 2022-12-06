@@ -159,8 +159,8 @@ g = ggplot(data=roc_$curve,
   labs(color="Threshold\n(/100,000)") + 
   scale_color_gradientn(trans="log", colors=rainbow(10), breaks=c(1, 10, 100, 1000, 10000)) + 
   ggtitle(title)
-ggsave(filepath, g, width=6, height=6)
-ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=6, height=6)
+ggsave(filepath, g, width=6, height=6, bg="white")
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=6, height=6, bg="white")
 
 # ------------------------------------------------------------------------------
 
@@ -220,8 +220,8 @@ g = g +
     nudge_y=-0.1
     )
 g
-ggsave(filepath, g, width=8, height=6)
-ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6)
+ggsave(filepath, g, width=8, height=6, bg="white")
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6, bg="white")
 # ------------------------------------------------------------------------------
 
 }}}

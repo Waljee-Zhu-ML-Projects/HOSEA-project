@@ -2,7 +2,7 @@ setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 library(magrittr)
 library(dplyr)
 library(HOSEA) # requires v >=0.0.0.9009
-dir_models = "./R_data/results/models/imputation/"
+dir_models = "./R_data/results/models/"
 imputation = "srs"
 to_drop = c("chol", "rbc", "hgb")
 nc = 9

@@ -158,8 +158,8 @@ if(log){
   g = g + xlim(0, ifelse(outcome=="EGJAC", 200, 400)) + ylim(0, ifelse(outcome=="EGJAC", 200, 400))
 }
 g
-ggsave(filepath, g, width=5, height=6)
-ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=5, height=6)
+ggsave(filepath, g, width=5, height=6, bg="white")
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=5, height=6, bg="white")
 
 }
 # ------------------------------------------------------------------------------

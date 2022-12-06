@@ -29,7 +29,8 @@ dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/variable_i
 dir_tables = paste0("./R_code/hosea-project/tables/", imputation, "/variable_importance/")
 dir_shap = paste0("./R_code/hosea-project/figures/", imputation, "/shap/")
 dir_pdp = paste0("./R_code/hosea-project/figures/", imputation, "/pdp/")
-imputed_data = paste0("test_", imputation, "_any.rds")
+dir_models = "./R_data/results/models/"
+imputed_data = paste0("5-1test_", imputation, "_any.rds")
 raw_data = "5-1_merged.rds"
 # ------------------------------------------------------------------------------
 
@@ -134,8 +135,8 @@ g = ggplot(data=vi_cat_long, aes(y=reorder(category, Gain), x=Gain*100, fill=Mod
   ggtitle("Gain Variable importance by category") +
   xlim(0, 100) + ylab("Category") + xlab("Gain (%)")
 filename = paste0(dir_figures, "vi_cat.pdf")
-ggsave(filename, g, width=6, height=4)
-ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=4)
+ggsave(filename, g, width=6, height=4, bg="white")
+ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=4, bg="white")
 
 vi_group_long = vi_group %>% tidyr::pivot_longer(names(models), names_to="Model", values_to="Gain")
 group_order = vi_group_long %>% filter(Model=="ANY") %>% arrange(Gain) %>% pull(group)
@@ -146,8 +147,8 @@ g = ggplot(data=vi_group_long, aes(y=reorder(group, Gain), x=Gain*100, fill=Mode
   ggtitle("Gain Variable importance by group") +
   ylab("Feature group") + xlab("Gain (%)")
 filename = paste0(dir_figures, "vi_group.pdf")
-ggsave(filename, g, width=6, height=8)
-ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=8)
+ggsave(filename, g, width=6, height=8, bg="white")
+ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=8, bg="white")
 
 for(mname in names(models)){
   g = ggplot(data=vi_group_long %>% filter(Model==!!mname), aes(y=reorder(group, Gain), x=Gain*100)) +
@@ -155,8 +156,8 @@ for(mname in names(models)){
     ggtitle(paste0("Gain Variable importance by group (", mname, ")")) +
     ylab("Feature group") + xlab("Gain (%)")
   filename = paste0(dir_figures, "vi_group_", mname, ".pdf")
-  ggsave(filename, g, width=6, height=8)
-  ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=8)
+  ggsave(filename, g, width=6, height=8, bg="white")
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=8, bg="white")
 }
 
 
@@ -255,8 +256,8 @@ g = ggplot(data=vi_cat_long, aes(y=reorder(category, Gain), x=Gain, fill=Model))
   ggtitle("SHAP Variable importance by category") +
   ylab("Category") + xlab("mean|SHAP|")
 filename = paste0(dir_figures, "shap_cat.pdf")
-ggsave(filename, g, width=6, height=4)
-ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=4)
+ggsave(filename, g, width=6, height=4, bg="white")
+ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=4, bg="white")
 
 vi_group_long = vi_group %>% tidyr::pivot_longer(names(models), names_to="Model", values_to="Gain")
 group_order = vi_group_long %>% filter(Model=="ANY") %>% arrange(Gain) %>% pull(group)
@@ -267,8 +268,8 @@ g = ggplot(data=vi_group_long, aes(y=reorder(group, Gain), x=Gain, fill=Model)) 
   ggtitle("SHAP Variable importance by group") +
   ylab("Feature group") + xlab("mean|SHAP|")
 filename = paste0(dir_figures, "shap_group.pdf")
-ggsave(filename, g, width=6, height=8)
-ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=8)
+ggsave(filename, g, width=6, height=8, bg="white")
+ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=8, bg="white")
 
 for(mname in names(models)){
   g = ggplot(data=vi_group_long %>% filter(Model==!!mname), aes(y=reorder(group, Gain), x=Gain)) +
@@ -276,8 +277,8 @@ for(mname in names(models)){
     ggtitle(paste0("SHAP Variable importance by group (", mname, ")")) +
     ylab("Feature group") + xlab("mean|SHAP|")
   filename = paste0(dir_figures, "shap_group_", mname, ".pdf")
-  ggsave(filename, g, width=6, height=8)
-  ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=8)
+  ggsave(filename, g, width=6, height=8, bg="white")
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=8, bg="white")
 }
 
 # ------------------------------------------------------------------------------
@@ -348,8 +349,8 @@ for(var in variables){
     theme(axis.text.x = element_blank()) + xlim(xrange)
   g = cowplot::plot_grid(g_shap, g_density, nrow=2, rel_heights=c(2, 1), align="v")
   filename = paste0(dir_shap, var, ".pdf")
-  ggsave(filename, g, width=6, height=6)
-  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=6)
+  ggsave(filename, g, width=6, height=6, bg="white")
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=6, bg="white")
 }
 
 # ------------------------------------------------------------------------------
@@ -407,8 +408,8 @@ for(mname in names(models)){
   ) + ggtitle(
     paste0("Correlation between Lab and Comorbidities group SHAP (", mname, ")")
   )
-  ggsave(filename, g, width=8, height=4)
-  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=8, height=4)
+  ggsave(filename, g, width=8, height=4, bg="white")
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=8, height=4, bg="white")
   
   filename = paste0(dir_figures, "shap_corr_groups_", mname, ".pdf")
   g = ggcorrplot::ggcorrplot(
@@ -417,8 +418,8 @@ for(mname in names(models)){
   ) + ggtitle(
     paste0("Correlation between group SHAP (", mname, ")")
   )
-  ggsave(filename, g, width=8, height=8)
-  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=8, height=8)
+  ggsave(filename, g, width=8, height=8, bg="white")
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=8, height=8, bg="white")
   
   filename = paste0(dir_figures, "shap_corr_groups_categories_", mname, ".pdf")
   g = ggcorrplot::ggcorrplot(
@@ -427,8 +428,8 @@ for(mname in names(models)){
   ) + ggtitle(
     paste0("Correlation between group and category SHAP (", mname, ")")
   )
-  ggsave(filename, g, width=8, height=3)
-  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=8, height=3)
+  ggsave(filename, g, width=8, height=3, bg="white")
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=8, height=3, bg="white")
 }
 
 # ------------------------------------------------------------------------------
@@ -451,7 +452,7 @@ models_rds = lapply(
 names(models_rds) = names(models)
 
 
-for(var in features$name){
+for(var in features$name[111:174]){
   cat(paste0(var, "\n"))
   wdf = df %>% select(id, !!var) %>% left_join(raw_df$master %>% select(id, cancertype), by="id")
   bin = (wdf %>% pull(var)%>% unique() %>% length()) < 3
@@ -514,8 +515,8 @@ for(var in features$name){
   
   g = cowplot::plot_grid(g_pdp, g_density, nrow=2, rel_heights=c(2, 1), align="v")
   filename = paste0(dir_pdp, var, ".pdf")
-  ggsave(filename, g, width=6, height=6)
-  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=6)
+  ggsave(filename, g, width=6, height=6, bg="white")
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=6, bg="white")
   
 }
 
