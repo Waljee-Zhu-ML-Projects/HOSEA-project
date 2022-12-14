@@ -146,14 +146,13 @@ grlasso_fit = glasso::glasso(covmat, rho=0.001)
 prec = grlasso_fit$wi
 rownames(prec) = rownames(covmat)
 colnames(prec) = colnames(covmat)
-g = ggcorrplot::ggcorrplot(pmin(pmax(prec, -1), 1), type="full")
+prec = -prec/abs(prec)
+diag(prec) = 1
+g = ggcorrplot::ggcorrplot(prec, type="full")
 g = g + ggtitle("GLasso on SHAP values aggregated by groups of features")
 filename = paste0(dir_figures, "glasso_group.pdf")
-ggsave(filename, g, width=8, height=8, bg="white")
-ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=8, height=8, bg="white")
-
-vname = "shap_bun"
-regcoef = -prec[vname, ] / prec[vname, vname]
+ggsave(filename, g, width=10, height=10, bg="white")
+ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=10, height=10, bg="white")
 
 regcoef_list = lapply(rownames(prec), function(vname){
   regcoef = -prec[vname, ] / prec[vname, vname]
@@ -169,34 +168,40 @@ for(vname in names(regcoef_list)){
 
 
 
+
+
+
+
 # ==============================================================================
 # anion_gap vs SHAP anion gap
-xvar = "anion_gap_eu_mean"
+xvar = "wbc_mean"
 yvar = "shap_anion_gap_eu"
-xname = "Anion Gap (mean)"
-yname = "SHAP Anion Gap (odds)"
-grouping = "ppi"
-gname = "PPI"
-file = paste0(xvar, "_vs_", yvar, "_by_", grouping)
+xname = "WBC (mean)"
+yname = "SHAP Anion Gap (log-odds)"
+file = paste0(xvar, "_vs_", yvar)
 
-xrange = quantile(var_shap %>% pull(get(xvar)), c(0.01, 0.99), na.rm=T)
+wdf = var_shap %>% select(casecontrol, xvar, yvar) %>% tidyr::drop_na()
+wdf[[yvar]] = wdf[[yvar]] - mean(wdf[[yvar]])
+
+xrange = quantile(wdf %>% pull(get(xvar)), c(0.01, 0.99), na.rm=T)
+yrange = quantile(wdf %>% pull(get(yvar)), c(0.1, 0.9), na.rm=T)
 g_density = ggplot() +
   geom_histogram(
-    data=var_shap %>% group_by(get(grouping)) %>% mutate(weight=1/n()),
-    mapping=aes(x=get(xvar), color=get(grouping), weight=weight, fill=get(grouping)),
+    data= wdf %>% group_by(casecontrol) %>% mutate(weight=1/n()),
+    mapping=aes(x=get(xvar), color=casecontrol, weight=weight, fill=casecontrol),
     alpha=0.2,
     position="identity",
     binwidth=1
-  ) + xlab(xname) + xlim(xrange) + ylab("Frequency") + 
-  guides(fill=guide_legend(title=gname), color=guide_legend(title=gname))
+  ) + xlab(xname) + xlim(xrange) + ylab("Frequency")
 g_shap = ggplot() +
   geom_smooth(
-    data=var_shap,
-    mapping=aes(x=get(xvar), y=exp(get(yvar)), color=get(grouping))
+    data=wdf,
+    mapping=aes(x=get(xvar), y=get(yvar)),
+    method="gam"
   ) +
-  geom_hline(yintercept=1) + xlab("") +
+  geom_hline(yintercept=0) + xlab("") +
   theme(axis.text.x = element_blank()) + xlim(xrange) + 
-  ylab(yname) + 
+  ylab(yname) +
   guides(color="none")
 g = cowplot::plot_grid(g_shap, g_density, nrow=2, rel_heights=c(2, 1), align="v", axis="lr")
 
@@ -207,46 +212,53 @@ ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=6, bg="w
 # ------------------------------------------------------------------------------
 
 
+wdf = var_shap %>% filter(casecontrol==1) %>% bind_rows(var_shap%>%filter(casecontrol==0) %>% sample_n(2500))
 
-var_shap$shap_anion_gap_eu_pos = factor(
-  var_shap$shap_anion_gap_eu > mean(var_shap$shap_anion_gap_eu, na.rm=T),
-  levels=c(F, T), labels=c("Neg.", "Pos.")
+g = GGally::ggpairs(
+  wdf,
+  columns=c("na_mean", "co2_mean", "bun_mean", "wbc_mean", "age"),
+  mapping=aes(color=casecontrol)
+)
+filename = paste0(dir_figures, "pairs_na_co2_bun_wbc_age.pdf")
+ggsave(filename, g, width=10, height=10, bg="white")
+ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=10, height=10, bg="white")
+
+
+g = GGally::ggpairs(
+  wdf,
+  columns=c("shap_na", "shap_co2", "shap_bun", "shap_wbc", "shap_age", "shap_chlor", "shap_creat"),
+  mapping=aes(color=casecontrol)
+)
+filename = paste0(dir_figures, "shap_pairs_na_co2_bun_wbc_age.pdf")
+ggsave(filename, g, width=14, height=14, bg="white")
+ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=14, height=14, bg="white")
+
+
+wdf %<>% mutate(
+  co2_bin = cut(co2_mean, c(0, 25, 29, 50))
 )
 
+wdf %<>% filter(!is.na(co2_bin))
 
-GGally::ggpairs(
-  var_shap %>% sample_n(10000),
-  columns=c("na_mean", "k_mean", "co2_mean", "chlor_mean", "bun_mean", "alt_mean",
-            "bmi", "ppi_mean", "gerd", "casecontrol"),
-  mapping=aes(color=shap_anion_gap_eu_pos)
+
+
+g = GGally::ggpairs(
+  wdf,
+  columns=c("shap_na", "shap_co2", "shap_bun", "shap_wbc", "shap_age", "shap_chlor", "shap_creat"),
+  mapping=aes(color=co2_bin)
 )
+filename = paste0(dir_figures, "shap_pairs_by_co2.pdf")
+ggsave(filename, g, width=14, height=14, bg="white")
+ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=14, height=14, bg="white")
 
-vars = c(
-  "na_mean",
-  "na_max", 
-  "na_min",
-  "k_mean",
-  "k_max", 
-  "k_min",
-  "co2_mean",
-  "co2_max", 
-  "co2_min",
-  "chlor_mean",
-  "chlor_max", 
-  "chlor_min",
-  "bun_mean",
-  "bun_max", 
-  "bun_min",
-  "alt_mean",
-  "alt_max", 
-  "alt_min"
+g = GGally::ggpairs(
+  wdf,
+  columns=c("na_mean", "co2_mean", "bun_mean", "wbc_mean", "age", "chlor_mean", "creat_mean"),
+  mapping=aes(color=co2_bin)
 )
-
-cormat = cor(var_shap%>%select(all_of(vars))%>%select(ends_with("_mean")), 
-             use="pairwise.complete.obs")
-ggcorrplot::ggcorrplot(cormat)
-
-
+filename = paste0(dir_figures, "pairs_by_co2.pdf")
+ggsave(filename, g, width=14, height=14, bg="white")
+ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=14, height=14, bg="white")
 
 
 
@@ -271,22 +283,6 @@ ggplot() +
   ) + xlim(wdf$anion_gap_eu_mean %>% quantile(c(0.01, 0.99), na.rm=T)) + 
   geom_hline(yintercept=1)
 
-ggplot() + 
-  geom_smooth(
-    data=wdf,
-    mapping=aes(x=co2_mean, y=exp(shap_co2))
-  ) + xlim(wdf$co2_mean %>% quantile(c(0.01, 0.99), na.rm=T)) + 
-  geom_hline(yintercept=1)
-
 # ------------------------------------------------------------------------------
 
-
-# pair plots case v controls
-
-GGally::ggpairs(
-  wdf,
-  columns=c("na_mean", "k_mean", "co2_mean", "chlor_mean", "bun_mean", "alt_mean",
-            "bmi", "gerd", "casecontrol"),
-  mapping=aes(color=casecontrol)
-)
 
