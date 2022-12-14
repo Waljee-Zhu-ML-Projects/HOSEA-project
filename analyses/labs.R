@@ -26,7 +26,7 @@ setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
 dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/labs/")
-imputed_data = paste0("test_", imputation, "_any.rds")
+imputed_data = paste0("5-1test_", imputation, "_any.rds")
 raw_data = "5-1_merged.rds"
 # ------------------------------------------------------------------------------
 
@@ -121,6 +121,7 @@ var_shap %<>% left_join(anion %>% select(id, anion_gap_eu_mean, anion_gap_eu_min
 
 # binary as factors
 for(cname in colnames(var_shap)){
+  if(stringr::str_sub(cname, 1L, 5L) == "shap_") next
   if(length(unique(var_shap[[cname]]))<=3){
     var_shap[[cname]] = as.factor(var_shap[[cname]])
   }
@@ -128,8 +129,10 @@ for(cname in colnames(var_shap)){
 
 # obesity and ppi
 var_shap %<>% mutate(
-  bmi_30=factor(bmi>30, levels=c(F, T), labels=c("BMI<=30", "BMI>30")),
-  ppi=factor(is.na(ppi_int), levels=c(F, T), labels=c("PPI", "No PPI"))
+  ppi=factor(
+    ifelse(is.na(ppi_int), "0", ifelse(ppi_mean<20, "<20", ">=20")),
+    levels=c("0", "<20", ">=20")
+  )
 )
 # ------------------------------------------------------------------------------
 
@@ -141,7 +144,10 @@ var_shap %<>% mutate(
 
 # ==============================================================================
 # Graphical LASSO
-covmat = var_shap %>% select(starts_with("shap_")) %>% select(-shap_anion_gap_us, -shap_anion_gap_eu) %>% cov
+covmat = var_shap %>% 
+  select(starts_with("shap_")) %>% 
+  select(-shap_anion_gap_us, -shap_anion_gap_eu) %>% 
+  cov
 grlasso_fit = glasso::glasso(covmat, rho=0.001)
 prec = grlasso_fit$wi
 rownames(prec) = rownames(covmat)
@@ -212,11 +218,14 @@ ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=6, bg="w
 # ------------------------------------------------------------------------------
 
 
+
+
+
 wdf = var_shap %>% filter(casecontrol==1) %>% bind_rows(var_shap%>%filter(casecontrol==0) %>% sample_n(2500))
 
 g = GGally::ggpairs(
   wdf,
-  columns=c("na_mean", "co2_mean", "bun_mean", "wbc_mean", "age"),
+  columns=c("na_mean", "co2_mean", "bun_mean", "wbc_mean", "age", "ppi"),
   mapping=aes(color=casecontrol)
 )
 filename = paste0(dir_figures, "pairs_na_co2_bun_wbc_age.pdf")
@@ -226,7 +235,7 @@ ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=10, height=10, bg=
 
 g = GGally::ggpairs(
   wdf,
-  columns=c("shap_na", "shap_co2", "shap_bun", "shap_wbc", "shap_age", "shap_chlor", "shap_creat"),
+  columns=c("shap_na", "shap_co2", "shap_bun", "shap_wbc", "shap_age", "shap_chlor", "shap_creat", "ppi"),
   mapping=aes(color=casecontrol)
 )
 filename = paste0(dir_figures, "shap_pairs_na_co2_bun_wbc_age.pdf")
