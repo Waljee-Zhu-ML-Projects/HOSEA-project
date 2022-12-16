@@ -178,8 +178,8 @@ filepath = paste0(dir_figures, "roc_", mname, "_representative.pdf")
 # PLOT RISK CURVES
 for(mname in c("ANY", "EAC", "EGJAC")){
   df = bind_rows(
-    scores_icd10 %>% select(!!mname) %>% mutate(Cohort="ICD 10"),
-    scores_test %>% select(!!mname) %>% mutate(Cohort="Test")
+    scores_icd10 %>% select(id, !!mname) %>% mutate(Cohort="ICD 10"),
+    scores_test %>% select(id, !!mname) %>% mutate(Cohort="Test")
   ) %>% rename(score=!!mname)
   filepath = paste0(dir_figures, "score_dist_", mname, ".pdf")
   gtitle = paste0("Cancer type: ", mname, "\n")
@@ -190,5 +190,38 @@ for(mname in c("ANY", "EAC", "EGJAC")){
   g
   ggsave(filepath, g, width=8, height=4, bg="white")
   ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=4, bg="white")
+  
+  # by sex
+  df %<>% left_join(
+    bind_rows(icd10_imputed, test_imputed) %>% select(id, gender),
+    by="id"
+  ) %>% rename(Sex=gender) %>% mutate(Sex=ifelse(Sex==1, "Male", "Female"))
+  filepath = paste0(dir_figures, "score_dist_", mname, "_bysex.pdf")
+  gtitle = paste0("Cancer type: ", mname, "\n")
+  g = ggplot(data=df, aes(x=score*100000, color=Cohort, linetype=Sex)) + 
+    geom_density() + 
+    xlab("Predicted risk (/100,000)") + ylab("Density") + 
+    ggtitle(gtitle) + scale_x_log10()
+  g
+  ggsave(filepath, g, width=8, height=4, bg="white")
+  ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=4, bg="white")
+  
+  # by age
+  df %<>% left_join(
+    bind_rows(icd10_imputed, test_imputed) %>% select(id, age),
+    by="id"
+  ) %>% mutate(Age=cut(age, c(0, 35, 50, 100)))
+  filepath = paste0(dir_figures, "score_dist_", mname, "_byage.pdf")
+  gtitle = paste0("Cancer type: ", mname, "\n")
+  g = ggplot(data=df %>% tidyr::drop_na(), aes(x=score*100000, color=Cohort, linetype=Age)) + 
+    geom_density() + 
+    xlab("Predicted risk (/100,000)") + ylab("Density") + 
+    ggtitle(gtitle) + scale_x_log10()
+  g
+  ggsave(filepath, g, width=8, height=4, bg="white")
+  ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=4, bg="white")
 }
 # ------------------------------------------------------------------------------
+
+
+
