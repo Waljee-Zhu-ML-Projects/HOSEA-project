@@ -120,11 +120,12 @@ to_formula = function(x){
 
 # ==============================================================================
 # FIT
-mname = "known_predictors"
+mname = "known_predictors_anion_gap"
 model = models[[mname]]
 fit = mgcv::gam(formula=to_formula(model) %>% formula, family=binomial, data=df)
-summary(fit)
+summary_fit = summary(fit)
 plot(fit)
+coef(fit)
 # ------------------------------------------------------------------------------
 
 
