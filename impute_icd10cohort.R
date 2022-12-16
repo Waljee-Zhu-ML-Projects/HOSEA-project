@@ -61,6 +61,21 @@ master %>% group_by(sset) %>%
 # 3 train 5134140  5134140        0
 # 4 valid 2567069  2567069        0
 
+sample_df = HOSEA:::load_sas("./unzipped_data/icd10cohort/sampleext.rds", "sample")
+sample_df %>% group_by(casecontrol) %>% summarise(n=n(), nd=n_distinct(id))
+# # A tibble: 2 × 3
+# casecontrol       n      nd
+# <dbl>   <int>   <int>
+# 1           0 6595725 6588877
+# 2           1    2086    2082
+with(sample_df, table(casecontrol, priorcase, useNA="always"))
+#           priorcase
+# casecontrol       1    <NA>
+# 0          0 6595725
+# 1          8    2078
+# <NA>       0       0
+
+
 # check if any case->case, case->control, control->case
 master %>% arrange(cohort, sset) %>% group_by(id) %>%
   summarise(n=n(), n_cases=sum(casecontrol==1)) %>%

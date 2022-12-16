@@ -110,23 +110,23 @@ score_test = scores_test %>%
   patch_outcome(master=master, outcome=mname) %>%
   rename(y=casecontrol)
 
-# # representative sample
-# set.seed(0)
-# # merge in gender
-# score_icd10 %<>% left_join(icd10_imputed %>% select(id, gender), by="id")
-# score_test %<>% left_join(test_imputed %>% select(id, gender), by="id")
-# # subsample males
-# nf_icd10 = (1-score_icd10 %>% pull(gender) )%>% sum()
-# score_icd10 = bind_rows(
-#   score_icd10 %>% filter(gender==0),
-#   score_icd10 %>% filter(gender==1) %>% sample_n(nf_icd10)
-# ) %>% select(-gender)
-# 
-# nf_test = (1-score_test %>% pull(gender) )%>% sum()
-# score_test = bind_rows(
-#   score_test %>% filter(gender==0),
-#   score_test %>% filter(gender==1) %>% sample_n(nf_test)
-# ) %>% select(-gender)
+# representative sample
+set.seed(0)
+# merge in gender
+score_icd10 %<>% left_join(icd10_imputed %>% select(id, gender), by="id")
+score_test %<>% left_join(test_imputed %>% select(id, gender), by="id")
+# subsample males
+nf_icd10 = (1-score_icd10 %>% pull(gender) )%>% sum()
+score_icd10 = bind_rows(
+  score_icd10 %>% filter(gender==0),
+  score_icd10 %>% filter(gender==1) %>% sample_n(nf_icd10)
+) %>% select(-gender)
+
+nf_test = (1-score_test %>% pull(gender) )%>% sum()
+score_test = bind_rows(
+  score_test %>% filter(gender==0),
+  score_test %>% filter(gender==1) %>% sample_n(nf_test)
+) %>% select(-gender)
 
 
 roc_icd10 = roc(score_icd10)
@@ -138,8 +138,6 @@ print(score_icd10$y %>% table())
 cat("Test\n")
 print(score_test$y %>% table())
 # ------------------------------------------------------------------------------
-
-
 
 
 
@@ -156,8 +154,8 @@ print(score_test$y %>% table())
       Cohort=paste0("Test (", roc_test[["score"]]$display.ci, ")")
     )
   )
-# filepath = paste0(dir_figures, "roc_", mname, "_representative.pdf")
-filepath = paste0(dir_figures, "roc_", mname, ".pdf")
+filepath = paste0(dir_figures, "roc_", mname, "_representative.pdf")
+# filepath = paste0(dir_figures, "roc_", mname, ".pdf")
   gtitle = paste0("Cancer type: ", mname, "\n")
   g = ggplot(data=df_curves, aes(x=fpr, y=recall, color=Cohort)) + geom_line() +
     theme(aspect.ratio=1) +
