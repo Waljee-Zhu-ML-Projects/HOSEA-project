@@ -293,14 +293,17 @@ g1 = ggplot(data=coefs) +
   geom_line(mapping=aes(x=x, y=Odds, color=feature)) +
   # geom_ribbon(mapping=aes(x=x, ymin=LOdds, ymax=UOdds, fill=feature), alpha=0.2) +
   ggtitle("Logistic regression: splines by PPI level") + 
-  theme(legend.position="bottom") + 
-  xlim(0, 30) + ylim(0,1.5)
+  theme(legend.position="bottom",
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) + 
+  xlim(0, 30) + ylim(0,1.5) +labs(color="PPI")
 
 g2 = ggplot(data=df) + 
   geom_density(mapping=aes(x=anion_gap_mean, color=ppi)) + 
-  xlim(0, 30) + theme(legend.position="none")
+  xlim(0, 30) + theme(legend.position="bottom")
 
-g = cowplot::
+g = cowplot::plot_grid(g1, g2, nrow=2, rel_heights=c(2, 1), align="v", axis="lr")
 
 ggsave(filepath, g, width=8, height=8, bg="white")
 ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=8, bg="white")
