@@ -56,7 +56,8 @@ set.seed(0)
 # subsample for SHAP/PDPs
 # df = imputed_df %>% sample_n(1000000)
 # subsample controls
-df = imputed_df %>% filter(casecontrol==1) %>% bind_rows(imputed_df%>%filter(casecontrol==0) %>% sample_n(100000))
+df = imputed_df %>% filter(casecontrol==1) %>% 
+  bind_rows(imputed_df%>%filter(casecontrol==0) %>% sample_n(100000))
 # compute some variables
 df %<>% mutate(
   white=(black+asian+hawaiianpacific+indianalaskan)==0,
@@ -89,11 +90,16 @@ models = list(
   "white"=c(white=F),
   "obesity"=c(obesity=F),
   "smoking"=c(smoke_any=F),
+  "ppi"=c(ppi=F),
   "known_predictors"=c(age=T, gender=F, gerd=F, white=F, obesity=F, smoke_any=F),
   "anion_gap"=c(anion_gap_mean=T),
-  "known_predictors_anion_gap"=c(age=T, gender=F, gerd=F, white=F, obesity=F, smoke_any=F, anion_gap_mean=T),
-  "ppi"=c(ppi=F),
-  "ppi_anion_gap"=c(ppi=F, anion_gap_mean=T)
+  "known_predictors_anion_gap"=c(age=T, gender=F, gerd=F, white=F, obesity=F, 
+                                 smoke_any=F, anion_gap_mean=T),
+  "ppi_anion_gap"=c(ppi=F, anion_gap_mean=T),
+  "known_predictors_ppi_anion_gap"=c(age=T, gender=F, gerd=F, white=F, obesity=F, 
+                                     smoke_any=F, anion_gap_mean=T, ppi=F),
+  "known_predictors_ppi"=c(age=T, gender=F, gerd=F, white=F, obesity=F, 
+                                     smoke_any=F, ppi=F)
 )
 # ------------------------------------------------------------------------------
 
@@ -119,13 +125,61 @@ to_formula = function(x){
 
 
 # ==============================================================================
-# FIT
-mname = "known_predictors_anion_gap"
-model = models[[mname]]
-fit = mgcv::gam(formula=to_formula(model) %>% formula, family=binomial, data=df)
-summary_fit = summary(fit)
-plot(fit)
-coef(fit)
+# FIT ALL MODELS
+fits = lapply(names(models), function(mname){
+  model = models[[mname]]
+  marginal = length(model)==1
+  fit = mgcv::gam(formula=to_formula(model) %>% formula, family=binomial, data=df)
+  fit$name = ifelse(marginal, "marginal", mname)
+  return(fit)
+})
+names(fits) = names(models)
+# ------------------------------------------------------------------------------
+
+
+
+
+
+# ==============================================================================
+# COEFFICIENT DF
+coef_df = lapply(fits, function(fit){
+  coefs = summary(fit)$p.table %>% as.data.frame()
+  coefs %<>% mutate(
+    L=Estimate-1.96*`Std. Error`,
+    U=Estimate+1.96*`Std. Error`
+  ) %>% mutate(
+    Odds=exp(Estimate),
+    LOdds=exp(L),
+    UOdds=exp(U)
+  ) %>% mutate(
+    model=fit$name
+  ) 
+  coefs$feature = rownames(coefs)
+  return(coefs %>% filter(feature!="(Intercept)"))
+}) %>% bind_rows()
+# ------------------------------------------------------------------------------
+
+
+
+
+
+
+# ==============================================================================
+# PLOT COEFFICIENTS
+filepath = paste0(dir_figures, "logreg_coefs.pdf")
+
+g = ggplot(data=coef_df) + 
+  geom_point(aes(x=model, y=Odds, color=model)) +
+  geom_errorbar(mapping=aes(x=model, ymin=LOdds, ymax=UOdds, color=model)) + 
+  facet_wrap(~feature, scales="free") + 
+  ggtitle("Logistic regression: estimate comparison") + 
+  theme(
+    axis.text.x=element_blank(),
+    axis.ticks.x=element_blank(),
+    legend.position="bottom"
+    )
+ggsave(filepath, g, width=8, height=8, bg="white")
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=8, bg="white")
 # ------------------------------------------------------------------------------
 
 
@@ -137,6 +191,63 @@ coef(fit)
 
 
 
+
+# ==============================================================================
+# COEFFICIENT DF
+spline_df = lapply(fits, function(fit){
+  if(length(fit$smooth)>0){
+    plots = plot(fit) 
+    coefs = lapply(plots, function(plt){
+      feature = plt$xlab
+      x = plt$x
+      estimate = plt$fit
+      se = plt$se
+      df = data.frame(
+        feature=feature,
+        x=x,
+        estimate=estimate,
+        L=estimate-1.96*se,
+        U=estimate+1.96*se
+      ) %>% mutate(
+        Odds=exp(estimate),
+        LOdds=exp(L),
+        UOdds=exp(U)
+      )
+      return(df)
+    }) %>% bind_rows() %>% mutate(model=fit$name)
+    return(coefs)
+  }
+}) %>% bind_rows()
+# ------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+# ==============================================================================
+# PLOT SPLINES
+filepath = paste0(dir_figures, "logreg_splines.pdf")
+xlims = list(age=c(18, 90), anion_gap_mean=c(5, 20))
+
+spline_df = lapply(names(xlims), function(vname){
+  df = spline_df %>% filter(feature==!!vname) %>%
+    filter(x>=xlims[[vname]][1]) %>%
+    filter(x<=xlims[[vname]][2])
+  return(df)
+}) %>% bind_rows()
+
+g = ggplot(data=spline_df) + 
+  geom_line(mapping=aes(x=x, y=Odds, color=model)) +
+  # geom_ribbon(mapping=aes(x=x, ymin=LOdds, ymax=UOdds, color=model), alpha=0.2) + 
+  facet_wrap(~feature, scales="free", ncol=1) + 
+  ggtitle("Logistic regression: splines comparison") + 
+  theme(legend.position="bottom")
+ggsave(filepath, g, width=8, height=8, bg="white")
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=8, bg="white")
+# ------------------------------------------------------------------------------
 
 
 

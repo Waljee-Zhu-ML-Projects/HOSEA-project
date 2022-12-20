@@ -225,22 +225,24 @@ wdf = var_shap %>% filter(casecontrol==1) %>% bind_rows(var_shap%>%filter(caseco
 
 g = GGally::ggpairs(
   wdf,
-  columns=c("na_mean", "co2_mean", "bun_mean", "wbc_mean", "age", "ppi"),
-  mapping=aes(color=casecontrol)
+  columns=c("na_mean", "co2_mean", "chlor_mean", "bun_mean", "wbc_mean", "alt_mean", "age", "anion_gap_eu_mean"),
+  mapping=aes(color=ppi),
+  lower=list(continuous="smooth")
 )
-filename = paste0(dir_figures, "pairs_na_co2_bun_wbc_age.pdf")
-ggsave(filename, g, width=10, height=10, bg="white")
-ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=10, height=10, bg="white")
+filename = paste0(dir_figures, "pairs_byppi.pdf")
+ggsave(filename, g, width=16, height=16, bg="white")
+ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=16, height=16, bg="white")
 
 
 g = GGally::ggpairs(
   wdf,
-  columns=c("shap_na", "shap_co2", "shap_bun", "shap_wbc", "shap_age", "shap_chlor", "shap_creat", "ppi"),
-  mapping=aes(color=casecontrol)
+  columns=c("shap_na", "shap_co2", "shap_chlor", "shap_bun", "shap_wbc", "shap_alt", "shap_age", "shap_anion_gap_eu"),
+  mapping=aes(color=ppi),
+  lower=list(continuous="smooth")
 )
-filename = paste0(dir_figures, "shap_pairs_na_co2_bun_wbc_age.pdf")
-ggsave(filename, g, width=14, height=14, bg="white")
-ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=14, height=14, bg="white")
+filename = paste0(dir_figures, "shap_pairs_nbyppi.pdf")
+ggsave(filename, g, width=16, height=16, bg="white")
+ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=16, height=16, bg="white")
 
 
 wdf %<>% mutate(
