@@ -254,11 +254,50 @@ ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=8, bg="w
 
 
 
+# ==============================================================================
+# PPI x ANION GAP
+filepath = paste0(dir_figures, "logreg_splines_ppi_x_anion_gap.pdf")
+fit = mgcv::gam(formula("casecontrol ~ s(age) + white + gerd + smoke_any + 
+                        gender + obesity + 
+                        s(anion_gap_mean, by=ppi)"), family=binomial, data=df)
+plots = plot(fit) 
+plots = list(
+  NONE=plots[[2]],
+  LOW=plots[[3]],
+  HIGH=plots[[4]]
+)
+coefs = lapply(names(plots), function(ppilvl){
+  plt = plots[[ppilvl]]
+  feature = plt$xlab
+  x = plt$x
+  estimate = plt$fit
+  se = plt$se
+  df = data.frame(
+    feature=feature,
+    x=x,
+    estimate=estimate,
+    L=estimate-1.96*se,
+    U=estimate+1.96*se
+  ) %>% mutate(
+    Odds=exp(estimate),
+    LOdds=exp(L),
+    UOdds=exp(U)
+  )
+  return(df)
+}) %>% bind_rows() %>% mutate(model=fit$name)
 
 
 
 
-
+g = ggplot(data=spline_df) + 
+  geom_line(mapping=aes(x=x, y=Odds, color=model)) +
+  # geom_ribbon(mapping=aes(x=x, ymin=LOdds, ymax=UOdds, color=model), alpha=0.2) + 
+  facet_wrap(~feature, scales="free", ncol=1) + 
+  ggtitle("Logistic regression: splines comparison") + 
+  theme(legend.position="bottom")
+ggsave(filepath, g, width=8, height=8, bg="white")
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=8, bg="white")
+# ------------------------------------------------------------------------------
 
 
 
