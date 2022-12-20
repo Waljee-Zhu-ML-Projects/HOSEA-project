@@ -289,14 +289,21 @@ coefs = lapply(names(plots), function(ppilvl){
 
 
 
-g = ggplot(data=coefs) + 
+g1 = ggplot(data=coefs) + 
   geom_line(mapping=aes(x=x, y=Odds, color=feature)) +
-  # geom_ribbon(mapping=aes(x=x, ymin=LOdds, ymax=UOdds, color=model), alpha=0.2) + 
+  # geom_ribbon(mapping=aes(x=x, ymin=LOdds, ymax=UOdds, fill=feature), alpha=0.2) +
   ggtitle("Logistic regression: splines by PPI level") + 
   theme(legend.position="bottom") + 
   xlim(0, 30) + ylim(0,1.5)
-ggsave(filepath, g, width=8, height=6, bg="white")
-ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6, bg="white")
+
+g2 = ggplot(data=df) + 
+  geom_density(mapping=aes(x=anion_gap_mean, color=ppi)) + 
+  xlim(0, 30) + theme(legend.position="none")
+
+g = cowplot::
+
+ggsave(filepath, g, width=8, height=8, bg="white")
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=8, bg="white")
 # ------------------------------------------------------------------------------
 
 
