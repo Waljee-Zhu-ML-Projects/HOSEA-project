@@ -268,7 +268,7 @@ plots = list(
 )
 coefs = lapply(names(plots), function(ppilvl){
   plt = plots[[ppilvl]]
-  feature = plt$xlab
+  feature = ppilvl
   x = plt$x
   estimate = plt$fit
   se = plt$se
@@ -284,19 +284,19 @@ coefs = lapply(names(plots), function(ppilvl){
     UOdds=exp(U)
   )
   return(df)
-}) %>% bind_rows() %>% mutate(model=fit$name)
+}) %>% bind_rows()
 
 
 
 
-g = ggplot(data=spline_df) + 
-  geom_line(mapping=aes(x=x, y=Odds, color=model)) +
+g = ggplot(data=coefs) + 
+  geom_line(mapping=aes(x=x, y=Odds, color=feature)) +
   # geom_ribbon(mapping=aes(x=x, ymin=LOdds, ymax=UOdds, color=model), alpha=0.2) + 
-  facet_wrap(~feature, scales="free", ncol=1) + 
-  ggtitle("Logistic regression: splines comparison") + 
-  theme(legend.position="bottom")
-ggsave(filepath, g, width=8, height=8, bg="white")
-ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=8, bg="white")
+  ggtitle("Logistic regression: splines by PPI level") + 
+  theme(legend.position="bottom") + 
+  xlim(0, 30) + ylim(0,1.5)
+ggsave(filepath, g, width=8, height=6, bg="white")
+ggsave(stringr::str_replace(filepath, "pdf", "png"), g, width=8, height=6, bg="white")
 # ------------------------------------------------------------------------------
 
 
