@@ -62,8 +62,8 @@ raw_df = readRDS(paste0(dir_raw_data, raw_data))
 
 # ==============================================================================
 # PARAMETERS
-outcome = "EAC"
-missing_which = "all"
+outcome = "ANY"
+missing_which = "complete"
 representative = F # F: uses everything, T: downsamples males so get a more representative sample
 seed = 0
 # ------------------------------------------------------------------------------

@@ -62,7 +62,7 @@ raw_df = readRDS(paste0(dir_raw_data, raw_data))
 # ==============================================================================
 # PARAMETERS
 seed = 0
-outcome = "EAC"
+outcome = "ANY"
 missing_which = "all"
 representative = F
 # ------------------------------------------------------------------------------
@@ -126,7 +126,7 @@ y = imputed_wdf %>% pull(casecontrol)
 
 # ==============================================================================
 # CALIBRATION PLOT
-calibration = calibration_curve(proba$HOSEA, y, 50)
+calibration = calibration_curve(proba$HOSEA, y, 10)
 hl = hosmer_lemeshow(
   calibration$mid,
   calibration$prop_cases,
