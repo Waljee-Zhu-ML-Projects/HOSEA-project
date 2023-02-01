@@ -308,6 +308,9 @@ shap = shaps %>% bind_rows()
 
 variables = shap %>% select(-c(id, Model, BIAS)) %>% colnames()
 
+
+dir_shap = paste0("./R_code/hosea-project/figures/", imputation, "/shap_article/")
+
 for(var in variables){
   wdf = shap %>% select(id, Model, !!var)
   wdf %<>% left_join(df %>% select(id, !!var), by="id")
@@ -336,7 +339,9 @@ for(var in variables){
         alpha=0.2,
         position="identity",
         binwidth=ifelse(r[2]-r[1] < 200, 1, (r[2]-r[1])/20)
-      ) + xlab(var) + xlim(xrange) + ylab("Frequency")
+      ) + xlab(var) + xlim(xrange) + ylab("Frequency") + 
+      scale_color_manual(values=c("Control"="black", "EAC"="#00BA38", "EGJAC"="#619CFF")) + 
+      scale_fill_manual(values=c("Control"="black", "EAC"="#00BA38", "EGJAC"="#619CFF"))
   }
   g_shap = ggplot() +
     geom_smooth(
@@ -349,7 +354,7 @@ for(var in variables){
     theme(axis.text.x = element_blank()) + xlim(xrange)
   g = cowplot::plot_grid(g_shap, g_density, nrow=2, rel_heights=c(2, 1), align="v")
   filename = paste0(dir_shap, var, ".pdf")
-  ggsave(filename, g, width=6, height=6, bg="white")
+  ggsave(filename, g, width=4, height=4, bg="white")
   ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=6, bg="white")
 }
 
