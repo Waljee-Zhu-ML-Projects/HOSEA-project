@@ -126,7 +126,7 @@ y = imputed_wdf %>% pull(casecontrol)
 
 # ==============================================================================
 # CALIBRATION PLOT
-calibration = calibration_curve(proba$HOSEA, y, 10)
+calibration = calibration_curve(proba$HOSEA, y, 50)
 hl = hosmer_lemeshow(
   calibration$mid,
   calibration$prop_cases,

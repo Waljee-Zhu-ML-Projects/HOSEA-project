@@ -310,7 +310,9 @@ variables = shap %>% select(-c(id, Model, BIAS)) %>% colnames()
 
 
 dir_shap = paste0("./R_code/hosea-project/figures/", imputation, "/shap_article/")
-
+variables=c("age", "black", "gender", "wbc_mean", "copd", "na_mean",
+            "hct_mean", "co2_mean", "bun_mean", "alt_mean", 
+            "ldl_mean", "hdl_mean", "bmi", "gerd", "smoke_current")
 for(var in variables){
   wdf = shap %>% select(id, Model, !!var)
   wdf %<>% left_join(df %>% select(id, !!var), by="id")
@@ -328,7 +330,9 @@ for(var in variables){
         stat="count",
         width=0.1
       ) +
-      xlab(var) + ylab("Frequency") + scale_x_continuous(breaks=0:1)
+      xlab(var) + ylab("Frequency") + scale_x_continuous(breaks=0:1) +
+      scale_color_manual(values=c("Control"="black", "EAC"="#00BA38", "EGJAC"="#619CFF")) + 
+      scale_fill_manual(values=c("Control"="black", "EAC"="#00BA38", "EGJAC"="#619CFF"))
     xrange=c(-0.05, 1.05)
   }else{
     r = wdf %>% pull(Var) %>% range
@@ -355,7 +359,7 @@ for(var in variables){
   g = cowplot::plot_grid(g_shap, g_density, nrow=2, rel_heights=c(2, 1), align="v")
   filename = paste0(dir_shap, var, ".pdf")
   ggsave(filename, g, width=4, height=4, bg="white")
-  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=6, height=6, bg="white")
+  ggsave(stringr::str_replace(filename, "pdf", "png"), g, width=4, height=4, bg="white")
 }
 
 # ------------------------------------------------------------------------------
