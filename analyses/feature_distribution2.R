@@ -69,21 +69,47 @@ vars = HOSEA:::med_vars
 
 out = lapply(vars, function(vname){
   df = raw_df$df %>% select(cancertype, starts_with(!!vname))
-  df %<>% mutate(
-    nz=.data[[paste0(vname, "_max")]] > 0
-  ) 
-  tab = table(df$nz, df$cancertype, useNA="always")
-  N = as.matrix(tab[, 1:3])
-  prop = N / matrix(colSums(N), 3, 3, T)
+  vout = df %>% group_by(cancertype) %>% summarize(
+    missing=sum(is.na(.data[[paste0(vname, "_max")]])),
+    observed=sum(!is.na(.data[[paste0(vname, "_max")]]))
+  )
+  N = vout %>% tibble::column_to_rownames("cancertype") %>% t
+  prop = N / matrix(colSums(N), 2, 3, T)
   colnames(N) = paste0("N_", colnames(N))
   colnames(prop) = paste0("prop_", colnames(prop))
   vout = bind_cols(N, prop)
-  vout$value = c("zero", "nonzero", "missing")
+  vout$value = c("missing", "observed")
   vout
 })
 
 names(out) = vars
 medication = bind_rows(out, .id="medication")
 write.csv(medication, paste0(dir_tables, "medication.csv"))
+# ------------------------------------------------------------------------------
+
+
+
+# ==============================================================================
+# LAB
+vars = HOSEA:::lab_vars
+
+out = lapply(vars, function(vname){
+  df = raw_df$df %>% select(cancertype, starts_with(!!vname))
+  vout = df %>% group_by(cancertype) %>% summarize(
+    missing=sum(is.na(.data[[paste0(vname, "_max")]])),
+    observed=sum(!is.na(.data[[paste0(vname, "_max")]]))
+  )
+  N = vout %>% tibble::column_to_rownames("cancertype") %>% t
+  prop = N / matrix(colSums(N), 2, 3, T)
+  colnames(N) = paste0("N_", colnames(N))
+  colnames(prop) = paste0("prop_", colnames(prop))
+  vout = bind_cols(N, prop)
+  vout$value = c("missing", "observed")
+  vout
+})
+
+names(out) = vars
+labs = bind_rows(out, .id="labs")
+write.csv(labs, paste0(dir_tables, "labs.csv"))
 # ------------------------------------------------------------------------------
 
