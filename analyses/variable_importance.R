@@ -76,6 +76,8 @@ df = df %>% sample_n(100000)
 
 dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/variable_importance50p/")
 dir_tables = paste0("./R_code/hosea-project/tables/", imputation, "/variable_importance50p/")
+
+center = T
 # ------------------------------------------------------------------------------
 
 
@@ -187,7 +189,13 @@ for(mname in names(models)){
                        label=df$casecontrol)
   proba = predict(model, newdata=xgb_df, predcontrib=TRUE, approxcontrib=F)
   
-  vi = colSums(abs(proba))
+  
+  if(center){
+    vi = apply(proba, 2, function(x) mean(abs(x-median(x))))
+  }else{
+    vi = abs(proba) %>% colMeans()
+  }
+  # vi = colSums(abs(proba))
   vi_all = data.frame(feature=names(vi), SHAP=vi)
   
   #by group
@@ -201,7 +209,13 @@ for(mname in names(models)){
   })
   names(shap_groups) = names(groups)
   shap_groups = bind_cols(shap_groups)
-  shap_group_agg = abs(shap_groups) %>% colMeans()
+  
+  if(center){
+    shap_group_agg = sapply(shap_groups, function(x) mean(abs(x-median(x))))
+  }else{
+    shap_group_agg = abs(shap_groups) %>% colMeans()
+  }
+  
   vi_group = data.frame(group=names(shap_group_agg), SHAP=shap_group_agg)
   
   #by category
@@ -215,7 +229,12 @@ for(mname in names(models)){
   })
   names(shap_categories) = names(categories)
   shap_categories = bind_cols(shap_categories)
-  shap_categories_agg = abs(shap_categories) %>% colMeans()
+  
+  if(center){
+    shap_categories_agg = sapply(shap_categories, function(x) mean(abs(x-median(x))))
+  }else{
+    shap_categories_agg = abs(shap_categories) %>% colMeans()
+  }
   vi_cat = data.frame(category=names(shap_categories_agg), SHAP=shap_categories_agg)
   
   vi_group %<>% left_join(
@@ -246,9 +265,9 @@ vi %<>% select((any_of(c("category", "group", "Feature", names(models)))))
 vi_group %<>% select((any_of(c("category", "group", "Feature", names(models)))))
 vi_cat %<>% select((any_of(c("category", "group", "Feature", names(models)))))
 
-write.csv(vi, paste0(dir_tables, "shap.csv"))
-write.csv(vi_group, paste0(dir_tables, "shap_group.csv"))
-write.csv(vi_cat, paste0(dir_tables, "shap_cat.csv"))
+write.csv(vi, paste0(dir_tables, "shap", ifelse(center, "_centered", ""), ".csv"))
+write.csv(vi_group, paste0(dir_tables, "shap_group", ifelse(center, "_centered", ""), ".csv"))
+write.csv(vi_cat, paste0(dir_tables, "shap_cat", ifelse(center, "_centered", ""), ".csv"))
 
 vi_cat_long = vi_cat %>% tidyr::pivot_longer(names(models), names_to="Model", values_to="Gain")
 category_order = vi_cat_long %>% filter(Model=="ANY") %>% arrange(Gain) %>% pull(category)
@@ -258,7 +277,7 @@ g = ggplot(data=vi_cat_long, aes(y=reorder(category, Gain), x=Gain, fill=Model))
   geom_bar(stat="identity", position="dodge") +
   ggtitle("SHAP Variable importance by category") +
   ylab("Category") + xlab("mean|SHAP|")
-filename = paste0(dir_figures, "shap_cat.pdf")
+filename = paste0(dir_figures, "shap_cat", ifelse(center, "_centered", ""), ".pdf")
 ggsave(filename, g, width=6, height=4, bg="white")
 ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=4, bg="white")
 
@@ -270,7 +289,7 @@ g = ggplot(data=vi_group_long, aes(y=reorder(group, Gain), x=Gain, fill=Model)) 
   geom_bar(stat="identity", position="dodge") +
   ggtitle("SHAP Variable importance by group") +
   ylab("Feature group") + xlab("mean|SHAP|")
-filename = paste0(dir_figures, "shap_group.pdf")
+filename = paste0(dir_figures, "shap_group", ifelse(center, "_centered", ""), ".pdf")
 ggsave(filename, g, width=6, height=8, bg="white")
 ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=8, bg="white")
 
@@ -279,7 +298,7 @@ for(mname in names(models)){
     geom_bar(stat="identity", position="dodge") +
     ggtitle(paste0("SHAP Variable importance by group (", mname, ")")) +
     ylab("Feature group") + xlab("mean|SHAP|")
-  filename = paste0(dir_figures, "shap_group_", mname, ".pdf")
+  filename = paste0(dir_figures, "shap_group_", mname, "", ifelse(center, "_centered", ""), ".pdf")
   ggsave(filename, g, width=6, height=8, bg="white")
   ggsave(stringr::str_replace(filename, "pdf", "png"), g,width=6, height=8, bg="white")
 }
