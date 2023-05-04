@@ -22,16 +22,16 @@ theme_set(theme_minimal())
 # ==============================================================================
 # PATHS
 imputation = "srs"
-setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
+setwd('/nfs/turbo/umms-awaljee-secure/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
-dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/variable_importance/")
 dir_tables = paste0("./R_code/hosea-project/tables/", imputation, "/variable_importance/")
 dir_shap = paste0("./R_code/hosea-project/figures/", imputation, "/shap/")
 dir_pdp = paste0("./R_code/hosea-project/figures/", imputation, "/pdp/")
 dir_models = "./R_data/results/models/"
 imputed_data = paste0("5-1test_", imputation, "_any.rds")
 raw_data = "5-1_merged.rds"
+
 # ------------------------------------------------------------------------------
 
 
@@ -69,10 +69,13 @@ features = feature_groups()
 
 # ==============================================================================
 # PREPARE DATA
-df = imputed_df
+df = imputed_df %>% filter(age >= 50)
 set.seed(seed)
 # subsample for SHAP/PDPs
-df = imputed_df %>% sample_n(1000000)
+df = df %>% sample_n(100000)
+
+dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/variable_importance50p/")
+dir_tables = paste0("./R_code/hosea-project/tables/", imputation, "/variable_importance50p/")
 # ------------------------------------------------------------------------------
 
 
