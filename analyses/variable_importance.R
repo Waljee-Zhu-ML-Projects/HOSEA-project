@@ -69,15 +69,15 @@ features = feature_groups()
 
 # ==============================================================================
 # PREPARE DATA
-df = imputed_df %>% filter(age >= 50)
+df = imputed_df # %>% filter(age >= 50)
 set.seed(seed)
 # subsample for SHAP/PDPs
-df = df %>% sample_n(100000)
+df = df %>% sample_n(1000000)
 
-dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/variable_importance50p/")
-dir_tables = paste0("./R_code/hosea-project/tables/", imputation, "/variable_importance50p/")
+dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/variable_importance/")
+dir_tables = paste0("./R_code/hosea-project/tables/", imputation, "/variable_importance/")
 
-center = T
+center = F
 # ------------------------------------------------------------------------------
 
 

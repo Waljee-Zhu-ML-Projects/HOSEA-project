@@ -97,16 +97,33 @@ proba = predict.HOSEA(imputed_wdf, imputer=NULL, models=models)
 
 
 
+
+
 # ==============================================================================
-# AVERAGE PREDICTED RISK PER AGE GROUP
-df = proba %>% left_join(imputed_df %>% select(id, age), by="id")
+# AVERAGE PREDICTED RISK PER AGE GROUP & SEX
+df = proba %>% left_join(imputed_df %>% select(id, age, gender), by="id")
 df %<>% mutate(age_bin=cut(age, c(0, 30, 40, 50, 60, 70, 80, 100)))
-avg_risk = df %>% group_by(age_bin) %>% summarize(
+avg_risk = df %>% group_by(age_bin, gender) %>% summarize(
   ANY=mean(ANY)*100000,
   EAC=mean(EAC)*100000,
   EGJAC=mean(EGJAC)*100000
 )
-write.csv()
+write.csv(avg_risk, paste0(dir_tables, "avg_risk_by_age_bin_sex.csv"))
+# ------------------------------------------------------------------------------
+
+
+
+
+# ==============================================================================
+# POPULATION ATTRIBUTABLE RISK PER AGE GROUP & SEX
+df = proba %>% left_join(imputed_df %>% select(id, age, gender), by="id")
+df %<>% mutate(age_bin=cut(age, c(0, 30, 40, 50, 60, 70, 80, 100)))
+par_denum = df %>% group_by(age_bin, gender) %>% summarize(
+  ANY=1/mean(1/ANY)*100000,
+  EAC=1/mean(1/EAC)*100000,
+  EGJAC=1/mean(1/EGJAC)*100000
+)
+write.csv(par_denum, paste0(dir_tables, "par_denum_by_age_bin_sex.csv"))
 # ------------------------------------------------------------------------------
       
       

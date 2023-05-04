@@ -22,7 +22,7 @@ theme_set(theme_minimal())
 # ==============================================================================
 # PATHS
 imputation = "srs"
-center = T
+center = F
 setwd('/nfs/turbo/umms-awaljee-secure/umms-awaljee-HOSEA/Peter files')
 dir_tables = paste0("./R_code/hosea-project/tables/", imputation, "/")
 dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/vi_revisions/")
@@ -40,7 +40,7 @@ gain = list(
 )
 gain %<>% bind_rows(.id="cohort")
 shap = list(
-  all=read.csv(paste0(dir_tables, "variable_importance/shap_group", ifelse(center, "_centered", ""), ".csv")),
+  all=read.csv(paste0(dir_tables, "variable_importance/shap_group_old", ifelse(center, "_centered", ""), ".csv")),
   above50=read.csv(paste0(dir_tables, "variable_importance50p/shap_group", ifelse(center, "_centered", ""), ".csv")),
   below50=read.csv(paste0(dir_tables, "variable_importance50m/shap_group", ifelse(center, "_centered", ""), ".csv"))
 )
@@ -69,8 +69,8 @@ groups = data.frame(
     "Agent orange", "Age",         "Smoking status",      
     "GERD",        "CHF",         "CTD",         
     "Dementia",         "DM with compl.",      "HIV",        
-    "MLD",         "MLDS",        "Paraplesia/Hemiplegia",        
-    "Renal Disease",          "Cerebrovascular disease",          "COPD",       
+    "MLD",         "MSLD",        "Paraplesia/Hemiplegia",        
+    "Renal disease",          "Cerebrovascular disease",          "COPD",       
     "DM no compl.",     "Myocardial infarction",          "PUD",         
     "PVD",         "H2R",         "PPI",        
     "HgbA1c",         "BUN",         "Calcium",        
