@@ -69,7 +69,7 @@ groups = data.frame(
     "Agent orange", "Age",         "Smoking status",      
     "GERD",        "CHF",         "CTD",         
     "Dementia",         "DM with compl.",      "HIV",        
-    "MLD",         "MSLD",        "Paraplesia/Hemiplegia",        
+    "Mild liver disease",         "Moderate/severe liver disease",        "Paraplesia/Hemiplegia",        
     "Renal disease",          "Cerebrovascular disease",          "COPD",       
     "DM no compl.",     "Myocardial infarction",          "PUD",         
     "PVD",         "H2R",         "PPI",        

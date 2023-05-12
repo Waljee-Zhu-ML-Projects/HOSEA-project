@@ -22,7 +22,7 @@ theme_set(theme_minimal())
 # ==============================================================================
 # PATHS
 imputation = "srs"
-setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
+setwd('/nfs/turbo/umms-awaljee-secure/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
 dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/identity/")
@@ -65,6 +65,7 @@ raw_df = readRDS(paste0(dir_raw_data, raw_data))
 outcome = "ANY"
 seed = 0
 age_bins = c(0, 45, 55, 65, 75, 100)
+age_bins = c(0, 50, 100)
 # ------------------------------------------------------------------------------
 
 
@@ -91,6 +92,12 @@ df %<>% mutate(
 )
 df %<>% patch_outcome(raw_df$master, outcome=outcome)
 df = proba %>% left_join(df, by="id")
+
+wdf = df %>% select(id, !!outcome, casecontrol) %>%
+  rename(y=casecontrol)
+out = roc(wdf)[[outcome]]
+out$curve$Age = paste0("Any", " (", out$display.ci, ")")
+roc_all = out$curve
 # ------------------------------------------------------------------------------
 
 
@@ -108,11 +115,19 @@ roc_age = lapply(ages, function(age){
 names(roc_age) = ages
 roc_age %<>% bind_rows()
 
+roc_age %<>% bind_rows(roc_all)
 
-filepath = paste0(dir_figures, outcome, "_age.pdf")
+
+# [1] "(0,50] (0.830 [0.794,0.865])"   "(50,100] (0.703 [0.694,0.713])"
+# [3] "Any (0.769 [0.761,0.776])"
+
+filepath = paste0(dir_figures, outcome, "_age50_all.pdf")
 title = paste0("ROC Curve per age strutum\n",
                "Cancer type: ", outcome)
-g = ggplot(data=roc_age, aes(x=fpr, y=recall, color=Age)) + geom_line() +
+g = ggplot(
+  data=roc_age %>% filter(Age %in% c("(50,100] (0.703 [0.694,0.713])", "Any (0.769 [0.761,0.776])")), 
+  aes(x=fpr, y=recall, color=Age)
+  ) + geom_line() +
   theme(aspect.ratio=1) +
   xlab("1 - Specificity") + ylab("Sensitivity") + 
   geom_abline(intercept=0, slope=1, linetype="dotted") +
