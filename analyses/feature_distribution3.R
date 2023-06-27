@@ -69,6 +69,7 @@ raw_df$df %<>%
 # ==============================================================================
 # COMPUTE STATISTICS
 # df = raw_df$df %>% sample_n(10000)
+df = raw_df$df
 feat_dist = lapply(
   df %>% select(-id, -subset, -casecontrol) %>% colnames,
   function(cname){
@@ -141,10 +142,30 @@ write.csv(feat_dist, paste0(dir_tables, "subset_stats.csv"))
 
 # ==============================================================================
 # PERFORM TESTS
+feat_dist = read.csv(paste0(dir_tables, "subset_stats.csv"))
 vttest = Vectorize(ttesti, vectorize.args=c("obs", "mean", "sd", "obs2", "mean2", "sd2"))
 vptest = Vectorize(proptesti, vectorize.args=c("x1", "n1", "x2", "n2"))
+
+vttest = function(n1, m1, s1, n2, m2, s2){
+  se1 = s1/sqrt(n1)
+  se2 = s2/sqrt(n2)
+  seDiff = sqrt(s1*s1*(n1-1) +s2*s2*(n2-1)) * sqrt(1/n1 + 1/n2) / sqrt(n1+n2-2)
+  tstat = (m1-m2) / seDiff
+  pval = 2*stats::pt(-abs(tstat), n1+n2-2)
+  return(pval)
+}
+vptest = function(x1, n1, x2, n2){
+  p1 = x1/n1
+  p2 = x2/n2
+  pDiff = p1-p2
+  se1 = sqrt(p1*(1-p1)/n1)
+  se2 = sqrt(p2*(1-p2)/n2)
+  seDiff = sqrt(se1*se1+se2*se2)
+  return(0.5)
+}
+
 feat_dist %>% mutate(
-  pval_controls_train_v_test=tryCatch(ifelse(
+  pval_controls_train_v_test=ifelse(
     bin_var,
     {
       vptest(
@@ -152,20 +173,20 @@ feat_dist %>% mutate(
         n1=ntrain_controls,
         x2=round(ntest_controls * mtest_controls),
         n2=ntest_controls
-      )$p
+      )
     },
     {
       vttest(
-        obs=ntrain_controls,
-        mean=mtrain_controls,
-        sd=strain_controls,
-        obs2=ntest_controls,
-        mean2=mtest_controls,
-        sd2=stest_controls
-      )$p
+        n1=ntrain_controls,
+        m1=mtrain_controls,
+        s1=strain_controls,
+        n2=ntest_controls,
+        m2=mtest_controls,
+        s2=stest_controls
+      )
     }
-  ), error=function(err) NA)
-)
+  )
+) %>% pull(pval_controls_train_v_test)
 
 # ------------------------------------------------------------------------------
 
