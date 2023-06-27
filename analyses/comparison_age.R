@@ -165,7 +165,7 @@ df_points$ylab = ifelse(df_points$ylab > 1, 1-(df_points$ylab-1), df_points$ylab
 
 filepath = paste0(dir_figures, outcome, "_", 
                   missing_which, 
-                  ifelse(below50, "_lt50", "ge50"),
+                  ifelse(below50, "_lt50", "_ge50"),
                   ifelse(representative, "_representative", ""),
                   ".pdf")
 g = ggplot(data=df_curves, aes(x=fpr, y=recall, color=Method)) + geom_line() +
@@ -175,7 +175,7 @@ g = ggplot(data=df_curves, aes(x=fpr, y=recall, color=Method)) + geom_line() +
   geom_point(data=df_points) + 
   ggtitle(paste0("Cancer type: ", outcome, "\n",
                  "Dataset: test, ", missing_which, 
-                 ifelse(below50, ", <50", ">=50"),
+                 ifelse(below50, ", <50", ", >=50"),
                               ifelse(representative, ", representative", ""), "\n",
                  "Cases: ", n_cases, "/", n_patients))
 g = g +
