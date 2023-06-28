@@ -158,10 +158,11 @@ vptest = function(x1, n1, x2, n2){
   p1 = x1/n1
   p2 = x2/n2
   pDiff = p1-p2
-  se1 = sqrt(p1*(1-p1)/n1)
-  se2 = sqrt(p2*(1-p2)/n2)
-  seDiff = sqrt(se1*se1+se2*se2)
-  return(0.5)
+  p = (x1+x2)/(n1+n2)
+  se = sqrt(p*(1-p)/(1/n1+1/n2))
+  zstat = pDiff / se
+  pval = 2*stats::pnorm(-abs(zstat))
+  return(pval)
 }
 
 feat_dist %>% mutate(
@@ -186,7 +187,50 @@ feat_dist %>% mutate(
       )
     }
   )
-) %>% pull(pval_controls_train_v_test)
+) %>% select(feature, bin_var, pval_controls_train_v_test)
+
+
+
+feats = feat_dist %>% mutate(
+  pval_controls_train_v_test=vttest(
+    n1=ntrain_controls,
+    m1=mtrain_controls,
+    s1=strain_controls,
+    n2=ntest_controls,
+    m2=mtest_controls,
+    s2=stest_controls
+  ),
+  pval_cases_train_v_test=vttest(
+    n1=ntrain_cases,
+    m1=mtrain_cases,
+    s1=strain_cases,
+    n2=ntest_cases,
+    m2=mtest_cases,
+    s2=stest_cases
+  ),
+  pval_controls_dev_v_test=vttest(
+    n1=ndev_controls,
+    m1=mdev_controls,
+    s1=sdev_controls,
+    n2=ntest_controls,
+    m2=mtest_controls,
+    s2=stest_controls
+  ),
+  pval_cases_dev_v_test=vttest(
+    n1=ndev_cases,
+    m1=mdev_cases,
+    s1=sdev_cases,
+    n2=ntest_cases,
+    m2=mtest_cases,
+    s2=stest_cases
+  )
+) %>% mutate(
+  pvalbonf_controls_train_v_test=p.adjust(pval_controls_train_v_test, "b"),
+  pvalbonf_cases_train_v_test=p.adjust(pval_cases_train_v_test, "b"),
+  pvalbonf_controls_dev_v_test=p.adjust(pval_controls_dev_v_test, "b"),
+  pvalbonf_cases_dev_v_test=p.adjust(pval_cases_dev_v_test, "b")
+)
+write.csv(feats, paste0(dir_tables, "subset_stats_with_tests.csv"))
 
 # ------------------------------------------------------------------------------
 
