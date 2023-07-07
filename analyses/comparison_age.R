@@ -22,7 +22,7 @@ imputation = "srs"
 
 # ==============================================================================
 # PATHS
-# setwd('/nfs/turbo/umms-awaljee/umms-awaljee-HOSEA/Peter files')
+setwd('/nfs/turbo/umms-awaljee-secure/umms-awaljee-HOSEA/Peter files')
 dir_imputed_data = "./R_data/imputed_records/"
 dir_raw_data = "./R_data/processed_records/"
 dir_figures = paste0("./R_code/hosea-project/figures/", imputation, "/comparison_age/")
@@ -63,7 +63,7 @@ raw_df = readRDS(paste0(dir_raw_data, raw_data))
 # ==============================================================================
 # PARAMETERS
 outcome = "ANY"
-missing_which = "complete"
+missing_which = "all"
 representative = F # F: uses everything, T: downsamples males so get a more representative sample
 seed = 0
 below50 = F
@@ -99,11 +99,11 @@ if(representative){
 }
 # subset to age
 if(below50){
-  imputed_wdf %<>% filter(age < 50)
-  comparison_wdf %<>% filter(age < 50)
+  imputed_wdf %<>% filter(age <= 50)
+  comparison_wdf %<>% filter(age <= 50)
 }else{
-  imputed_wdf %<>% filter(age >= 50)
-  comparison_wdf %<>% filter(age >= 50)
+  imputed_wdf %<>% filter(age > 50)
+  comparison_wdf %<>% filter(age > 50)
 }
 
 n_cases = imputed_wdf$casecontrol %>% sum()
@@ -165,7 +165,7 @@ df_points$ylab = ifelse(df_points$ylab > 1, 1-(df_points$ylab-1), df_points$ylab
 
 filepath = paste0(dir_figures, outcome, "_", 
                   missing_which, 
-                  ifelse(below50, "_lt50", "_ge50"),
+                  ifelse(below50, "_le50", "_gt50"),
                   ifelse(representative, "_representative", ""),
                   ".pdf")
 g = ggplot(data=df_curves, aes(x=fpr, y=recall, color=Method)) + geom_line() +
@@ -175,7 +175,7 @@ g = ggplot(data=df_curves, aes(x=fpr, y=recall, color=Method)) + geom_line() +
   geom_point(data=df_points) + 
   ggtitle(paste0("Cancer type: ", outcome, "\n",
                  "Dataset: test, ", missing_which, 
-                 ifelse(below50, ", <50", ", >=50"),
+                 ifelse(below50, ", <=50", ", >50"),
                               ifelse(representative, ", representative", ""), "\n",
                  "Cases: ", n_cases, "/", n_patients))
 g = g +

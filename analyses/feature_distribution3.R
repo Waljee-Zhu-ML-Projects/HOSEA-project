@@ -58,6 +58,18 @@ raw_df$df %<>%
       ifelse(id %in% valid_ids, "validation", "testing")
     )
   )
+raw_df$df %<>% tidyr::replace_na(list(
+  h2r_int=0,
+  h2r_mean=0,
+  h2r_max=0,
+  h2r_maxdiff=0,
+  h2r_tv=0,
+  ppi_int=0,
+  ppi_mean=0,
+  ppi_max=0,
+  ppi_maxdiff=0,
+  ppi_tv=0
+))
 # ------------------------------------------------------------------------------
 
 
